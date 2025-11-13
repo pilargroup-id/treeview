@@ -12,7 +12,6 @@ const monthShortNames = [
   'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'
 ];
 
-// Utility Functions
 export const formatCurrency = (num) => {
   const value = parseFloat(num);
   if (isNaN(value)) return 'Rp 0';
@@ -60,7 +59,7 @@ export const getFilteredData = (allData, selectedMonths) => {
   };
 };
 
-// API Service
+// API 
 export const loadRevenueData = async (accountHeader) => {
   try {
     const [response2024, response2025] = await Promise.all([
@@ -202,7 +201,6 @@ export const useMonthPicker = (selectedMonths) => {
   };
 };
 
-// Chart Plugin
 export const createPercentageLabelsPlugin = (stateRef) => {
   return {
     id: 'percentageLabels',
@@ -251,7 +249,6 @@ export const createPercentageLabelsPlugin = (stateRef) => {
   };
 };
 
-// Chart Configuration Hook
 export const useChartConfig = (filteredData, show2024, show2025, showPercentage) => {
   const labels = useMemo(() => {
     return filteredData.data2024.map(item => item.monthShort);
@@ -478,6 +475,5 @@ export const useChartConfig = (filteredData, show2024, show2025, showPercentage)
   return { chartData, chartOptions };
 };
 
-// Export monthNames for MonthPicker component
 export { monthNames };
 

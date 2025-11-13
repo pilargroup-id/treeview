@@ -45,8 +45,7 @@ const demoTheme = createTheme({
 });
 
 function DemoPageContent({ pathname }) {
-  // Render ChartBulanan untuk halaman Revenue
-  // Pathname akan berupa '/dashboard/Revenue' ketika menu Revenue diklik
+
   if (pathname.includes('Revenue')) {
     return (
       <Box sx={{ p: 3 }}>
