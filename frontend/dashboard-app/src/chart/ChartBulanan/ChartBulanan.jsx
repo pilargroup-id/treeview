@@ -27,7 +27,6 @@ import {
 } from './chartHelpers';
 import { styles } from './styles';
 
-// Register Chart.js components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -51,7 +50,6 @@ const globalStyles = (
   />
 );
 
-// MonthPicker Component
 const MonthPicker = ({
   selectedMonths,
   tempSelectedMonths,
@@ -166,7 +164,6 @@ const MonthPicker = ({
   );
 };
 
-// ChartControls Component
 const ChartControls = ({
   accountHeader,
   onAccountHeaderChange,
@@ -206,7 +203,6 @@ const ChartControls = ({
   );
 };
 
-// LegendToggles Component
 const LegendToggles = ({ show2024, show2025, showPercentage, onToggle2024, onToggle2025, onTogglePercentage }) => {
   return (
     <Box sx={styles.legendToggles}>
@@ -264,7 +260,6 @@ const LegendToggles = ({ show2024, show2025, showPercentage, onToggle2024, onTog
   );
 };
 
-// Main Component
 function ChartBulanan() {
   const [selectedMonths, setSelectedMonths] = useState(new Set());
   const [showPercentage, setShowPercentage] = useState(false);
@@ -274,7 +269,6 @@ function ChartBulanan() {
   const chartRef = useRef(null);
   const stateRef = useRef({ showPercentage, show2024, show2025, filteredData: { data2024: [], data2025: [] } });
 
-  // Custom hooks
   const {
     accountHeader,
     setAccountHeader,
@@ -292,15 +286,12 @@ function ChartBulanan() {
     handleOpenMonthPicker
   } = useMonthPicker(selectedMonths);
 
-  // Filter data berdasarkan bulan yang dipilih
   const filteredData = getFilteredData(allData, selectedMonths);
 
-  // Update stateRef untuk plugin
   useEffect(() => {
     stateRef.current = { showPercentage, show2024, show2025, filteredData };
   }, [showPercentage, show2024, show2025, filteredData]);
 
-  // Register plugin
   useEffect(() => {
     const plugin = createPercentageLabelsPlugin(stateRef);
     ChartJS.register(plugin);
@@ -310,7 +301,6 @@ function ChartBulanan() {
     };
   }, []);
 
-  // Chart configuration dengan memoization
   const { chartData, chartOptions } = useChartConfig(
     filteredData,
     show2024,
