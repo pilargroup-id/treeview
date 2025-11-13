@@ -9,4 +9,4 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::get('/financial/monthly-revenue', [FinancialController::class, 'getMonthlyRevenue']);
-
+Route::get('/financial/invoice-sales', [FinancialController::class, 'getInvoiceSales']);
