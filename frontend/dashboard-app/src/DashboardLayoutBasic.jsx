@@ -11,6 +11,7 @@ import { AppProvider } from '@toolpad/core/AppProvider';
 import { DashboardLayout } from '@toolpad/core/DashboardLayout';
 import { useDemoRouter } from '@toolpad/core/internal';
 import ChartBulanan from './chart/ChartBulanan';
+import ChartInvoice from './chart/ChartInvoice';
 
 const NAVIGATION = [
   { kind: 'header', title: 'Main items' },
@@ -20,7 +21,7 @@ const NAVIGATION = [
     icon: <DashboardIcon />,
     children: [
       { segment: 'Revenue', title: 'Revenue', icon: <BarChartIcon /> },
-      { segment: 'RevenueCategory', title: 'RevenueCategory', icon: <BarChartIcon /> },
+      { segment: 'RevenueInvoice', title: 'RevenueInvoice', icon: <BarChartIcon /> },
     ],
   },
   { segment: 'orders', title: 'Orders', icon: <ShoppingCartIcon /> },
@@ -45,6 +46,14 @@ const demoTheme = createTheme({
 });
 
 function DemoPageContent({ pathname }) {
+
+  if (pathname.includes('RevenueInvoice')) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <ChartInvoice />
+      </Box>
+    );
+  }
 
   if (pathname.includes('Revenue')) {
     return (
