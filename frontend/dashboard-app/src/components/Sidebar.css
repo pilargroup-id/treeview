@@ -1,0 +1,49 @@
+.sidebar {
+  width: 240px;
+  height: 100vh;
+  background-color: #2e7d32; /* hijau tua */
+  color: white;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0;
+  top: 0;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-header {
+  padding: 20px;
+  font-size: 1.4rem;
+  font-weight: bold;
+  text-align: center;
+  background: #1b5e20;
+  letter-spacing: 1px;
+}
+
+.sidebar-menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex: 1;
+}
+
+.sidebar-menu li {
+  padding: 15px 25px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.3s;
+}
+
+.sidebar-menu li:hover {
+  background-color: #388e3c;
+}
+
+.sidebar-menu li.active {
+  background-color: #66bb6a;
+}
+
+.sidebar-menu i {
+  width: 20px;
+}
