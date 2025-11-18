@@ -18,36 +18,41 @@ class FinancialRepository
     /**
      * Get Monthly Revenue (Credit - Debit)
      */
-    public function getMonthlyRevenue($accountHeader, $startDate, $endDate)
+    public function getMonthlyRevenue($accountHeader, $startDate, $endDate, $businessUnits = null)
     {
+        // Build business unit filter
+        $businessUnitFilter = "";
+        if (!empty($businessUnits)) {
+            $businessUnitFilter = "AND " . $this->buildBusinessUnitConditionForFinancialGL($businessUnits);
+        }
+        
         $query = "
             SELECT
-                date,
-                cre - deb AS total
-            FROM (
-                SELECT
-                    FORMAT_DATE('%B %Y', DATE(date)) AS date,
-                    SUM(credit) AS cre,
-                    SUM(debit) AS deb
-                FROM
-                    {$this->tablePath}
-                WHERE
-                    account_header = '{$accountHeader}'
-                    AND DATE(date) BETWEEN '{$startDate}' AND '{$endDate}'
-                GROUP BY
-                    date
-            )
+                FORMAT_DATE('%Y-%m', DATE(date)) AS period,
+                FORMAT_DATE('%B %Y', DATE(date)) AS period_label,
+                EXTRACT(YEAR FROM date) as year,
+                EXTRACT(MONTH FROM date) as month,
+                SUM(credit) AS total_credit,
+                SUM(debit) AS total_debit,
+                SUM(credit) - SUM(debit) AS total_difference
+            FROM
+                {$this->tablePath}
+            WHERE
+                account_header = '{$accountHeader}'
+                AND DATE(date) BETWEEN '{$startDate}' AND '{$endDate}'
+                {$businessUnitFilter}
+            GROUP BY
+                period, period_label, year, month
             ORDER BY
-                PARSE_DATE('%B %Y', date)
+                year, month
         ";
 
-        $cacheKey = "monthly_revenue_{$accountHeader}_{$startDate}_{$endDate}";
+        $cacheKey = "monthly_revenue_{$accountHeader}_{$startDate}_{$endDate}_" . md5(json_encode($businessUnits));
         
         return Cache::remember($cacheKey, 1800, function () use ($query) {
             return $this->bigQueryService->runQuery($query);
         });
     }
-
     /**
      * Query 2: Invoice Sales & Quantity by Business Unit
      */
@@ -192,6 +197,31 @@ class FinancialRepository
                 $conditions[] = "t1.department IN ('Sales Offline', 'Sales B2B')";
             } elseif ($unit === 'Goto') {
                 $conditions[] = "t1.department NOT IN ('Sales Offline', 'Sales B2B')";
+            }
+        }
+        
+        if (empty($conditions)) {
+            return "1=1";
+        }
+        
+        return "(" . implode(" OR ", $conditions) . ")";
+    }
+
+    /**
+    * Build business unit condition for financial_gl table (uses department_name)
+    */
+    private function buildBusinessUnitConditionForFinancialGL($businessUnits)
+    {
+        if (empty($businessUnits)) {
+            return "1=1";
+        }
+        
+        $conditions = [];
+        foreach ($businessUnits as $unit) {
+            if ($unit === 'Gosave') {
+                $conditions[] = "department_name IN ('Sales Offline', 'Sales B2B')";
+            } elseif ($unit === 'Goto') {
+                $conditions[] = "department_name NOT IN ('Sales Offline', 'Sales B2B')";
             }
         }
         
