@@ -31,13 +31,14 @@ function DataTypeFilter({ dataType, onChange }) {
         fontWeight: 500, 
         fontSize: '0.875rem', 
         whiteSpace: 'nowrap', 
-        color: '#616161',
+        color: '#475569',
+        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
         letterSpacing: '0.01em',
         lineHeight: 1.4
       }}>
         Tipe Data
       </Typography>
-      <Box sx={{ display: 'flex', gap: 1.5 }}>
+      <Box sx={{ display: 'flex', gap: 1 }}>
         <Button
           variant={isPenjualanSelected ? 'contained' : 'outlined'}
           onClick={handlePenjualanToggle}
@@ -47,21 +48,23 @@ function DataTypeFilter({ dataType, onChange }) {
             textTransform: 'none',
             fontSize: '0.875rem',
             fontWeight: isPenjualanSelected ? 600 : 500,
-            bgcolor: isPenjualanSelected ? '#212121' : 'transparent',
-            color: isPenjualanSelected ? 'white' : '#616161',
-            border: isPenjualanSelected ? 'none' : '1px solid #e0e0e0',
-            borderRadius: 1.5,
-            py: 1,
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            bgcolor: isPenjualanSelected ? '#3B82F6' : 'transparent',
+            color: isPenjualanSelected ? 'white' : '#475569',
+            border: isPenjualanSelected ? 'none' : '1px solid #E2E8F0',
+            borderRadius: 1,
+            py: 0.875,
             boxShadow: 'none',
-            transition: 'all 0.2s ease',
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': {
-              bgcolor: isPenjualanSelected ? '#424242' : '#fafafa',
-              border: isPenjualanSelected ? 'none' : '1px solid #bdbdbd',
-              boxShadow: isPenjualanSelected ? '0 2px 8px rgba(0,0,0,0.12)' : 'none',
+              bgcolor: isPenjualanSelected ? '#2563EB' : '#F1F5F9',
+              border: isPenjualanSelected ? 'none' : '1px solid #CBD5E1',
+              boxShadow: isPenjualanSelected ? '0 1px 2px rgba(59, 130, 246, 0.2)' : 'none',
               transform: 'translateY(-1px)'
             },
             '&:active': {
-              transform: 'translateY(0)'
+              transform: 'translateY(0)',
+              transition: 'all 0.1s ease'
             }
           }}
         >
@@ -76,21 +79,23 @@ function DataTypeFilter({ dataType, onChange }) {
             textTransform: 'none',
             fontSize: '0.875rem',
             fontWeight: isQuantitySelected ? 600 : 500,
-            bgcolor: isQuantitySelected ? '#212121' : 'transparent',
-            color: isQuantitySelected ? 'white' : '#616161',
-            border: isQuantitySelected ? 'none' : '1px solid #e0e0e0',
-            borderRadius: 1.5,
-            py: 1,
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            bgcolor: isQuantitySelected ? '#3B82F6' : 'transparent',
+            color: isQuantitySelected ? 'white' : '#475569',
+            border: isQuantitySelected ? 'none' : '1px solid #E2E8F0',
+            borderRadius: 1,
+            py: 0.875,
             boxShadow: 'none',
-            transition: 'all 0.2s ease',
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': {
-              bgcolor: isQuantitySelected ? '#424242' : '#fafafa',
-              border: isQuantitySelected ? 'none' : '1px solid #bdbdbd',
-              boxShadow: isQuantitySelected ? '0 2px 8px rgba(0,0,0,0.12)' : 'none',
+              bgcolor: isQuantitySelected ? '#2563EB' : '#F1F5F9',
+              border: isQuantitySelected ? 'none' : '1px solid #CBD5E1',
+              boxShadow: isQuantitySelected ? '0 1px 2px rgba(59, 130, 246, 0.2)' : 'none',
               transform: 'translateY(-1px)'
             },
             '&:active': {
-              transform: 'translateY(0)'
+              transform: 'translateY(0)',
+              transition: 'all 0.1s ease'
             }
           }}
         >

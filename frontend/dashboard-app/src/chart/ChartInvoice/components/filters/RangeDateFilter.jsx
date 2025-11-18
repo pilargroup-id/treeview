@@ -1,13 +1,12 @@
 import React from 'react';
 import DateRangePickerWithPresets from './DateRangePickerWithPresets';
 
-function RangeDateFilter({ rangeStart, rangeEnd, onRangeStartChange, onRangeEndChange, selectedYear = null }) {
+function RangeDateFilter({ rangeDates = [], onAddRange, onRemoveRange, selectedYear = null }) {
   return (
     <DateRangePickerWithPresets
-      rangeStart={rangeStart}
-      rangeEnd={rangeEnd}
-      onRangeStartChange={onRangeStartChange}
-      onRangeEndChange={onRangeEndChange}
+      rangeDates={rangeDates}
+      onAddRange={onAddRange}
+      onRemoveRange={onRemoveRange}
       selectedYear={selectedYear}
     />
   );

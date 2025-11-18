@@ -49,8 +49,24 @@ function DemoPageContent({ pathname }) {
 
   if (pathname.includes('RevenueInvoice')) {
     return (
-      <Box sx={{ p: 3 }}>
-        <ChartInvoice />
+      <Box sx={{ 
+        width: '100%',
+        height: '100%',
+        overflow: 'auto',
+        position: 'relative'
+      }}>
+        <Box sx={{
+          transform: 'scale(0.67)',
+          transformOrigin: 'top left',
+          width: '149.25%', // 100% / 0.67 = 149.25%
+          height: '149.25%',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          overflow: 'auto'
+        }}>
+          <ChartInvoice />
+        </Box>
       </Box>
     );
   }

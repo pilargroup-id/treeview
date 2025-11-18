@@ -13,7 +13,11 @@ function DateFilterType({ value, onChange }) {
         id="date-filter-type-label"
         sx={{ 
           fontSize: '0.875rem',
-          color: '#616161'
+          color: '#64748B',
+          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          '&.Mui-focused': {
+            color: '#3B82F6'
+          }
         }}
       >
         Tipe Filter
@@ -26,26 +30,26 @@ function DateFilterType({ value, onChange }) {
         displayEmpty={false}
         sx={{
           fontSize: '0.875rem',
-          borderRadius: 1.5,
+          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          borderRadius: 1,
           bgcolor: 'white',
           transition: 'all 0.2s ease',
           '& .MuiOutlinedInput-notchedOutline': {
-            borderColor: '#e0e0e0',
+            borderColor: '#E2E8F0',
             borderWidth: '1px'
           },
           '&:hover .MuiOutlinedInput-notchedOutline': {
-            borderColor: '#bdbdbd'
+            borderColor: '#CBD5E1'
           },
           '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-            borderColor: '#757575',
+            borderColor: '#3B82F6',
             borderWidth: '1px'
           }
         }}
       >
-        <MenuItem value="year" sx={{ fontSize: '0.875rem' }}>Per Tahun (Bulanan)</MenuItem>
-        <MenuItem value="range" sx={{ fontSize: '0.875rem' }}>Range Tanggal</MenuItem>
-        <MenuItem value="specific" sx={{ fontSize: '0.875rem' }}>Tanggal Tertentu (Max 30)</MenuItem>
-        <MenuItem value="compare_year" sx={{ fontSize: '0.875rem' }}>Compare by Year</MenuItem>
+        <MenuItem value="year" sx={{ fontSize: '0.875rem', fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>Per Tahun (Bulanan)</MenuItem>
+        <MenuItem value="range" sx={{ fontSize: '0.875rem', fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>Range Tanggal</MenuItem>
+        <MenuItem value="specific" sx={{ fontSize: '0.875rem', fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>Tanggal Tertentu (Max 30)</MenuItem>
       </Select>
     </FormControl>
   );
