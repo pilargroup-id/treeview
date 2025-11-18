@@ -18,16 +18,20 @@ function FilterSection({
 }) {
   return (
     <Card sx={{ 
-      bgcolor: 'white', 
-      borderRadius: 2, 
-      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-      border: '1px solid #e0e0e0',
+      bgcolor: '#FFFFFF', 
+      borderRadius: 1.5, 
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
+      border: '1px solid #E2E8F0',
       p: { xs: 2, md: 2.5 },
       display: 'flex',
       flexDirection: 'column',
       gap: 2,
       height: '100%',
-      transition: 'box-shadow 0.2s ease'
+      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+      '&:hover': {
+        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)',
+        borderColor: '#CBD5E1'
+      }
     }}>
       <Box sx={{ 
         display: 'flex', 
@@ -36,9 +40,10 @@ function FilterSection({
         mb: 0
       }}>
         <Typography sx={{ 
-          fontSize: { xs: '0.9375rem', md: '1.0625rem' }, 
+          fontSize: { xs: '0.9375rem', md: '1rem' }, 
           fontWeight: 600, 
-          color: '#212121', 
+          color: '#0F172A',
+          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
           letterSpacing: '-0.01em',
           lineHeight: 1.4
         }}>
@@ -49,15 +54,15 @@ function FilterSection({
           disabled={isLoading}
           size="small"
           sx={{
-            color: '#616161',
+            color: '#64748B',
             transition: 'all 0.2s ease',
             '&:hover': {
-              color: '#212121',
-              bgcolor: '#f5f5f5',
+              color: '#3B82F6',
+              bgcolor: '#F1F5F9',
               transform: 'rotate(180deg)'
             },
             '&:disabled': {
-              color: '#bdbdbd'
+              color: '#CBD5E1'
             }
           }}
           title="Refresh Data"
@@ -89,27 +94,30 @@ function FilterSection({
         fullWidth
         sx={{ 
           mt: 'auto',
-          bgcolor: '#212121',
+          bgcolor: '#3B82F6',
           color: 'white',
           textTransform: 'none',
           fontSize: '0.875rem',
-          fontWeight: 500,
+          fontWeight: 600,
+          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
           py: 1.25,
-          borderRadius: 1.5,
+          borderRadius: 1,
           boxShadow: 'none',
-          transition: 'all 0.2s ease',
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
-            bgcolor: '#424242',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            bgcolor: '#2563EB',
+            boxShadow: '0 1px 3px rgba(59, 130, 246, 0.2)',
             transform: 'translateY(-1px)'
           },
           '&:active': {
-            transform: 'translateY(0)'
+            transform: 'translateY(0)',
+            transition: 'all 0.1s ease'
           },
           '&:disabled': {
-            bgcolor: '#e0e0e0',
-            color: '#9e9e9e',
-            transform: 'none'
+            bgcolor: '#E2E8F0',
+            color: '#94A3B8',
+            transform: 'none',
+            boxShadow: 'none'
           }
         }}
       >

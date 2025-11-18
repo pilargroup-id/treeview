@@ -10,9 +10,9 @@
 <body>
     <div class="container">
 
-        <!-- Invoice Sales Section -->
+        <!-- Invoice -->
         <div class="section">   
-            <!-- Business Unit Filter (Multi-Select) -->
+            <!-- Business Unit -->
             <div class="form-group">
                 <label>Business Unit (Multi-Select):</label>
                 <div class="button-group">
@@ -21,26 +21,24 @@
                 </div>
             </div>
             
-            <!-- Date Filter Type -->
+            <!-- Date Filter-->
             <div class="form-group">
                 <label>Tipe Filter Tanggal:</label>
                 <select id="date_filter_type" onchange="toggleDateFilter()">
                     <option value="year">Per Tahun (Bulanan)</option>
                     <option value="range">Range Tanggal</option>
                     <option value="specific">Tanggal Tertentu (Max 30)</option>
-                    <option value="compare_year">Compare by Year</option>
                 </select>
             </div>
             
-            <!-- Year Filter (only for type=year) -->
+            <!-- Filter Tahun -->
             <div class="form-group" id="year_filter_container">
                 <label>Pilih Tahun (Multi-Select):</label>
                 <div class="button-group" id="year_buttons">
-                    <!-- Will be populated by JS -->
                 </div>
             </div>
             
-            <!-- Date Range Filter (only for type=range) -->
+            <!-- Date Range -->
             <div class="form-group" id="range_filter_container" style="display:none;">
                 <label>Range Tanggal:</label>
                 <input type="date" id="range_start_date">
@@ -48,28 +46,13 @@
                 <input type="date" id="range_end_date">
             </div>
             
-            <!-- Specific Dates Filter (only for type=specific) -->
+            <!-- Specific Dates-->
             <div class="form-group" id="specific_date_container" style="display:none;">
                 <label>Tanggal Tertentu (Max 30):</label>
                 <input type="date" id="add_date_input">
                 <button onclick="addSpecificDate()">Tambah</button>
                 <div id="selected_dates" class="tag-container"></div>
             </div>
-
-            <div class="form-group" id="compare_year_container" style="display:none;">
-                <label>Pilih Tanggal & Bulan:</label>
-                <input type="date" id="compare_date_input">
-                <button onclick="addCompareDate()">Tambah</button>
-                <div id="compare_dates_selected" class="tag-container"></div>
-                
-                <div id="compare_year_selector" style="display:none; margin-top:15px;">
-                    <label>Pilih Tahun untuk Perbandingan:</label>
-                    <div class="button-group" id="compare_year_buttons">
-                        <!-- Will be populated by JS -->
-                    </div>
-                </div>
-            </div>
-            
             
             <button onclick="loadInvoiceSales()" class="btn-primary">Load Data</button>
             <span id="invoice_loading">⏳ Loading...</span>

@@ -124,12 +124,10 @@ const invoiceFilters = {
     years: [],
     rangeStart: null,
     rangeEnd: null,
-    specificDates: [],
-    compareDates: [],
-    compareYears: [] 
+    specificDates: []
 };
 
-// Initialize year buttons (last 5 years)
+//  Tombol Tahun
 function initYearButtons() {
     const currentYear = new Date().getFullYear();
     const container = document.getElementById('year_buttons');
@@ -174,22 +172,16 @@ function toggleDateFilter() {
     const type = document.getElementById('date_filter_type').value;
     invoiceFilters.dateFilterType = type;
     
-    // Hide all containers
     document.getElementById('year_filter_container').style.display = 'none';
     document.getElementById('range_filter_container').style.display = 'none';
     document.getElementById('specific_date_container').style.display = 'none';
-    document.getElementById('compare_year_container').style.display = 'none';
     
-    // Show relevant container
     if (type === 'year') {
         document.getElementById('year_filter_container').style.display = 'block';
     } else if (type === 'range') {
         document.getElementById('range_filter_container').style.display = 'block';
     } else if (type === 'specific') {
         document.getElementById('specific_date_container').style.display = 'block';
-    } else if (type === 'compare_year') {
-        document.getElementById('compare_year_container').style.display = 'block';
-        initCompareYearButtons();
     }
 }
 
@@ -226,100 +218,6 @@ function removeSpecificDate(date) {
     }
 }
 
-function initCompareYearButtons() {
-    const container = document.getElementById('compare_year_buttons');
-    if (container.children.length > 0) return; // Already initialized
-    
-    const currentYear = new Date().getFullYear();
-    
-    for (let i = 0; i < 5; i++) {
-        const year = currentYear - i;
-        const btn = document.createElement('button');
-        btn.className = 'filter-btn';
-        btn.textContent = year;
-        btn.onclick = () => toggleCompareYear(year, btn);
-        container.appendChild(btn);
-    }
-}
-
-function addCompareDate() {
-    const input = document.getElementById('compare_date_input');
-    const fullDate = input.value;
-    
-    if (!fullDate) {
-        alert('Pilih tanggal terlebih dahulu');
-        return;
-    }
-    
-    // Extract month and day only (MM-DD format)
-    const dateObj = new Date(fullDate);
-    const monthDay = `${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
-    
-    if (invoiceFilters.compareDates.includes(monthDay)) {
-        alert('Tanggal & bulan ini sudah dipilih');
-        return;
-    }
-    
-    invoiceFilters.compareDates.push(monthDay);
-    renderCompareDates();
-    
-    // Show year selector after first date is added
-    if (invoiceFilters.compareDates.length > 0) {
-        document.getElementById('compare_year_selector').style.display = 'block';
-    }
-    
-    input.value = '';
-}
-
-function removeCompareDate(monthDay) {
-    const index = invoiceFilters.compareDates.indexOf(monthDay);
-    if (index > -1) {
-        invoiceFilters.compareDates.splice(index, 1);
-        renderCompareDates();
-        
-        // Hide year selector if no dates
-        if (invoiceFilters.compareDates.length === 0) {
-            document.getElementById('compare_year_selector').style.display = 'none';
-        }
-    }
-}
-
-function renderCompareDates() {
-    const container = document.getElementById('compare_dates_selected');
-    container.innerHTML = '';
-    
-    if (invoiceFilters.compareDates.length === 0) {
-        container.innerHTML = '<span style="color:#999;">Belum ada tanggal dipilih</span>';
-        return;
-    }
-    
-    invoiceFilters.compareDates.forEach(monthDay => {
-        const [month, day] = monthDay.split('-');
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const displayDate = `${parseInt(day)} ${monthNames[parseInt(month) - 1]}`;
-        
-        const tag = document.createElement('div');
-        tag.className = 'tag';
-        tag.innerHTML = `
-            ${displayDate}
-            <span class="remove-tag" onclick="removeCompareDate('${monthDay}')">×</span>
-        `;
-        container.appendChild(tag);
-    });
-}
-
-function toggleCompareYear(year, btn) {
-    const index = invoiceFilters.compareYears.indexOf(year);
-    
-    if (index > -1) {
-        invoiceFilters.compareYears.splice(index, 1);
-        btn.classList.remove('active');
-    } else {
-        invoiceFilters.compareYears.push(year);
-        btn.classList.add('active');
-    }
-}
-
 function renderSpecificDates() {
     const container = document.getElementById('selected_dates');
     container.innerHTML = '';
@@ -341,7 +239,7 @@ function renderSpecificDates() {
 }
 
 async function loadInvoiceSales() {
-    // Get date type first
+    // Ambil tipe filter
     const dateType = invoiceFilters.dateFilterType;
     
     // Validation
@@ -350,7 +248,7 @@ async function loadInvoiceSales() {
         return;
     }
     
-    // Validate based on filter type
+    // Validasi Filter
     if (dateType === 'year' && invoiceFilters.years.length === 0) {
         alert('Pilih minimal 1 tahun');
         return;
@@ -374,21 +272,9 @@ async function loadInvoiceSales() {
         return;
     }
     
-    if (dateType === 'compare_year') {
-        if (invoiceFilters.compareDates.length === 0) {
-            alert('Tambahkan minimal 1 tanggal');
-            return;
-        }
-        if (invoiceFilters.compareYears.length === 0) {
-            alert('Pilih minimal 1 tahun untuk perbandingan');
-            return;
-        }
-    }
-    
     try {
         document.getElementById('invoice_loading').style.display = 'inline';
         
-        // Build query params
         const params = new URLSearchParams();
         invoiceFilters.businessUnits.forEach(unit => params.append('business_units[]', unit));
         params.append('date_type', dateType);
@@ -402,13 +288,6 @@ async function loadInvoiceSales() {
             invoiceFilters.specificDates.forEach(date => {
                 params.append('specific_dates[]', date);
             });
-        } else if (dateType === 'compare_year') {
-            invoiceFilters.compareDates.forEach(date => {
-                params.append('compare_dates[]', date);
-            });
-            invoiceFilters.compareYears.forEach(year => {
-                params.append('compare_years[]', year);
-            });
         }
         
         const url = `${API_URL}/financial/invoice-sales?${params.toString()}`;
@@ -421,7 +300,6 @@ async function loadInvoiceSales() {
             console.log('Invoice Data dari API:', result.data);
             console.log('Jumlah data:', result.data ? result.data.length : 0);
             
-            // Pastikan data adalah array
             if (Array.isArray(result.data)) {
                 renderCombinedChart(result.data);
             } else {
@@ -447,7 +325,6 @@ function renderCombinedChart(data) {
         window.combinedChart.destroy();
     }
     
-    // Pastikan data dari API valid
     if (!data || !Array.isArray(data) || data.length === 0) {
         console.warn('Data kosong atau tidak valid dari API');
         return;
@@ -457,39 +334,26 @@ function renderCombinedChart(data) {
     
     const dateType = invoiceFilters.dateFilterType;
     
-    // Get unique periods (dates) for X-axis - gunakan data langsung dari API
     const periods = [...new Set(data.map(item => item.period))].sort();
     
     console.log('Periods yang ditemukan:', periods);
     
-    // Determine grouping logic
-    const isCompareYear = dateType === 'compare_year';
-    
-    if (isCompareYear) {
-        // Group by year instead of business unit
-        renderCompareYearChart(ctx, data, periods);
-    } else {
-        // Group by business unit (existing logic)
-        renderBusinessUnitChart(ctx, data, periods);
-    }
+    renderBusinessUnitChart(ctx, data, periods);
 }
 
 function renderBusinessUnitChart(ctx, data, periods) {
-    // Pastikan data dari API digunakan langsung
     console.log('Data untuk Business Unit Chart:', data);
     
     const businessUnits = [...new Set(data.map(item => item.business_unit))];
     
-    // Prepare datasets
     const datasets = [];
-    // Skema warna netral untuk business unit
+    // Warna BU
     const colors = {
-        'Gosave': { sales: 'rgb(33, 33, 33)', quantity: 'rgb(97, 97, 97)' },   // Hitam & abu-abu gelap
-        'Goto': { sales: 'rgb(66, 66, 66)', quantity: 'rgb(117, 117, 117)' }  // Abu-abu gelap & medium
+        'Gosave': { sales: 'rgb(33, 33, 33)', quantity: 'rgb(97, 97, 97)' },   
+        'Goto': { sales: 'rgb(66, 66, 66)', quantity: 'rgb(117, 117, 117)' }  
     };
     
     businessUnits.forEach(unit => {
-        // Sales dataset for this BU - parse nilai numerik dari API
         const salesData = periods.map(period => {
             const record = data.find(d => d.period === period && d.business_unit === unit);
             if (record && record.total_sales !== null && record.total_sales !== undefined) {
@@ -510,7 +374,6 @@ function renderBusinessUnitChart(ctx, data, periods) {
             pointHoverRadius: 6
         });
         
-        // Quantity dataset for this BU - parse nilai numerik dari API
         const quantityData = periods.map(period => {
             const record = data.find(d => d.period === period && d.business_unit === unit);
             if (record && record.total_quantity !== null && record.total_quantity !== undefined) {
@@ -529,7 +392,7 @@ function renderBusinessUnitChart(ctx, data, periods) {
             fill: false,
             pointRadius: 4,
             pointHoverRadius: 6,
-            borderDash: [5, 5] // Dashed line for quantity
+            borderDash: [5, 5] 
         });
     });
     
@@ -644,163 +507,14 @@ function renderBusinessUnitChart(ctx, data, periods) {
     });
 }
 
-function renderCompareYearChart(ctx, data, periods) {
-    // Pastikan data dari API digunakan langsung
-    console.log('Data untuk Compare Year Chart:', data);
-    
-    // Parse year sebagai integer untuk konsistensi
-    const years = [...new Set(data.map(item => parseInt(item.year) || item.year))].sort((a, b) => a - b);
-    
-    const datasets = [];
-    // Skema warna netral - grayscale dengan variasi subtle
-    const colorPalette = [
-        { sales: 'rgb(33, 33, 33)', quantity: 'rgb(97, 97, 97)' },      // Hitam & abu-abu gelap
-        { sales: 'rgb(66, 66, 66)', quantity: 'rgb(117, 117, 117)' }, // Abu-abu gelap & medium
-        { sales: 'rgb(97, 97, 97)', quantity: 'rgb(158, 158, 158)' },  // Abu-abu medium & terang
-        { sales: 'rgb(117, 117, 117)', quantity: 'rgb(189, 189, 189)' }, // Abu-abu medium & lebih terang
-        { sales: 'rgb(158, 158, 158)', quantity: 'rgb(224, 224, 224)' }  // Abu-abu terang & sangat terang
-    ];
-    
-    years.forEach((year, index) => {
-        const colorSet = colorPalette[index % colorPalette.length];
-        
-        // Sales dataset - parse nilai numerik dari API
-        const salesData = periods.map(period => {
-            const record = data.find(d => {
-                const recordYear = parseInt(d.year) || d.year;
-                return d.period === period && recordYear === year;
-            });
-            if (record && record.total_sales !== null && record.total_sales !== undefined) {
-                return parseFloat(record.total_sales) || 0;
-            }
-            return 0;
-        });
-        
-        datasets.push({
-            label: `${year} - Penjualan`,
-            data: salesData,
-            borderColor: colorSet.sales,
-            backgroundColor: colorSet.sales.replace('rgb', 'rgba').replace(')', ', 0.1)'),
-            tension: 0.3,
-            fill: false,
-            pointRadius: 4,
-            pointHoverRadius: 6
-        });
-        
-        // Quantity dataset - parse nilai numerik dari API
-        const quantityData = periods.map(period => {
-            const record = data.find(d => {
-                const recordYear = parseInt(d.year) || d.year;
-                return d.period === period && recordYear === year;
-            });
-            if (record && record.total_quantity !== null && record.total_quantity !== undefined) {
-                return parseFloat(record.total_quantity) || 0;
-            }
-            return 0;
-        });
-        
-        datasets.push({
-            label: `${year} - Quantity`,
-            data: quantityData,
-            borderColor: colorSet.quantity,
-            backgroundColor: colorSet.quantity.replace('rgb', 'rgba').replace(')', ', 0.1)'),
-            tension: 0.3,
-            fill: false,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            borderDash: [5, 5]
-        });
-    });
-    
-    window.combinedChart = new Chart(ctx, {
-        type: 'line',
-        data: { labels: periods, datasets: datasets },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
-                title: { display: false },
-                legend: { 
-                    display: true, 
-                    position: 'top', 
-                    labels: { 
-                        usePointStyle: true, 
-                        padding: 12, 
-                        font: { size: 12 },
-                        color: '#424242'
-                    } 
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.dataset.label || '';
-                            if (label) label += ': ';
-                            if (context.parsed.y !== null) {
-                                label += label.includes('Penjualan') 
-                                    ? formatCurrency(context.parsed.y)
-                                    : context.parsed.y.toLocaleString() + ' unit';
-                            }
-                            return label;
-                        }
-                    }
-                }
-            },
-            scales: {
-                x: { 
-                    display: true,
-                    grid: {
-                        color: '#f5f5f5'
-                    },
-                    title: { 
-                        display: true, 
-                        text: 'Tanggal',
-                        font: { size: 12, weight: 500 },
-                        color: '#616161'
-                    },
-                    ticks: {
-                        font: { size: 11 },
-                        color: '#757575',
-                        callback: function(value, index) {
-                            const label = this.getLabelForValue(value);
-                            const [month, day] = label.split('-');
-                            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                            return `${parseInt(day)} ${monthNames[parseInt(month) - 1]}`;
-                        }
-                    }
-                },
-                y: {
-                    type: 'linear',
-                    display: false,
-                    position: 'left',
-                    grid: {
-                        color: '#f5f5f5'
-                    }
-                },
-                y1: {
-                    type: 'linear',
-                    display: false,
-                    position: 'right',
-                    grid: { 
-                        drawOnChartArea: false,
-                        color: '#f5f5f5'
-                    }
-                }
-            }
-        }
-    });
-}
-
-// Initialize on page load
+// Load page
 document.addEventListener('DOMContentLoaded', function() {
     initYearButtons();
 });
 
-// Expose functions
+// func
 window.toggleBusinessUnit = toggleBusinessUnit;
 window.toggleDateFilter = toggleDateFilter;
 window.addSpecificDate = addSpecificDate;
 window.removeSpecificDate = removeSpecificDate;
 window.loadInvoiceSales = loadInvoiceSales;
-window.addCompareDate = addCompareDate;
-window.removeCompareDate = removeCompareDate;

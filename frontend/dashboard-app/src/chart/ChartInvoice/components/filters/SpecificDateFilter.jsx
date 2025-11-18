@@ -7,56 +7,111 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/id';
 
 function SpecificDateFilter({ 
-  specificDates, 
-  onAddDate, 
+  specificDates,
+  onAddDate,
   onRemoveDate,
-  selectedYear = null,
-  availableYears = [],
-  onToggleYear
+  availableYears = []
 }) {
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
+  
+  // Generate Tahun 
+  const years = availableYears.length > 0 
+    ? availableYears.sort((a, b) => a - b)
+    : [2021, 2022, 2023, 2024, 2025].sort((a, b) => a - b);
 
   const handleAddDate = () => {
-    if (!selectedYear) {
-      alert('Pilih tahun terlebih dahulu dari card tahun di atas');
-      return;
+    try {
+      // Validasi input
+      if (!selectedMonth || !selectedDay) {
+        alert('Pilih bulan dan hari terlebih dahulu');
+        return;
+      }
+      
+      // Validasi bahwa selectedMonth dan selectedDay adalah objek dayjs yang valid
+      if (!selectedMonth.isValid || !selectedMonth.isValid()) {
+        console.error('Invalid selectedMonth:', selectedMonth);
+        alert('Bulan yang dipilih tidak valid');
+        return;
+      }
+      
+      if (!selectedDay.isValid || !selectedDay.isValid()) {
+        console.error('Invalid selectedDay:', selectedDay);
+        alert('Hari yang dipilih tidak valid');
+        return;
+      }
+      
+      // Batasi jumlah tanggal untuk menghindari error
+      const MAX_SPECIFIC_DATES = 20; // Batasi maksimal 20 tanggal
+      if (specificDates.length >= MAX_SPECIFIC_DATES) {
+        alert(`Maksimal ${MAX_SPECIFIC_DATES} tanggal yang bisa dipilih untuk menghindari error`);
+        return;
+      }
+      
+      // Format: MM-DD (bulan-hari)
+      let month, day;
+      try {
+        month = String(selectedMonth.month() + 1).padStart(2, '0');
+        day = String(selectedDay.date()).padStart(2, '0');
+      } catch (formatError) {
+        console.error('Error formatting date:', formatError);
+        alert('Error memformat tanggal. Silakan coba lagi.');
+        return;
+      }
+      
+      // Validasi format yang dihasilkan
+      const monthNum = parseInt(month, 10);
+      const dayNum = parseInt(day, 10);
+      
+      if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
+        console.error('Invalid month:', month);
+        alert('Bulan tidak valid');
+        return;
+      }
+      
+      if (isNaN(dayNum) || dayNum < 1 || dayNum > 31) {
+        console.error('Invalid day:', day);
+        alert('Hari tidak valid');
+        return;
+      }
+      
+      // Validasi bahwa tanggal valid (misalnya 31 Februari tidak valid)
+      const testDate = dayjs(`2024-${month}-${day}`);
+      if (!testDate.isValid() || testDate.month() !== (monthNum - 1) || testDate.date() !== dayNum) {
+        alert(`Tanggal ${day}/${month} tidak valid. Silakan pilih tanggal yang valid.`);
+        return;
+      }
+      
+      const monthDay = `${month}-${day}`;
+      
+      if (specificDates.includes(monthDay)) {
+        alert('Tanggal ini sudah dipilih');
+        return;
+      }
+      
+      // Panggil onAddDate dengan error handling
+      try {
+        onAddDate(monthDay);
+        setSelectedMonth(null);
+        setSelectedDay(null);
+      } catch (addError) {
+        console.error('Error adding date:', addError);
+        alert('Error menambahkan tanggal: ' + (addError.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Unexpected error in handleAddDate:', error);
+      alert('Terjadi error: ' + (error.message || 'Unknown error'));
     }
-    
-    if (!selectedMonth || !selectedDay) {
-      alert('Pilih bulan dan hari terlebih dahulu');
-      return;
-    }
-    
-    if (specificDates.length >= 30) {
-      alert('Maksimal 30 tanggal');
-      return;
-    }
-    
-    // Ambil bulan dari month picker (0-11, jadi +1 untuk 1-12)
-    const month = String(selectedMonth.month() + 1).padStart(2, '0');
-    // Ambil hari dari date picker
-    const day = String(selectedDay.date()).padStart(2, '0');
-    const monthDay = `${month}-${day}`;
-    
-    if (specificDates.includes(monthDay)) {
-      alert('Tanggal sudah dipilih');
-      return;
-    }
-    
-    onAddDate(monthDay);
-    setSelectedMonth(null);
-    setSelectedDay(null);
   };
 
   const formatDateDisplay = (monthDay) => {
     const [month, day] = monthDay.split('-');
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-    const year = selectedYear || new Date().getFullYear();
-    return `${parseInt(day)} ${monthNames[parseInt(month) - 1]} ${year}`;
+    return `${parseInt(day)} ${monthNames[parseInt(month) - 1]}`;
   };
 
   const pickerSx = {
+    width: '140px',
     '& .MuiOutlinedInput-root': {
       fontSize: '0.875rem',
       borderRadius: 1.5,
@@ -70,7 +125,7 @@ function SpecificDateFilter({
         borderColor: '#bdbdbd'
       },
       '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-        borderColor: '#212121',
+        borderColor: '#1976d2',
         borderWidth: '1px'
       }
     },
@@ -78,16 +133,17 @@ function SpecificDateFilter({
       fontSize: '0.875rem',
       color: '#616161',
       '&.Mui-focused': {
-        color: '#212121'
+        color: '#1976d2'
       }
     },
     '& .MuiInputAdornment-root .MuiIconButton-root': {
       color: '#616161',
       '&:hover': {
-        color: '#212121'
+        color: '#1976d2'
       }
     }
   };
+
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="id">
@@ -100,29 +156,29 @@ function SpecificDateFilter({
             '& .MuiIconButton-root': {
               color: '#616161',
               '&:hover': {
-                color: '#212121',
-                bgcolor: '#f5f5f5'
+                color: '#1976d2',
+                bgcolor: 'rgba(25, 118, 210, 0.04)'
               }
             }
           },
           '& .MuiPickersMonth-monthButton': {
             '&.Mui-selected': {
-              bgcolor: '#212121 !important',
+              bgcolor: '#1976d2 !important',
               color: 'white !important',
               '&:hover': {
-                bgcolor: '#424242 !important'
+                bgcolor: '#1565c0 !important'
               }
             },
             '&:hover': {
-              bgcolor: '#f5f5f5'
+              bgcolor: 'rgba(25, 118, 210, 0.04)'
             }
           },
           '& .MuiPickersDay-day': {
             '&.Mui-selected': {
-              bgcolor: '#212121 !important',
+              bgcolor: '#1976d2 !important',
               color: 'white !important',
               '&:hover': {
-                bgcolor: '#424242 !important'
+                bgcolor: '#1565c0 !important'
               }
             },
             '&:hover': {
@@ -131,9 +187,9 @@ function SpecificDateFilter({
           },
           '& .MuiPickersActionBar-actionButton': {
             '&.MuiButton-textPrimary': {
-              color: '#212121',
+              color: '#1976d2',
               '&:hover': {
-                bgcolor: '#f5f5f5'
+                bgcolor: 'rgba(25, 118, 210, 0.04)'
               }
             }
           }
@@ -147,54 +203,36 @@ function SpecificDateFilter({
           letterSpacing: '-0.01em',
           lineHeight: 1.4
         }}>
-          Tanggal Tertentu (Bulan & Hari) - Max 30
+          Tanggal Tertentu (Bulan & Hari) - Max 20
         </Typography>
         
-        {!selectedYear && (
-          <Box sx={{ 
-            p: 1.5, 
-            bgcolor: '#fff3cd', 
-            borderRadius: 1.5, 
-            border: '1px solid #ffc107',
-            mb: 1.5
-          }}>
-            <Typography sx={{ 
-              fontSize: '0.8125rem', 
-              color: '#856404',
-              lineHeight: 1.5,
-              fontWeight: 500
-            }}>
-              ⚠️ Pilih 1 tahun terlebih dahulu dari card tahun di atas sebelum menambah tanggal
-            </Typography>
-          </Box>
-        )}
-        
-        {selectedYear && (
-          <Box sx={{ 
-            p: 1.5, 
-            bgcolor: '#e8f5e9', 
-            borderRadius: 1.5, 
-            border: '1px solid #4caf50',
-            mb: 1.5
-          }}>
-            <Typography sx={{ 
-              fontSize: '0.8125rem', 
-              color: '#2e7d32',
-              lineHeight: 1.5,
-              fontWeight: 500
-            }}>
-              ✓ Tahun yang dipilih: <strong>{selectedYear}</strong>
-            </Typography>
-          </Box>
-        )}
-        
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'flex-start', 
+          gap: 1.5, 
+          flexWrap: 'wrap',
+          mb: 1
+        }}>
           <DatePicker
             value={selectedMonth}
-            onChange={(newValue) => setSelectedMonth(newValue)}
+            onChange={(newValue) => {
+              try {
+                if (newValue && newValue.isValid && newValue.isValid()) {
+                  setSelectedMonth(newValue);
+                  // Reset selectedDay jika bulan berubah
+                  if (selectedDay) {
+                    setSelectedDay(null);
+                  }
+                } else if (newValue === null) {
+                  setSelectedMonth(null);
+                  setSelectedDay(null);
+                }
+              } catch (error) {
+                console.error('Error in month onChange:', error);
+              }
+            }}
             views={['month']}
             openTo="month"
-            disabled={!selectedYear}
             sx={pickerSx}
             slotProps={{
               textField: {
@@ -211,40 +249,40 @@ function SpecificDateFilter({
                     '& .MuiIconButton-root': {
                       color: '#616161',
                       '&:hover': {
-                        color: '#212121',
-                        bgcolor: '#f5f5f5'
+                        color: '#1976d2',
+                        bgcolor: 'rgba(25, 118, 210, 0.04)'
                       }
                     }
                   },
                   '& .MuiPickersMonth-monthButton': {
                     '&.Mui-selected': {
-                      bgcolor: '#212121 !important',
+                      bgcolor: '#1976d2 !important',
                       color: 'white !important',
                       '&:hover': {
-                        bgcolor: '#424242 !important'
+                        bgcolor: '#1565c0 !important'
                       }
                     },
                     '&:hover': {
-                      bgcolor: '#f5f5f5'
+                      bgcolor: 'rgba(25, 118, 210, 0.04)'
                     }
                   },
                   '& .MuiPickersDay-day': {
                     '&.Mui-selected': {
-                      bgcolor: '#212121 !important',
+                      bgcolor: '#1976d2 !important',
                       color: 'white !important',
                       '&:hover': {
-                        bgcolor: '#424242 !important'
+                        bgcolor: '#1565c0 !important'
                       }
                     },
                     '&:hover': {
-                      bgcolor: '#f5f5f5'
+                      bgcolor: 'rgba(25, 118, 210, 0.04)'
                     }
                   },
                   '& .MuiPickersActionBar-actionButton': {
                     '&.MuiButton-textPrimary': {
-                      color: '#212121',
+                      color: '#1976d2',
                       '&:hover': {
-                        bgcolor: '#f5f5f5'
+                        bgcolor: 'rgba(25, 118, 210, 0.04)'
                       }
                     }
                   }
@@ -254,10 +292,34 @@ function SpecificDateFilter({
           />
           <DatePicker
             value={selectedDay}
-            onChange={(newValue) => setSelectedDay(newValue)}
+            onChange={(newValue) => {
+              try {
+                if (newValue && newValue.isValid && newValue.isValid()) {
+                  // Validasi bahwa hari sesuai dengan bulan yang dipilih
+                  if (selectedMonth && newValue.month() !== selectedMonth.month()) {
+                    console.warn('Selected day month does not match selected month');
+                    return;
+                  }
+                  setSelectedDay(newValue);
+                } else if (newValue === null) {
+                  setSelectedDay(null);
+                }
+              } catch (error) {
+                console.error('Error in day onChange:', error);
+              }
+            }}
             views={['day']}
             openTo="day"
-            disabled={!selectedYear || !selectedMonth}
+            disabled={!selectedMonth}
+            minDate={selectedMonth ? dayjs(`2021-${String(selectedMonth.month() + 1).padStart(2, '0')}-01`) : null}
+            maxDate={selectedMonth ? dayjs(`2025-${String(selectedMonth.month() + 1).padStart(2, '0')}-${dayjs(`2025-${String(selectedMonth.month() + 1).padStart(2, '0')}-01`).daysInMonth()}`) : null}
+            defaultCalendarMonth={selectedMonth ? dayjs(`2021-${String(selectedMonth.month() + 1).padStart(2, '0')}-01`) : null}
+            shouldDisableDate={(date) => {
+              if (!selectedMonth) return true;
+              const month = date.month();
+              const selectedMonthValue = selectedMonth.month();
+              return month !== selectedMonthValue;
+            }}
             sx={pickerSx}
             slotProps={{
               textField: {
@@ -268,46 +330,49 @@ function SpecificDateFilter({
               actionBar: {
                 actions: ['cancel', 'accept']
               },
+              calendarHeader: {
+                format: 'MMMM YYYY'
+              },
               paper: {
                 sx: {
                   '& .MuiPickersCalendarHeader-root': {
                     '& .MuiIconButton-root': {
                       color: '#616161',
                       '&:hover': {
-                        color: '#212121',
-                        bgcolor: '#f5f5f5'
+                        color: '#1976d2',
+                        bgcolor: 'rgba(25, 118, 210, 0.04)'
                       }
                     }
                   },
                   '& .MuiPickersMonth-monthButton': {
                     '&.Mui-selected': {
-                      bgcolor: '#212121 !important',
+                      bgcolor: '#1976d2 !important',
                       color: 'white !important',
                       '&:hover': {
-                        bgcolor: '#424242 !important'
+                        bgcolor: '#1565c0 !important'
                       }
                     },
                     '&:hover': {
-                      bgcolor: '#f5f5f5'
+                      bgcolor: 'rgba(25, 118, 210, 0.04)'
                     }
                   },
                   '& .MuiPickersDay-day': {
                     '&.Mui-selected': {
-                      bgcolor: '#212121 !important',
+                      bgcolor: '#1976d2 !important',
                       color: 'white !important',
                       '&:hover': {
-                        bgcolor: '#424242 !important'
+                        bgcolor: '#1565c0 !important'
                       }
                     },
                     '&:hover': {
-                      bgcolor: '#f5f5f5'
+                      bgcolor: 'rgba(25, 118, 210, 0.04)'
                     }
                   },
                   '& .MuiPickersActionBar-actionButton': {
                     '&.MuiButton-textPrimary': {
-                      color: '#212121',
+                      color: '#1976d2',
                       '&:hover': {
-                        bgcolor: '#f5f5f5'
+                        bgcolor: 'rgba(25, 118, 210, 0.04)'
                       }
                     }
                   }
@@ -317,87 +382,107 @@ function SpecificDateFilter({
           />
           <Button 
             variant="outlined" 
-            size="medium" 
+            size="small" 
             onClick={handleAddDate}
-            disabled={!selectedYear || specificDates.length >= 30 || !selectedMonth || !selectedDay}
-          sx={{
-            borderColor: '#e0e0e0',
-            color: '#616161',
-            textTransform: 'none',
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            borderRadius: 1.5,
-            px: 2.5,
-            py: 1.25,
-            boxShadow: 'none',
-            transition: 'all 0.2s ease',
-            '&:hover': {
-              borderColor: '#bdbdbd',
-              bgcolor: '#fafafa',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
-              transform: 'translateY(-1px)'
-            },
-            '&:active': {
-              transform: 'translateY(0)'
-            },
-            '&:disabled': {
+            disabled={!selectedMonth || !selectedDay || specificDates.length >= 20}
+            sx={{
               borderColor: '#e0e0e0',
-              color: '#9e9e9e',
-              transform: 'none'
-            }
-          }}
-        >
-          Tambah
-          </Button>
-          <Typography sx={{ 
-            fontSize: '0.75rem', 
-            color: '#9e9e9e',
-            alignSelf: 'center',
-            lineHeight: 1.5
-          }}>
-            {specificDates.length}/30 tanggal
-          </Typography>
-        </Box>
-      <Typography sx={{ 
-        fontSize: '0.75rem', 
-        color: '#9e9e9e',
-        lineHeight: 1.5,
-        mt: 0.5
-      }}>
-        * Pilih 1 tahun dari card tahun di atas terlebih dahulu, lalu isi bulan dan tanggal, klik tambah. Setelah menambah tanggal, tahun bisa diganti untuk menambah tanggal tahun lain.
-      </Typography>
-      {specificDates.length > 0 && (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-          {specificDates.map((date) => (
-            <Chip
-              key={date}
-              label={formatDateDisplay(date)}
-              onDelete={() => onRemoveDate(date)}
-              size="small"
-              variant="outlined"
-              sx={{
+              color: '#616161',
+              textTransform: 'none',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              borderRadius: 1.5,
+              px: 2,
+              py: 1,
+              minWidth: '100px',
+              height: '40px',
+              boxShadow: 'none',
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                borderColor: '#bdbdbd',
+                bgcolor: '#fafafa',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
+                transform: 'translateY(-1px)'
+              },
+              '&:active': {
+                transform: 'translateY(0)'
+              },
+              '&:disabled': {
                 borderColor: '#e0e0e0',
-                color: '#616161',
-                fontSize: '0.8125rem',
-                height: 30,
-                borderRadius: 1.5,
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  borderColor: '#bdbdbd',
-                  bgcolor: '#fafafa'
-                },
-                '& .MuiChip-deleteIcon': {
-                  color: '#9e9e9e',
-                  fontSize: '1rem',
-                  '&:hover': {
-                    color: '#616161'
-                  }
-                }
-              }}
-            />
-          ))}
+                color: '#9e9e9e',
+                transform: 'none'
+              }
+            }}
+          >
+            Tambah
+          </Button>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center',
+            height: '40px',
+            px: 1.5,
+            borderRadius: 1.5,
+            bgcolor: '#f5f5f5'
+          }}>
+            <Typography sx={{ 
+              fontSize: '0.75rem', 
+              color: '#757575',
+              fontWeight: 500,
+              lineHeight: 1.5,
+              whiteSpace: 'nowrap'
+            }}>
+              {specificDates.length}/20
+            </Typography>
+          </Box>
         </Box>
-      )}
+        <Typography sx={{ 
+          fontSize: '0.75rem', 
+          color: '#9e9e9e',
+          lineHeight: 1.5,
+          mt: 0.5,
+          mb: 1.5
+        }}>
+          * Pilih bulan dan hari untuk setiap tanggal yang ingin ditambahkan. Chart akan menampilkan data untuk tanggal tersebut di semua tahun (2021-2025).
+        </Typography>
+        {specificDates.length > 0 && (
+          <Box sx={{ 
+            display: 'flex', 
+            flexWrap: 'wrap', 
+            gap: 1, 
+            mt: 1.5,
+            pt: 1.5,
+            borderTop: '1px solid #e0e0e0'
+          }}>
+            {specificDates.sort().map((date) => (
+              <Chip
+                key={date}
+                label={formatDateDisplay(date)}
+                onDelete={() => onRemoveDate(date)}
+                size="small"
+                variant="outlined"
+                sx={{
+                  borderColor: '#e0e0e0',
+                  color: '#616161',
+                  fontSize: '0.8125rem',
+                  height: 32,
+                  borderRadius: 1.5,
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    borderColor: '#bdbdbd',
+                    bgcolor: '#fafafa'
+                  },
+                  '& .MuiChip-deleteIcon': {
+                    color: '#9e9e9e',
+                    fontSize: '1rem',
+                    '&:hover': {
+                      color: '#616161'
+                    }
+                  }
+                }}
+              />
+            ))}
+          </Box>
+        )}
       </Box>
     </LocalizationProvider>
   );

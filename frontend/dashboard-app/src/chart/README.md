@@ -2,6 +2,38 @@
 
 Struktur folder untuk komponen chart yang modular dan scalable.
 
+## Dependencies & Installation
+
+### MUI Material (Required untuk Chart Components)
+
+```bash
+npm install @mui/material @mui/icons-material @emotion/react @emotion/styled
+```
+
+**Penjelasan:**
+- `@mui/material` - UI components (Button, Card, Typography, dll)
+- `@mui/icons-material` - Icon components untuk Material-UI
+- `@emotion/react` & `@emotion/styled` - CSS-in-JS library (required untuk MUI)
+
+### Untuk ChartInvoice (Tambahan)
+
+```bash
+npm install react react-dom chart.js react-chartjs-2 @mui/x-date-pickers dayjs
+```
+
+**Penjelasan:**
+- `react` & `react-dom` - Framework React
+- `chart.js` - Library untuk membuat chart/grafik
+- `react-chartjs-2` - Wrapper React untuk Chart.js
+- `@mui/x-date-pickers` - Date picker components
+- `dayjs` - Library manipulasi tanggal/waktu
+
+### Build Tools (Development)
+
+```bash
+npm install --save-dev vite @vitejs/plugin-react
+```
+
 ## Struktur Folder
 
 ```
