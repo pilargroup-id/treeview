@@ -1,5 +1,22 @@
 const API_URL = 'http://localhost:8000/api';
 
+const revenueFilters = {
+    businessUnits: []
+};
+
+function toggleRevenueBusinessUnit(unit) {
+    const index = revenueFilters.businessUnits.indexOf(unit);
+    const btn = document.querySelector(`[data-unit-revenue="${unit}"]`);
+    
+    if (index > -1) {
+        revenueFilters.businessUnits.splice(index, 1);
+        btn.classList.remove('active');
+    } else {
+        revenueFilters.businessUnits.push(unit);
+        btn.classList.add('active');
+    }
+}
+
 async function loadRevenue() {
     const accountHeader = document.getElementById('account_header').value;
     const startDate = document.getElementById('start_date').value;
@@ -8,14 +25,24 @@ async function loadRevenue() {
     try {
         document.getElementById('loading').style.display = 'inline';
         
-        const url = `${API_URL}/financial/monthly-revenue?account_header=${accountHeader}&start_date=${startDate}&end_date=${endDate}`;
+        // Build query params
+        const params = new URLSearchParams();
+        params.append('account_header', accountHeader);
+        params.append('start_date', startDate);
+        params.append('end_date', endDate);
+        
+        // Add business units if selected
+        revenueFilters.businessUnits.forEach(unit => {
+            params.append('business_units[]', unit);
+        });
+        
+        const url = `${API_URL}/financial/monthly-revenue?${params.toString()}`;
         
         const response = await fetch(url);
         const result = await response.json();
         
         if (result.status === 'success') {
             renderChart(result.data);
-            renderTable(result.data);
         } else {
             alert('Error: ' + (result.message || 'Unknown error'));
         }
@@ -35,30 +62,82 @@ function renderChart(data) {
         window.revenueChart.destroy();
     }
     
+    // Prepare data for 3 bars per period
+    const periods = data.map(item => item.period_label);
+    const creditData = data.map(item => item.total_credit);
+    const debitData = data.map(item => item.total_debit);
+    const totalData = data.map(item => item.total_difference);
+    
     window.revenueChart = new Chart(ctx, {
-        type: 'line',
+        type: 'bar',
         data: {
-            labels: data.map(item => item.date),
-            datasets: [{
-                label: 'Total (Credit - Debit)',
-                data: data.map(item => item.total),
-                borderColor: 'rgb(75, 192, 192)',
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                tension: 0.3,
-                fill: true
-            }]
+            labels: periods,
+            datasets: [
+                {
+                    label: 'Credit',
+                    data: creditData,
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                    borderColor: 'rgb(75, 192, 192)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Debit',
+                    data: debitData,
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                    borderColor: 'rgb(255, 99, 132)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Total (Credit - Debit)',
+                    data: totalData,
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgb(54, 162, 235)',
+                    borderWidth: 1
+                }
+            ]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: true,
             plugins: {
                 title: {
                     display: true,
-                    text: 'Monthly Revenue Trend'
+                    text: 'Monthly Revenue Analysis',
+                    font: { size: 18 }
+                },
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += formatCurrency(context.parsed.y);
+                            }
+                            return label;
+                        }
+                    }
                 }
             },
             scales: {
+                x: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Period'
+                    }
+                },
                 y: {
                     beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Amount (Rp)'
+                    },
                     ticks: {
                         callback: function(value) {
                             return formatCurrency(value);
@@ -70,36 +149,6 @@ function renderChart(data) {
     });
 }
 
-function renderTable(data) {
-    const container = document.getElementById('data_table');
-    
-    let html = `
-        <table>
-            <thead>
-                <tr>
-                    <th>Month</th>
-                    <th>Total (Credit - Debit)</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-    
-    data.forEach(row => {
-        html += `
-            <tr>
-                <td>${row.date}</td>
-                <td>${formatCurrency(row.total)}</td>
-            </tr>
-        `;
-    });
-    
-    html += `
-            </tbody>
-        </table>
-    `;
-    
-    container.innerHTML = html;
-}
 
 function formatCurrency(num) {
     const value = parseFloat(num);
@@ -113,6 +162,7 @@ function formatCurrency(num) {
     }).format(value);
 }
 
+window.toggleRevenueBusinessUnit = toggleRevenueBusinessUnit;
 window.loadRevenue = loadRevenue;
 
 // ========== INVOICE SALES SECTION ==========
