@@ -41,8 +41,12 @@ function SpecificDateFilter({
         return;
       }
       
-      // Batasi jumlah tanggal untuk menghindari error
-      const MAX_SPECIFIC_DATES = 20; // Batasi maksimal 20 tanggal
+      // Validasi jumlah tanggal berdasarkan tahun yang dipilih
+      // API membatasi maksimal 30 tanggal YYYY-MM-DD
+      // Kita perlu tahu berapa tahun yang dipilih, tapi karena ini di filter component,
+      // kita akan menggunakan availableYears sebagai referensi
+      // Validasi sebenarnya dilakukan di apiService.js
+      const MAX_SPECIFIC_DATES = 30; // Batasi maksimal 30 tanggal (untuk 1 tahun)
       if (specificDates.length >= MAX_SPECIFIC_DATES) {
         alert(`Maksimal ${MAX_SPECIFIC_DATES} tanggal yang bisa dipilih untuk menghindari error`);
         return;
@@ -203,7 +207,7 @@ function SpecificDateFilter({
           letterSpacing: '-0.01em',
           lineHeight: 1.4
         }}>
-          Tanggal Tertentu (Bulan & Hari) - Max 20
+          Tanggal Tertentu (Bulan & Hari)
         </Typography>
         
         <Box sx={{ 
@@ -384,7 +388,7 @@ function SpecificDateFilter({
             variant="outlined" 
             size="small" 
             onClick={handleAddDate}
-            disabled={!selectedMonth || !selectedDay || specificDates.length >= 20}
+            disabled={!selectedMonth || !selectedDay || specificDates.length >= 30}
             sx={{
               borderColor: '#e0e0e0',
               color: '#616161',
@@ -431,7 +435,7 @@ function SpecificDateFilter({
               lineHeight: 1.5,
               whiteSpace: 'nowrap'
             }}>
-              {specificDates.length}/20
+              {specificDates.length}/30
             </Typography>
           </Box>
         </Box>
@@ -442,7 +446,7 @@ function SpecificDateFilter({
           mt: 0.5,
           mb: 1.5
         }}>
-          * Pilih bulan dan hari untuk setiap tanggal yang ingin ditambahkan. Chart akan menampilkan data untuk tanggal tersebut di semua tahun (2021-2025).
+          * Pilih bulan dan hari untuk setiap tanggal yang ingin ditambahkan.
         </Typography>
         {specificDates.length > 0 && (
           <Box sx={{ 

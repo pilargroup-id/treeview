@@ -63,7 +63,7 @@ export const getFilteredData = (allData, selectedMonths) => {
 export const loadRevenueData = async (accountHeader) => {
   try {
     const [response2024, response2025] = await Promise.all([
-      fetch(`${API_URL}/financial/monthly-revenue?account_header=${accountHeader}&start_date=2024-01-01&end_date=2024-12-31`),
+      fetch(`${API_URL}/financial/monthly-revenue?account_header=4000&start_date=2024-01-01&end_date=2024-12-31&business_units[]=Gosave&business_units[]=Goto`),
       fetch(`${API_URL}/financial/monthly-revenue?account_header=${accountHeader}&start_date=2025-01-01&end_date=2025-12-31`)
     ]);
 

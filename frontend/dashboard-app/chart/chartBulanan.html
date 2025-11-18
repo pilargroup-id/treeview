@@ -1,406 +1,170 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial Dashboard - Monthly Revenue</title>
+    <title>Financial Dashboard</title>
+    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        :root{
-            --primary:#6D94C5;
-            --gray-light:#e9ecef;
-            --border-radius:12px;
-            --shadow:0 4px 12px rgba(0,0,0,0.08);
-            --color-2024: rgb(54, 162, 235);
-            --color-2025: rgb(255, 99, 132);
-            --color-percentage: rgb(16, 185, 129);
-        }
-
-        *{
-            margin:0;
-            padding:0;
-            box-sizing:border-box;
-            font-family:Segoe UI, sans-serif;
-        }
-
-        body{
-            background:#f5f7fa;
-            padding:20px;
-        }
-
-        .dashboard-container{
-            max-width:1200px;
-            margin:0 auto;
-        }
-
-        .card{
-            background:white;
-            border-radius:var(--border-radius);
-            box-shadow:var(--shadow);
-            margin-bottom:24px;
-        }
-
-        .chart-card .card-body{
-            position:relative;
-        }
-
-        .card-title{
-            font-size:18px;
-            font-weight:600;
-        }
-
-        .card-body{
-            padding:20px;
-        }
-
-        .control-bar,
-        .card-header{
-            padding:12px 20px;
-            border-bottom:1px solid var(--gray-light);
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            flex-wrap:wrap;
-            gap:10px;
-        }
-
-        .control-actions{
-            display:flex;
-            gap:10px;
-            flex-wrap:wrap;
-        }
-
-        .btn{
-            display:flex;
-            align-items:center;
-            gap:6px;
-            padding:8px 12px;
-            background:white;
-            border:1px solid var(--gray-light);
-            border-radius:8px;
-            cursor:pointer;
-            font-size:14px;
-            white-space:nowrap;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary{
-            background:var(--primary);
-            color:white;
-            border:none;
-        }
-
-        .btn:hover:not(:disabled){
-            background:#f8f9fa;
-        }
-
-        .btn-primary:hover:not(:disabled){
-            background:#5a7da8;
-        }
-
-        .btn:disabled{
-            opacity:0.6;
-            cursor:not-allowed;
-        }
-
-        /* Legend Toggle Styles */
-        .legend-toggles{
-            display:flex;
-            gap:20px;
-            align-items:center;
-            margin-bottom:16px;
-            flex-wrap:wrap;
-        }
-
-        .legend-item{
-            display:flex;
-            align-items:center;
-            gap:8px;
-            cursor:pointer;
-            user-select:none;
-            padding:6px 12px;
-            border-radius:20px;
-            transition:all 0.2s ease;
-        }
-
-        .legend-item:hover{
-            background:#f8f9fa;
-        }
-
-        .legend-indicator{
-            width:16px;
-            height:16px;
-            border-radius:50%;
-            border:3px solid;
-            transition:all 0.3s ease;
-            flex-shrink:0;
-        }
-
-        .legend-item.legend-2024 .legend-indicator{
-            border-color:var(--color-2024);
-            background:var(--color-2024);
-        }
-
-        .legend-item.legend-2025 .legend-indicator{
-            border-color:var(--color-2025);
-            background:var(--color-2025);
-        }
-
-        .legend-item.legend-percentage .legend-indicator{
-            border-color:var(--color-percentage);
-            background:var(--color-percentage);
-        }
-
-        .legend-item.inactive .legend-indicator{
-            background:white;
-        }
-
-        .legend-item.inactive{
-            opacity:0.5;
-        }
-
-        .legend-label{
-            font-size:14px;
-            font-weight:500;
-            color:#333;
-        }
-
-        .input-group{
-            display:flex;
-            align-items:center;
-            gap:8px;
-        }
-
-        .input-group label{
-            font-size:13px;
-            color:#495057;
-            white-space:nowrap;
-        }
-
-        .input-group input{
-            padding:6px 10px;
-            border:1px solid var(--gray-light);
-            border-radius:6px;
-            font-size:13px;
-        }
-
-        .chart-area{
-            position:relative;
-            height:400px;
-        }
-
-        .chart-area canvas{
-            width:100%;
-            height:100%;
-        }
-
-        .loading-overlay{
-            position:absolute;
-            top:0;
-            left:0;
-            right:0;
-            bottom:0;
-            background:rgba(255,255,255,0.9);
-            display:none;
-            align-items:center;
-            justify-content:center;
-            z-index:10;
-        }
-
-        .loading-overlay.active{
-            display:flex;
-        }
-
-        .spinner{
-            border:3px solid var(--gray-light);
-            border-top:3px solid var(--primary);
-            border-radius:50%;
-            width:40px;
-            height:40px;
-            animation:spin 1s linear infinite;
-        }
-
-        @keyframes spin{
-            0%{transform:rotate(0deg);}
-            100%{transform:rotate(360deg);}
-        }
-
-        /* MONTH PICKER */
-        .month-picker-container{
-            position:relative;
-            display:inline-block;
-        }
-
-        .month-picker-card{
-            background:white;
-            border-radius:var(--border-radius);
-            box-shadow:var(--shadow);
-            opacity:0;
-            visibility:hidden;
-            transform:translateY(-6px);
-            transition:.2s;
-            z-index:100;
-            width:280px;
-            max-height:360px;
-            display:flex;
-            flex-direction:column;
-            position:absolute;
-            top:calc(100% + 6px);
-            right:0;
-        }
-
-        .month-picker-card.active{
-            opacity:1;
-            visibility:visible;
-            transform:translateY(0);
-        }
-
-        .month-picker-header{
-            padding:12px 16px;
-            border-bottom:1px solid var(--gray-light);
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-        }
-
-        .month-picker-body{
-            padding:16px;
-            overflow-y:auto;
-            flex:1;
-        }
-
-        .month-picker-footer{
-            padding:12px 16px;
-            border-top:1px solid var(--gray-light);
-            display:flex;
-            gap:10px;
-            justify-content:flex-end;
-            background:white;
-        }
-
-        .month-grid{
-            display:grid;
-            grid-template-columns:repeat(3,1fr);
-            gap:6px;
-        }
-
-        .month-btn{
-            padding:8px;
-            border:1px solid var(--gray-light);
-            border-radius:16px;
-            font-size:13px;
-            text-align:center;
-            cursor:pointer;
-            transition: all 0.2s;
-        }
-
-        .month-btn:hover{
-            background:#f8f9fa;
-        }
-
-        .month-btn.selected{
-            background:var(--primary);
-            color:white;
-        }
-
-        @media (max-width: 768px) {
-            .control-bar,
-            .card-header{
-                flex-direction:column;
-                align-items:stretch;
-            }
-
-            .control-actions{
-                width:100%;
-            }
-
-            .btn{
-                flex:1;
-                justify-content:center;
-            }
-
-            .legend-toggles{
-                width:100%;
-            }
-
-            .legend-item{
-                flex:1;
-            }
-        }
-    </style>
 </head>
-
 <body>
-    <div class="dashboard-container">
-        <div class="card chart-card">
+    <div class="container">
+        <h1>Tree View Dashboard</h1>
+
+        <!-- Section 1: Revenue Trend -->
+        <div class="card">
             <div class="control-bar">
                 <div class="card-title">Monthly Revenue Comparison (2024 vs 2025)</div>
-
+                
                 <div class="control-actions">
-                    <div class="input-group">
-                        <label>Account:</label>
-                        <input type="text" id="accountHeader" value="4000.01.00">
-                    </div>
-                    
-                    <div class="month-picker-container">
-                        <button class="btn" id="monthPickerBtn" type="button">
-                            <i class="far fa-calendar"></i>
-                            <span class="btn-label" id="monthPickerLabel">Pilih Bulan</span>
-                            <i class="fas fa-chevron-down"></i>
-                        </button>
-
-                        <div class="month-picker-card" id="monthPickerCard">
-                            <div class="month-picker-header">
-                                <span>Pilih Periode</span>
-                                <button class="btn" id="closeMonthPicker"><i class="fas fa-times"></i></button>
+                    <div class="bu-filter-container">
+                        <label class="input-group-label">Business Unit:</label>
+                        <div class="bu-filter-cards">
+                            <div class="bu-filter-card" id="bu_gosave" onclick="toggleBusinessUnit('Gosave')">
+                                <div class="bu-checkbox">
+                                    <div class="bu-checkbox-inner"></div>
+                                </div>
+                                <span>Gosave</span>
                             </div>
-
-                            <div class="month-picker-body">
-                                <div class="month-grid" id="monthGrid"></div>                            
-                            </div>
-
-                            <div class="month-picker-footer">
-                                <button class="btn" id="cancelBtn">Batal</button>
-                                <button class="btn btn-primary" id="applyBtn">Terapkan</button>
+                            <div class="bu-filter-card" id="bu_goto" onclick="toggleBusinessUnit('Goto')">
+                                <div class="bu-checkbox">
+                                    <div class="bu-checkbox-inner"></div>
+                                </div>
+                                <span>Goto</span>
                             </div>
                         </div>
                     </div>
                     
-                    <button class="btn btn-primary" id="loadDataBtn">
-                        <i class="fas fa-sync-alt"></i>
+                    <div class="input-group">
+                        <label class="input-group-label">Account:</label>
+                        <input type="text" id="account_header" value="4000.01.00" class="input-group-input">
+                    </div>
+                    
+                    <div class="month-picker-container" id="month_picker_container">
+                        <button class="btn" id="month_picker_btn" onclick="toggleMonthPicker()">
+                            <span>📅</span>
+                            <span id="month_picker_label">Pilih Bulan</span>
+                            <span>▼</span>
+                        </button>
+                        <div class="month-picker-dropdown" id="month_picker_dropdown">
+                            <div class="month-picker-header">
+                                <span>Pilih Periode</span>
+                                <button class="month-picker-close" onclick="closeMonthPicker()">✕</button>
+                            </div>
+                            <div class="month-picker-body" id="month_picker_body">
+                                <!-- Will be populated by JS -->
+                            </div>
+                            <div class="month-picker-footer">
+                                <button class="btn" onclick="cancelMonthPicker()">Batal</button>
+                                <button class="btn btn-primary" onclick="applyMonthPicker()">Terapkan</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="loadRevenue()" id="load_revenue_btn">
+                        <span>🔄</span>
                         Load Data
                     </button>
                 </div>
             </div>
-
+            
             <div class="card-body">
                 <div class="legend-toggles">
-                    <div class="legend-item legend-2024" id="toggle2024">
-                        <div class="legend-indicator"></div>
-                        <span class="legend-label">2024 Revenue</span>
+                    <div class="legend-item" id="legend_credit" onclick="toggleLegendCredit()">
+                        <div class="legend-indicator legend-indicator-credit"></div>
+                        <span class="legend-label">Credit</span>
                     </div>
-                    <div class="legend-item legend-2025" id="toggle2025">
-                        <div class="legend-indicator"></div>
-                        <span class="legend-label">2025 Revenue</span>
+                    <div class="legend-item" id="legend_debit" onclick="toggleLegendDebit()">
+                        <div class="legend-indicator legend-indicator-debit"></div>
+                        <span class="legend-label">Debit</span>
                     </div>
-                    <div class="legend-item legend-percentage inactive" id="togglePercentage">
-                        <div class="legend-indicator"></div>
-                        <span class="legend-label">Persentase</span>
+                    <div class="legend-item" id="legend_total" onclick="toggleLegendTotal()">
+                        <div class="legend-indicator legend-indicator-total"></div>
+                        <span class="legend-label">Total (Credit - Debit)</span>
                     </div>
                 </div>
-
+                
                 <div class="chart-area">
-                    <canvas id="revenueChart"></canvas>
-                    <div class="loading-overlay" id="loadingOverlay">
+                    <div class="loading-overlay" id="loading_overlay" style="display: none;">
                         <div class="spinner"></div>
                     </div>
+                    <canvas id="revenue_chart"></canvas>
                 </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Invoice Sales (REVISED) -->
+        <div class="section">
+            <h2>📊 Invoice Sales & Quantity Analysis</h2>
+            
+            <!-- Business Unit Filter (Multi-Select) -->
+            <div class="form-group">
+                <label>Business Unit (Multi-Select):</label>
+                <div class="button-group">
+                    <button class="filter-btn" data-unit="Gosave" onclick="toggleBusinessUnit('Gosave')">Gosave</button>
+                    <button class="filter-btn" data-unit="Goto" onclick="toggleBusinessUnit('Goto')">Goto</button>
+                </div>
+            </div>
+            
+            <!-- Date Filter Type -->
+            <div class="form-group">
+                <label>Tipe Filter Tanggal:</label>
+                <select id="date_filter_type" onchange="toggleDateFilter()">
+                    <option value="year">Per Tahun (Bulanan)</option>
+                    <option value="range">Range Tanggal</option>
+                    <option value="specific">Tanggal Tertentu (Max 30)</option>
+                    <option value="compare_year">Compare by Year</option>
+                </select>
+            </div>
+            
+            <!-- Year Filter (only for type=year) -->
+            <div class="form-group" id="year_filter_container">
+                <label>Pilih Tahun (Multi-Select):</label>
+                <div class="button-group" id="year_buttons">
+                    <!-- Will be populated by JS -->
+                </div>
+            </div>
+            
+            <!-- Date Range Filter (only for type=range) -->
+            <div class="form-group" id="range_filter_container" style="display:none;">
+                <label>Range Tanggal:</label>
+                <input type="date" id="range_start_date">
+                <span>sampai</span>
+                <input type="date" id="range_end_date">
+            </div>
+            
+            <!-- Specific Dates Filter (only for type=specific) -->
+            <div class="form-group" id="specific_date_container" style="display:none;">
+                <label>Tanggal Tertentu (Max 30):</label>
+                <input type="date" id="add_date_input">
+                <button onclick="addSpecificDate()">Tambah</button>
+                <div id="selected_dates" class="tag-container"></div>
+            </div>
+
+            <div class="form-group" id="compare_year_container" style="display:none;">
+                <label>Pilih Tanggal & Bulan:</label>
+                <input type="date" id="compare_date_input">
+                <button onclick="addCompareDate()">Tambah</button>
+                <div id="compare_dates_selected" class="tag-container"></div>
+                
+                <div id="compare_year_selector" style="display:none; margin-top:15px;">
+                    <label>Pilih Tahun untuk Perbandingan:</label>
+                    <div class="button-group" id="compare_year_buttons">
+                        <!-- Will be populated by JS -->
+                    </div>
+                </div>
+            </div>
+            
+            
+            <button onclick="loadInvoiceSales()" class="btn-primary">Load Data</button>
+            <span id="invoice_loading">⏳ Loading...</span>
+            
+            <div class="chart-container-single">
+                <canvas id="invoice_combined_chart"></canvas>
             </div>
         </div>
     </div>
 
-    <script src="../js/chartBulanan.js"></script>
+    <script type="module" src="main.js"></script>
 </body>
 </html>

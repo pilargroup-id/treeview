@@ -205,11 +205,12 @@ function ChartInvoice() {
   };
 
   const toggleYear = (year) => {
+    // Single select: jika tahun yang sama diklik, deselect. Jika berbeda, select tahun baru
     setYears(prev => {
       if (prev.includes(year)) {
-        return prev.filter(y => y !== year);
+        return []; // Deselect jika tahun yang sama diklik
       } else {
-        return [...prev, year];
+        return [year]; // Hanya 1 tahun yang bisa dipilih
       }
     });
   };
@@ -246,8 +247,10 @@ function ChartInvoice() {
         return;
       }
       
-      // Batasi jumlah tanggal untuk menghindari error
-      const MAX_SPECIFIC_DATES = 20; // Batasi maksimal 20 tanggal
+      // Validasi jumlah tanggal berdasarkan tahun yang dipilih
+      // Validasi sebenarnya dilakukan di apiService.js saat load data
+      // Di sini kita hanya batasi maksimal 30 untuk UI
+      const MAX_SPECIFIC_DATES = 30; // Batasi maksimal 30 tanggal (untuk 1 tahun)
       if (specificDates.length >= MAX_SPECIFIC_DATES) {
         alert(`Maksimal ${MAX_SPECIFIC_DATES} tanggal yang bisa dipilih untuk menghindari error`);
         return;
@@ -308,10 +311,10 @@ function ChartInvoice() {
         return;
       }
       
-      // Batasi jumlah range
-      const MAX_RANGE_DATES = 20;
+      // Batasi jumlah range - maksimal 1
+      const MAX_RANGE_DATES = 1;
       if (rangeDates.length >= MAX_RANGE_DATES) {
-        alert(`Maksimal ${MAX_RANGE_DATES} range yang bisa dipilih untuk menghindari error`);
+        alert(`Maksimal ${MAX_RANGE_DATES} range yang bisa dipilih. Hapus range yang ada terlebih dahulu.`);
         return;
       }
       
@@ -380,6 +383,7 @@ function ChartInvoice() {
       years,
       rangeDates,
       specificDates,
+      availableYears,
       setInvoiceData,
       setInvoiceLoading
     });
@@ -492,6 +496,7 @@ function ChartInvoice() {
                 rangeDates={rangeDates}
                 onAddRange={addRangeDate}
                 onRemoveRange={removeRangeDate}
+                availableYears={availableYears}
                 selectedYear={years.length === 1 ? years[0] : null}
               />
             )}

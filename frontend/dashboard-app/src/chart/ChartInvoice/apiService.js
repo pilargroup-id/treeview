@@ -8,7 +8,8 @@ export function buildApiParams({
   dateFilterType,
   years,
   rangeDates,
-  specificDates
+  specificDates,
+  availableYears = null
 }) {
   const params = new URLSearchParams();
   
@@ -31,9 +32,6 @@ export function buildApiParams({
         return !isNaN(month) && !isNaN(day) && month >= 1 && month <= 12 && day >= 1 && day <= 31;
       };
       
-      // Untuk multiple ranges, kita akan memanggil API untuk setiap range
-      // Tapi untuk kompatibilitas dengan API yang mungkin hanya menerima satu range,
-      // kita akan menggunakan range pertama
       const firstRange = rangeDates[0];
       
       if (!isValidMonthDay(firstRange.start) || !isValidMonthDay(firstRange.end)) {
@@ -52,6 +50,13 @@ export function buildApiParams({
       throw new Error('Pilih minimal 1 tanggal');
     }
     
+    // Jika years dipilih, gunakan years yang dipilih
+    const yearsToUse = (years && Array.isArray(years) && years.length > 0) 
+      ? years 
+      : (availableYears && Array.isArray(availableYears) && availableYears.length > 0)
+        ? availableYears
+        : [2021, 2022, 2023, 2024, 2025]; // Fallback default
+    
     // Validasi format setiap tanggal
     const isValidMonthDay = (value) => {
       if (!value || typeof value !== 'string') return false;
@@ -69,20 +74,19 @@ export function buildApiParams({
       throw new Error(`Format tanggal tidak valid: ${invalidDates.join(', ')}. Gunakan format MM-DD (contoh: 12-25)`);
     }
     
-    // Format specificDates:
-    const years = [2021, 2022, 2023, 2024, 2025];
+    // API membatasi maksimal 30 tanggal YYYY-MM-DD
+    const MAX_API_DATES = 30;
+    const totalParams = specificDates.length * yearsToUse.length;
     
-    // Hitung total parameter yang akan dikirim
-    const totalParams = specificDates.length * years.length;
-    if (totalParams > 200) {
-      console.warn(`Warning: Total parameters (${totalParams}) is very large. This may cause issues.`);
-      // Tetap lanjutkan, tapi log warning
+    if (totalParams > MAX_API_DATES) {
+      const maxDates = Math.floor(MAX_API_DATES / yearsToUse.length);
+      throw new Error(`Total tanggal yang akan dikirim (${totalParams}) melebihi batas API (${MAX_API_DATES}). Maksimal ${maxDates} tanggal MM-DD untuk ${yearsToUse.length} tahun.`);
     }
     
     try {
       specificDates.forEach(monthDay => {
         if (monthDay && monthDay.includes('-')) {
-          years.forEach(year => {
+          yearsToUse.forEach(year => {
             const fullDate = `${year}-${monthDay}`;
             params.append('specific_dates[]', fullDate);
           });
@@ -98,10 +102,11 @@ export function buildApiParams({
       console.log('=== API Request Debug (Specific Dates) ===');
       console.log('Input specificDates (MM-DD):', specificDates);
       console.log('Number of dates:', specificDates.length);
+      console.log('Years to use:', yearsToUse);
       console.log('Total parameters to send:', totalParams);
       const allDates = [];
       specificDates.forEach(monthDay => {
-        years.forEach(year => {
+        yearsToUse.forEach(year => {
           allDates.push(`${year}-${monthDay}`);
         });
       });
@@ -164,6 +169,7 @@ export async function loadInvoiceSales({
   years,
   rangeDates,
   specificDates,
+  availableYears = null,
   setInvoiceData,
   setInvoiceLoading
 }) {
@@ -205,9 +211,20 @@ export async function loadInvoiceSales({
       return;
     }
     
-    const MAX_SPECIFIC_DATES = 20; 
-    if (specificDates.length > MAX_SPECIFIC_DATES) {
-      alert(`Maksimal ${MAX_SPECIFIC_DATES} tanggal yang bisa dipilih untuk menghindari error. Saat ini ada ${specificDates.length} tanggal.`);
+    // Untuk specific dates
+    const yearsToUse = (years && Array.isArray(years) && years.length > 0) 
+      ? years 
+      : (availableYears && Array.isArray(availableYears) && availableYears.length > 0)
+        ? availableYears
+        : [2021, 2022, 2023, 2024, 2025]; 
+    
+    // Validasi total tanggal 
+    const MAX_API_DATES = 30;
+    const totalDates = specificDates.length * yearsToUse.length;
+    
+    if (totalDates > MAX_API_DATES) {
+      const maxDates = Math.floor(MAX_API_DATES / yearsToUse.length);
+      alert(`Total tanggal yang akan dikirim (${totalDates}) melebihi batas API (${MAX_API_DATES}). Maksimal ${maxDates} tanggal MM-DD untuk ${yearsToUse.length} tahun.`);
       return;
     }
   }
@@ -215,12 +232,12 @@ export async function loadInvoiceSales({
   try {
     setInvoiceLoading(true);
     
-    // Untuk multiple ranges, kita perlu memanggil API untuk setiap range dan menggabungkan hasilnya
+    // Untuk multiple ranges
     if (dateFilterType === 'range' && rangeDates && rangeDates.length > 0) {
       const allData = [];
       const errors = [];
       
-      // Memanggil API untuk setiap range (menggunakan tahun dari range data)
+      // Memanggil API 
       for (const range of rangeDates) {
         try {
           if (!range.year) {
@@ -287,7 +304,6 @@ export async function loadInvoiceSales({
         setInvoiceData([]);
       }
     } else {
-      // Untuk dateFilterType lainnya (year, specific), gunakan logika lama
       let params;
       try {
         params = buildApiParams({
@@ -295,7 +311,8 @@ export async function loadInvoiceSales({
           dateFilterType,
           years,
           rangeDates: [],
-          specificDates
+          specificDates,
+          availableYears
         });
       } catch (buildError) {
         console.error('Error building API params:', buildError);
@@ -328,15 +345,38 @@ export async function loadInvoiceSales({
       
       if (!response.ok) {
         console.error('Response not OK:', response.status, response.statusText);
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        alert(`Error dari server (${response.status}): ${response.statusText || 'Unknown error'}`);
+        let errorMessage = response.statusText || 'Unknown error';
+        
+        try {
+          const errorText = await response.text();
+          console.error('Error response:', errorText);
+          
+          // Parse JSON 
+          try {
+            const errorJson = JSON.parse(errorText);
+            if (errorJson.errors) {
+              const errorMessages = Object.values(errorJson.errors).flat();
+              errorMessage = errorMessages.join(', ') || errorMessage;
+            } else if (errorJson.message) {
+              errorMessage = errorJson.message;
+            }
+          } catch (parseError) {
+            if (errorText && errorText.length < 500) {
+              errorMessage = errorText;
+            }
+          }
+        } catch (textError) {
+          console.error('Error reading error response:', textError);
+        }
+        
+        alert(`Error dari server (${response.status}): ${errorMessage}`);
         return;
       }
       
       let result;
       try {
-        result = await response.json();
+        const responseText = await response.text();
+        result = JSON.parse(responseText);
       } catch (jsonError) {
         console.error('Error parsing JSON response:', jsonError);
         alert('Error memproses response dari server. Response mungkin tidak valid.');
@@ -347,9 +387,7 @@ export async function loadInvoiceSales({
         console.log('Invoice Data dari API:', result.data);
         console.log('Jumlah data:', result.data ? result.data.length : 0);
         
-        // Pastikan data adalah array dan sesuai struktur API
         if (Array.isArray(result.data)) {
-          // Debug: Tampilkan struktur data dari API
           if (process.env.NODE_ENV === 'development' && result.data.length > 0) {
             console.log('=== API Response Structure ===');
             console.log('Sample record:', result.data[0]);
@@ -406,13 +444,13 @@ export async function refreshData({
       
       if (canLoadData) {
         try {
-          // Gunakan loadInvoiceSales untuk konsistensi
           await loadInvoiceSales({
             businessUnits,
             dateFilterType,
             years,
             rangeDates,
             specificDates,
+            availableYears,
             setInvoiceData,
             setInvoiceLoading
           });
