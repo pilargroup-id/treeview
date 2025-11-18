@@ -288,11 +288,6 @@ function createYearFilterChart({
   return { datasets, options };
 }
 
-/**
- * Create chart data dan options untuk specific date filter
- * Format specificDates: MM-DD (bulan-hari)
- * Chart menampilkan 5 garis (satu per tahun 2021-2025) untuk setiap tanggal yang dipilih
- */
 function createSpecificDateChart({
   invoiceData,
   businessUnits,
@@ -316,7 +311,7 @@ function createSpecificDateChart({
       borderWidth: 0
     });
   } else {
-    // Untuk setiap tahun, buat dataset - PASTIKAN SEMUA TAHUN SELALU ADA
+    // Untuk setiap tahun
     years.forEach((year, yearIndex) => {
       const colorSet = COLOR_PALETTE_YEAR[yearIndex % COLOR_PALETTE_YEAR.length];
       
@@ -327,8 +322,6 @@ function createSpecificDateChart({
           // Convert MM-DD ke YYYY-MM-DD untuk setiap tahun
           const fullDate = `${year}-${monthDay}`;
           
-          // Ambil semua data untuk tanggal ini (semua business unit)
-          // Pastikan matching dengan format period dari API (YYYY-MM-DD)
           const records = invoiceData.filter(d => {
             if (!d.period) return false;
             // Normalize period untuk matching
@@ -367,18 +360,16 @@ function createSpecificDateChart({
         });
       }
       
-      // Quantity dataset
+      // Quantity 
       if (dataType === 'quantity' || dataType === 'both') {
         const sortedDates = [...specificDates].sort();
         const quantityData = sortedDates.map(monthDay => {
-          // Convert MM-DD ke YYYY-MM-DD untuk setiap tahun
+          // Convert MM-DD ke YYYY-MM-DD 
           const fullDate = `${year}-${monthDay}`;
           
-          // Ambil semua data untuk tanggal ini (semua business unit)
-          // Pastikan matching dengan format period dari API (YYYY-MM-DD)
           const records = invoiceData.filter(d => {
             if (!d.period) return false;
-            // Normalize period untuk matching
+            // Normalize period 
             const periodNormalized = String(d.period).trim();
             const fullDateNormalized = fullDate.trim();
             return periodNormalized === fullDateNormalized;
@@ -397,7 +388,7 @@ function createSpecificDateChart({
             });
             return total;
           }
-          // Jika tidak ada data, tetap return 0 (bukan null)
+          // Jika tidak ada data
           return 0;
         });
         
@@ -416,7 +407,7 @@ function createSpecificDateChart({
       }
     });
     
-    // Debug log untuk memastikan semua tahun ada
+    // Debug log 
     if (process.env.NODE_ENV === 'development') {
       console.log('=== Specific Date Chart Debug ===');
       console.log('Selected Dates (MM-DD):', specificDates);
