@@ -26,6 +26,8 @@ class FinancialController extends Controller
             'account_header' => 'required|string',
             'start_date' => 'required|date|date_format:Y-m-d',
             'end_date' => 'required|date|date_format:Y-m-d|after_or_equal:start_date',
+            'business_units' => 'nullable|array',
+            'business_units.*' => 'in:Gosave,Goto',
         ]);
 
         if ($validator->fails()) {
@@ -38,7 +40,8 @@ class FinancialController extends Controller
         $result = $this->financialRepo->getMonthlyRevenue(
             $request->account_header,
             $request->start_date,
-            $request->end_date
+            $request->end_date,
+            $request->input('business_units', null)
         );
 
         if ($result['success']) {
