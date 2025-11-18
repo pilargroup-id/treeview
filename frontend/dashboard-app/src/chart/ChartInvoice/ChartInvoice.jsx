@@ -178,6 +178,14 @@ function ChartInvoice() {
     loadYearSummary(availableYears, setYearSummary, setYearSummaryLoading);
   }, []);
 
+  // Reset years ke single select ketika dateFilterType bukan 'year'
+  useEffect(() => {
+    if (dateFilterType !== 'year' && years.length > 1) {
+      // Jika ada multiple years dan dateFilterType bukan 'year', ambil tahun pertama saja
+      setYears(prev => prev.length > 0 ? [prev[0]] : []);
+    }
+  }, [dateFilterType]);
+
   // Refresh data
   const handleRefreshData = async () => {
     await refreshData({
@@ -205,14 +213,26 @@ function ChartInvoice() {
   };
 
   const toggleYear = (year) => {
-    // Single select: jika tahun yang sama diklik, deselect. Jika berbeda, select tahun baru
-    setYears(prev => {
-      if (prev.includes(year)) {
-        return []; // Deselect jika tahun yang sama diklik
-      } else {
-        return [year]; // Hanya 1 tahun yang bisa dipilih
-      }
-    });
+    // Multi select untuk filter "pertahun (bulanan)", single select untuk filter lainnya
+    if (dateFilterType === 'year') {
+      // Multi select: toggle tahun yang diklik
+      setYears(prev => {
+        if (prev.includes(year)) {
+          return prev.filter(y => y !== year); // Hapus tahun jika sudah dipilih
+        } else {
+          return [...prev, year].sort((a, b) => a - b); // Tambahkan tahun dan sort
+        }
+      });
+    } else {
+      // Single select: jika tahun yang sama diklik, deselect. Jika berbeda, select tahun baru
+      setYears(prev => {
+        if (prev.includes(year)) {
+          return []; // Deselect jika tahun yang sama diklik
+        } else {
+          return [year]; // Hanya 1 tahun yang bisa dipilih
+        }
+      });
+    }
   };
 
   const addSpecificDate = (monthDay) => {
