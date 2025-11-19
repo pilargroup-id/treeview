@@ -74,6 +74,11 @@ function ChartInvoice() {
         
         const ctx = chart.ctx;
         const datasets = chart.data.datasets;
+        const chartArea = chart.chartArea;
+        
+        // Dapatkan skala untuk mendapatkan batas chart
+        const yScale = chart.scales.y || chart.scales.y1;
+        if (!yScale) return;
         
         const labelsByX = new Map();
         
@@ -108,57 +113,162 @@ function ChartInvoice() {
         ctx.save();
         ctx.font = 'bold 11px Segoe UI, sans-serif';
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'bottom';
+        ctx.textBaseline = 'middle';
         
-        const labelHeight = 16; 
-        const baseOffset = 20; 
-        const minSpacing = 2; 
+        const labelPadding = 6;
+        const labelHeight = 20;
+        const labelSpacing = 4;
+        const minXDistance = 50; // Jarak minimum antar label di sumbu X
+        const maxLabelWidth = 80; // Estimasi lebar maksimal label
         
         const allLabels = [];
         
+        // Kumpulkan semua label dengan dimensi
         labelsByX.forEach((labels, x) => {
           labels.sort((a, b) => a.baseY - b.baseY);
           
           labels.forEach((label, index) => {
             const labelText = formatShortNumber(label.value);
+            const textMetrics = ctx.measureText(labelText);
+            const textWidth = textMetrics.width;
             
-
-            const offsetY = -baseOffset - (index * labelHeight);
-            const finalY = label.baseY + offsetY;
+            // Tentukan posisi awal (di atas atau di bawah berdasarkan posisi di chart)
+            const chartTop = chartArea.top;
+            const chartBottom = chartArea.bottom;
+            const isNearTop = label.baseY < (chartTop + (chartBottom - chartTop) * 0.3);
+            
+            // Offset awal berdasarkan posisi
+            const baseOffset = isNearTop ? 25 : -25;
+            const offsetY = baseOffset + (index * (labelHeight + labelSpacing) * (isNearTop ? 1 : -1));
+            let initialY = label.baseY + offsetY;
             
             allLabels.push({
               x: label.x,
-              y: finalY,
+              y: initialY,
+              baseY: label.baseY,
               text: labelText,
               color: label.color,
-              baseY: label.baseY,
-              index: index,
+              width: textWidth,
+              height: labelHeight,
+              isNearTop: isNearTop,
               xGroup: x
             });
           });
         });
         
+        // Sort berdasarkan Y position
         allLabels.sort((a, b) => a.y - b.y);
         
+        // Collision detection dan adjustment yang lebih baik
         for (let i = 0; i < allLabels.length; i++) {
           const label = allLabels[i];
           let adjustedY = label.y;
+          let adjustedX = label.x;
+          let maxIterations = 30;
+          let iteration = 0;
+          let hasAnyCollision = true;
           
-          for (let j = 0; j < i; j++) {
-            const otherLabel = allLabels[j];
-            const xDiff = Math.abs(otherLabel.x - label.x);
-            const yDiff = Math.abs(otherLabel.y - adjustedY);
+          while (hasAnyCollision && iteration < maxIterations) {
+            hasAnyCollision = false;
             
-            if (xDiff < 35 && yDiff < labelHeight) {
-              adjustedY = otherLabel.y - labelHeight - minSpacing;
+            // Cek collision dengan label yang sudah di-adjust (indeks < i)
+            for (let j = 0; j < i; j++) {
+              const otherLabel = allLabels[j];
+              const xDiff = Math.abs(otherLabel.x - adjustedX);
+              const yDiff = Math.abs(otherLabel.y - adjustedY);
+              
+              // Collision jika terlalu dekat di X dan Y
+              const minYDistance = (label.height + otherLabel.height) / 2 + labelSpacing;
+              if (xDiff < minXDistance && yDiff < minYDistance) {
+                hasAnyCollision = true;
+                
+                // Tentukan arah perpindahan berdasarkan posisi relatif
+                const yDirection = adjustedY < otherLabel.y ? -1 : 1;
+                const xDirection = adjustedX < otherLabel.x ? -1 : 1;
+                
+                // Geser vertikal terlebih dahulu
+                adjustedY = otherLabel.y + (yDirection * minYDistance);
+                
+                // Jika masih collision setelah geser vertikal, geser horizontal juga
+                const newYDiff = Math.abs(otherLabel.y - adjustedY);
+                if (xDiff < minXDistance && newYDiff < minYDistance) {
+                  adjustedX = otherLabel.x + (xDirection * (minXDistance - xDiff + 5));
+                }
+                
+                break; // Keluar dari loop untuk re-check semua collision
+              }
             }
+            
+            // Cek apakah label masih dalam batas chart area
+            const labelTop = adjustedY - label.height / 2;
+            const labelBottom = adjustedY + label.height / 2;
+            const labelLeft = adjustedX - label.width / 2 - labelPadding;
+            const labelRight = adjustedX + label.width / 2 + labelPadding;
+            
+            // Jika keluar dari batas atas, pindah ke bawah
+            if (labelTop < chartArea.top + 10) {
+              adjustedY = label.baseY + 35;
+              label.isNearTop = false;
+              hasAnyCollision = true; // Re-check setelah pindah
+            }
+            // Jika keluar dari batas bawah, pindah ke atas
+            else if (labelBottom > chartArea.bottom - 10) {
+              adjustedY = label.baseY - 35;
+              label.isNearTop = true;
+              hasAnyCollision = true; // Re-check setelah pindah
+            }
+            
+            // Jika keluar dari batas kiri/kanan, kembalikan ke posisi X asli
+            if (labelLeft < chartArea.left + 5) {
+              adjustedX = Math.max(chartArea.left + label.width / 2 + labelPadding + 5, label.x);
+              hasAnyCollision = true;
+            } else if (labelRight > chartArea.right - 5) {
+              adjustedX = Math.min(chartArea.right - label.width / 2 - labelPadding - 5, label.x);
+              hasAnyCollision = true;
+            }
+            
+            iteration++;
           }
           
+          label.x = adjustedX;
           label.y = adjustedY;
-          
-          ctx.fillStyle = label.color;
-          ctx.fillText(label.text, label.x, label.y);
         }
+        
+        // Render semua label dengan background
+        allLabels.forEach(label => {
+          const labelWidth = label.width + (labelPadding * 2);
+          const labelHeight = label.height;
+          const x = label.x;
+          const y = label.y;
+          
+          // Draw background dengan rounded rectangle
+          ctx.save();
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+          ctx.strokeStyle = label.color;
+          ctx.lineWidth = 1.5;
+          
+          // Rounded rectangle
+          const radius = 4;
+          ctx.beginPath();
+          ctx.moveTo(x - labelWidth / 2 + radius, y - labelHeight / 2);
+          ctx.lineTo(x + labelWidth / 2 - radius, y - labelHeight / 2);
+          ctx.quadraticCurveTo(x + labelWidth / 2, y - labelHeight / 2, x + labelWidth / 2, y - labelHeight / 2 + radius);
+          ctx.lineTo(x + labelWidth / 2, y + labelHeight / 2 - radius);
+          ctx.quadraticCurveTo(x + labelWidth / 2, y + labelHeight / 2, x + labelWidth / 2 - radius, y + labelHeight / 2);
+          ctx.lineTo(x - labelWidth / 2 + radius, y + labelHeight / 2);
+          ctx.quadraticCurveTo(x - labelWidth / 2, y + labelHeight / 2, x - labelWidth / 2, y + labelHeight / 2 - radius);
+          ctx.lineTo(x - labelWidth / 2, y - labelHeight / 2 + radius);
+          ctx.quadraticCurveTo(x - labelWidth / 2, y - labelHeight / 2, x - labelWidth / 2 + radius, y - labelHeight / 2);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          
+          // Draw text
+          ctx.fillStyle = label.color;
+          ctx.fillText(label.text, x, y);
+          
+          ctx.restore();
+        });
         
         ctx.restore();
       }
@@ -235,19 +345,38 @@ function ChartInvoice() {
     }
   };
 
-  const addSpecificDate = (monthDay) => {
+  const addSpecificDate = (dateObj) => {
+    console.log('addSpecificDate called with:', dateObj);
+    console.log('Current specificDates:', specificDates);
+    
     try {
-      // Validasi input
-      if (!monthDay || typeof monthDay !== 'string') {
-        console.error('Invalid monthDay:', monthDay);
+      // Validasi input - support both old format (string) and new format (object)
+      let dateWithYear;
+      
+      if (typeof dateObj === 'string') {
+        // Old format: MM-DD string (backward compatibility)
+        const parts = dateObj.split('-');
+        if (parts.length !== 2) {
+          console.error('Invalid dateObj format:', dateObj);
+          alert('Format tanggal tidak valid');
+          return;
+        }
+        // Convert to new format with current year as default
+        const currentYear = new Date().getFullYear();
+        dateWithYear = { year: currentYear, monthDay: dateObj };
+      } else if (typeof dateObj === 'object' && dateObj.year && dateObj.monthDay) {
+        // New format: {year, monthDay}
+        dateWithYear = dateObj;
+      } else {
+        console.error('Invalid dateObj:', dateObj);
         alert('Format tanggal tidak valid');
         return;
       }
       
       // Validasi format MM-DD
-      const parts = monthDay.split('-');
+      const parts = dateWithYear.monthDay.split('-');
       if (parts.length !== 2) {
-        console.error('Invalid monthDay format:', monthDay);
+        console.error('Invalid monthDay format:', dateWithYear.monthDay);
         alert('Format tanggal tidak valid. Gunakan format MM-DD (contoh: 12-25)');
         return;
       }
@@ -267,34 +396,54 @@ function ChartInvoice() {
         return;
       }
       
-      // Validasi jumlah tanggal berdasarkan tahun yang dipilih
-      // Validasi sebenarnya dilakukan di apiService.js saat load data
-      // Di sini kita hanya batasi maksimal 30 untuk UI
-      const MAX_SPECIFIC_DATES = 30; // Batasi maksimal 30 tanggal (untuk 1 tahun)
+      // Validasi jumlah tanggal
+      const MAX_SPECIFIC_DATES = 30;
       if (specificDates.length >= MAX_SPECIFIC_DATES) {
         alert(`Maksimal ${MAX_SPECIFIC_DATES} tanggal yang bisa dipilih untuk menghindari error`);
         return;
       }
       
-      if (specificDates.includes(monthDay)) {
-        alert('Tanggal sudah dipilih');
+      // Cek apakah tanggal dengan tahun ini sudah ada
+      const dateExists = specificDates.some(date => {
+        if (typeof date === 'string') {
+          return date === dateWithYear.monthDay;
+        }
+        return date.year === dateWithYear.year && date.monthDay === dateWithYear.monthDay;
+      });
+      
+      if (dateExists) {
+        alert(`Tanggal ${day}/${month}/${dateWithYear.year} sudah dipilih`);
         return;
       }
       
       // Validasi bahwa tanggal valid (misalnya 31 Februari tidak valid)
-      const testDate = dayjs(`2024-${monthDay}`);
+      const testDate = dayjs(`${dateWithYear.year}-${dateWithYear.monthDay}`);
       if (!testDate.isValid() || testDate.month() !== (month - 1) || testDate.date() !== day) {
-        alert(`Tanggal ${day}/${month} tidak valid. Silakan pilih tanggal yang valid.`);
+        alert(`Tanggal ${day}/${month}/${dateWithYear.year} tidak valid. Silakan pilih tanggal yang valid.`);
         return;
       }
       
       setSpecificDates(prev => {
+        console.log('Setting specificDates, prev:', prev);
+        console.log('Adding dateWithYear:', dateWithYear);
         try {
-          const newDates = [...prev, monthDay].sort();
-          return newDates;
+          const newDates = [...prev, dateWithYear];
+          console.log('newDates before sort:', newDates);
+          // Sort by year, then by monthDay
+          const sorted = newDates.sort((a, b) => {
+            const aYear = typeof a === 'string' ? 0 : a.year;
+            const bYear = typeof b === 'string' ? 0 : b.year;
+            if (aYear !== bYear) return aYear - bYear;
+            
+            const aMonthDay = typeof a === 'string' ? a : a.monthDay;
+            const bMonthDay = typeof b === 'string' ? b : b.monthDay;
+            return aMonthDay.localeCompare(bMonthDay);
+          });
+          console.log('sorted dates:', sorted);
+          return sorted;
         } catch (sortError) {
           console.error('Error sorting dates:', sortError);
-          return [...prev, monthDay];
+          return [...prev, dateWithYear];
         }
       });
     } catch (error) {
@@ -304,7 +453,20 @@ function ChartInvoice() {
   };
 
   const removeSpecificDate = (date) => {
-    setSpecificDates(prev => prev.filter(d => d !== date));
+    setSpecificDates(prev => {
+      // Support both old format (string) and new format (object)
+      if (typeof date === 'string') {
+        return prev.filter(d => {
+          if (typeof d === 'string') return d !== date;
+          return d.monthDay !== date;
+        });
+      }
+      // New format: object
+      return prev.filter(d => {
+        if (typeof d === 'string') return false;
+        return !(d.year === date.year && d.monthDay === date.monthDay);
+      });
+    });
   };
 
   const addRangeDate = (range) => {
@@ -488,6 +650,7 @@ function ChartInvoice() {
               yearTotals={yearTotals}
               onToggleYear={toggleYear}
               isLoading={yearSummaryLoading}
+              dateFilterType={dateFilterType}
             />
           </Box>
 
@@ -517,7 +680,7 @@ function ChartInvoice() {
                 onAddRange={addRangeDate}
                 onRemoveRange={removeRangeDate}
                 availableYears={availableYears}
-                selectedYear={years.length === 1 ? years[0] : null}
+                selectedYears={years}
               />
             )}
 

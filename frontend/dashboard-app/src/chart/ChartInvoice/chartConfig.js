@@ -26,13 +26,48 @@ export function generatePeriods({
     // Untuk filter tahun, selalu gunakan 12 bulan
     periods = MONTH_LABELS;
   } else if (isSpecificDate) {
-    // Untuk specific dates, format label dari specificDates (format: MM-DD)
+    // Untuk specific dates, format label dari specificDates
+    // Support both old format (string MM-DD) and new format (object {year, monthDay})
     if (specificDates.length > 0) {
-      const sortedDates = [...specificDates].sort();
-      periods = sortedDates.map(monthDay => {
-        const [month, day] = monthDay.split('-');
-        return `${parseInt(day)} ${MONTH_NAMES_ID[parseInt(month) - 1]}`;
+      // Sort dates: by year first, then by monthDay
+      const sortedDates = [...specificDates].sort((a, b) => {
+        // Handle old format (string)
+        if (typeof a === 'string' && typeof b === 'string') {
+          return a.localeCompare(b);
+        }
+        if (typeof a === 'string') {
+          return -1; // Old format comes first
+        }
+        if (typeof b === 'string') {
+          return 1; // Old format comes first
+        }
+        // New format: compare by year, then by monthDay
+        if (a.year !== b.year) {
+          return a.year - b.year;
+        }
+        return a.monthDay.localeCompare(b.monthDay);
       });
+      
+      periods = sortedDates.map(date => {
+        let monthDay;
+        if (typeof date === 'string') {
+          // Old format: MM-DD string
+          monthDay = date;
+        } else {
+          // New format: {year, monthDay}
+          monthDay = date.monthDay;
+        }
+        const [month, day] = monthDay.split('-');
+        const monthName = MONTH_NAMES_ID[parseInt(month) - 1];
+        const dayNum = parseInt(day);
+        
+        // Include year in label if using new format
+        if (typeof date === 'object' && date.year) {
+          return `${dayNum} ${monthName} ${date.year}`;
+        }
+        return `${dayNum} ${monthName}`;
+      });
+      
       if (process.env.NODE_ENV === 'development') {
         console.log('Specific Dates Periods:', periods);
         console.log('Specific Dates Count:', periods.length);
@@ -73,11 +108,12 @@ function createYearFilterChart({
           label: `${year} - Penjualan`,
           data: periods.map(() => 0),
           borderColor: colorSet.sales,
-          backgroundColor: colorSet.sales.replace('rgb', 'rgba').replace(')', ', 0.1)'),
-          tension: 0.3,
-          fill: false,
+          backgroundColor: colorSet.sales.replace('rgb', 'rgba').replace(')', ', 0.3)'),
+          tension: 0.4,
+          fill: true,
           pointRadius: 4,
-          pointHoverRadius: 6
+          pointHoverRadius: 6,
+          borderWidth: 2
         });
       }
       if (dataType === 'quantity' || dataType === 'both') {
@@ -85,12 +121,13 @@ function createYearFilterChart({
           label: `${year} - Quantity`,
           data: periods.map(() => 0),
           borderColor: colorSet.quantity,
-          backgroundColor: colorSet.quantity.replace('rgb', 'rgba').replace(')', ', 0.1)'),
-          tension: 0.3,
-          fill: false,
+          backgroundColor: colorSet.quantity.replace('rgb', 'rgba').replace(')', ', 0.3)'),
+          tension: 0.4,
+          fill: true,
           pointRadius: 4,
           pointHoverRadius: 6,
-          borderDash: [5, 5]
+          borderDash: [5, 5],
+          borderWidth: 2
         });
       }
     });
@@ -131,11 +168,12 @@ function createYearFilterChart({
           label: `${year} - Penjualan`,
           data: salesData,
           borderColor: colorSet.sales,
-          backgroundColor: colorSet.sales.replace('rgb', 'rgba').replace(')', ', 0.1)'),
-          tension: 0.3,
-          fill: false,
+          backgroundColor: colorSet.sales.replace('rgb', 'rgba').replace(')', ', 0.3)'),
+          tension: 0.4,
+          fill: true,
           pointRadius: 4,
-          pointHoverRadius: 6
+          pointHoverRadius: 6,
+          borderWidth: 2
         });
       }
       
@@ -164,12 +202,13 @@ function createYearFilterChart({
           label: `${year} - Quantity`,
           data: quantityData,
           borderColor: colorSet.quantity,
-          backgroundColor: colorSet.quantity.replace('rgb', 'rgba').replace(')', ', 0.1)'),
-          tension: 0.3,
-          fill: false,
+          backgroundColor: colorSet.quantity.replace('rgb', 'rgba').replace(')', ', 0.3)'),
+          tension: 0.4,
+          fill: true,
           pointRadius: 4,
           pointHoverRadius: 6,
-          borderDash: [5, 5]
+          borderDash: [5, 5],
+          borderWidth: 2
         });
       }
     });
@@ -290,8 +329,8 @@ function createYearFilterChart({
 
 /**
  * Create chart data dan options untuk specific date filter
- * Format specificDates: MM-DD (bulan-hari)
- * Chart menampilkan 5 garis (satu per tahun 2021-2025) untuk setiap tanggal yang dipilih
+ * Format specificDates: Support both old format (string MM-DD) and new format (object {year, monthDay})
+ * Chart menampilkan garis untuk setiap tahun yang ada di specificDates
  */
 function createSpecificDateChart({
   invoiceData,
@@ -301,8 +340,20 @@ function createSpecificDateChart({
   dataType,
   formatCurrency
 }) {
-  // Tahun yang akan ditampilkan
-  const years = [2021, 2022, 2023, 2024, 2025];
+  // Extract unique years from specificDates
+  // Support both old format (string MM-DD) and new format (object {year, monthDay})
+  const years = [...new Set(specificDates.map(date => {
+    if (typeof date === 'string') {
+      // Old format: MM-DD - use default years (2021-2025)
+      return null; // Will be filtered out
+    } else {
+      // New format: {year, monthDay}
+      return date.year;
+    }
+  }).filter(year => year !== null))].sort((a, b) => a - b);
+  
+  // If no years found (all old format), use default years
+  const displayYears = years.length > 0 ? years : [2021, 2022, 2023, 2024, 2025];
   
   const datasets = [];
 
@@ -316,40 +367,105 @@ function createSpecificDateChart({
       borderWidth: 0
     });
   } else {
-    // Untuk setiap tahun, buat dataset - PASTIKAN SEMUA TAHUN SELALU ADA
-    years.forEach((year, yearIndex) => {
+    // Untuk setiap tahun, buat dataset
+    displayYears.forEach((year, yearIndex) => {
       const colorSet = COLOR_PALETTE_YEAR[yearIndex % COLOR_PALETTE_YEAR.length];
       
       // Sales dataset
       if (dataType === 'penjualan' || dataType === 'both') {
-        const sortedDates = [...specificDates].sort();
-        const salesData = sortedDates.map(monthDay => {
-          // Convert MM-DD ke YYYY-MM-DD untuk setiap tahun
-          const fullDate = `${year}-${monthDay}`;
+        // Map periods to data points - sesuai dengan urutan periods dari generatePeriods
+        // Setiap period label akan di-map ke data yang sesuai dari API
+        // Pastikan urutan data sesuai dengan urutan periods
+        const salesData = periods.map((periodLabel, periodIndex) => {
+          // Extract date info from period label
+          // Format period label: "DD MonthName YYYY" atau "DD MonthName"
+          let targetYear, targetMonthDay;
           
-          // Ambil semua data untuk tanggal ini (semua business unit)
-          // Pastikan matching dengan format period dari API (YYYY-MM-DD)
+          // Parse period label untuk mendapatkan tahun dan monthDay
+          const periodParts = periodLabel.split(' ');
+          if (periodParts.length === 3) {
+            // Format: "DD MonthName YYYY"
+            const day = parseInt(periodParts[0]);
+            const monthName = periodParts[1];
+            const yearFromLabel = parseInt(periodParts[2]);
+            
+            // Convert month name to number
+            const monthIndex = MONTH_NAMES_ID.indexOf(monthName);
+            if (monthIndex === -1) return 0;
+            const month = String(monthIndex + 1).padStart(2, '0');
+            const dayStr = String(day).padStart(2, '0');
+            
+            targetYear = yearFromLabel;
+            targetMonthDay = `${month}-${dayStr}`;
+          } else if (periodParts.length === 2) {
+            // Format: "DD MonthName" (old format)
+            const day = parseInt(periodParts[0]);
+            const monthName = periodParts[1];
+            
+            const monthIndex = MONTH_NAMES_ID.indexOf(monthName);
+            if (monthIndex === -1) return 0;
+            const month = String(monthIndex + 1).padStart(2, '0');
+            const dayStr = String(day).padStart(2, '0');
+            
+            targetYear = year;
+            targetMonthDay = `${month}-${dayStr}`;
+          } else {
+            return 0;
+          }
+          
+          // Only process if this period matches current year
+          if (targetYear !== year) {
+            return 0;
+          }
+          
+          // Convert to YYYY-MM-DD format untuk matching dengan API
+          const fullDate = `${targetYear}-${targetMonthDay}`;
+          
+          // Ambil semua data untuk tanggal ini dari API
+          // Filter berdasarkan period (YYYY-MM-DD) dan business_unit yang dipilih
+          // API mengembalikan period dalam format YYYY-MM-DD dan data sudah di-group per business_unit
           const records = invoiceData.filter(d => {
             if (!d.period) return false;
-            // Normalize period untuk matching
+            
+            // Normalize period untuk matching (API format: YYYY-MM-DD)
             const periodNormalized = String(d.period).trim();
             const fullDateNormalized = fullDate.trim();
-            return periodNormalized === fullDateNormalized;
+            
+            // Match period
+            const periodMatches = periodNormalized === fullDateNormalized;
+            
+            // Filter business_unit jika ada yang dipilih
+            const businessUnitMatches = businessUnits.length === 0 || 
+                                       (d.business_unit && businessUnits.includes(d.business_unit));
+            
+            return periodMatches && businessUnitMatches;
           });
           
           if (records.length > 0) {
             let total = 0;
             records.forEach(record => {
-              const sales = record.total_sales;
-              if (sales !== null && sales !== undefined && sales !== '') {
-                const parsedSales = parseFloat(sales);
+              // Pastikan field total_sales ada dan valid
+              if (record.total_sales !== null && record.total_sales !== undefined && record.total_sales !== '') {
+                const parsedSales = parseFloat(record.total_sales);
                 if (!isNaN(parsedSales)) {
                   total += parsedSales;
                 }
               }
             });
+            
+            // Debug log untuk development
+            if (process.env.NODE_ENV === 'development' && periodIndex < 3) {
+              console.log(`[Sales] Period ${periodIndex}: "${periodLabel}" -> Date: ${fullDate}, Records: ${records.length}, Total: ${total}`);
+            }
+            
             return total;
           }
+          
+          // Debug log untuk development
+          if (process.env.NODE_ENV === 'development' && periodIndex < 3) {
+            console.log(`[Sales] Period ${periodIndex}: "${periodLabel}" -> Date: ${fullDate}, No records found`);
+          }
+          
           // Jika tidak ada data, tetap return 0 (bukan null)
           return 0;
         });
@@ -358,45 +474,110 @@ function createSpecificDateChart({
           label: `${year} - Penjualan`,
           data: salesData,
           borderColor: colorSet.sales,
-          backgroundColor: colorSet.sales.replace('rgb', 'rgba').replace(')', ', 0.1)'),
-          tension: 0.3,
-          fill: false,
+          backgroundColor: colorSet.sales.replace('rgb', 'rgba').replace(')', ', 0.3)'),
+          tension: 0.4,
+          fill: true,
           pointRadius: 6,
           pointHoverRadius: 8,
-          yAxisID: 'y'
+          yAxisID: 'y',
+          borderWidth: 2
         });
       }
       
       // Quantity dataset
       if (dataType === 'quantity' || dataType === 'both') {
-        const sortedDates = [...specificDates].sort();
-        const quantityData = sortedDates.map(monthDay => {
-          // Convert MM-DD ke YYYY-MM-DD untuk setiap tahun
-          const fullDate = `${year}-${monthDay}`;
+        // Map periods to data points - sesuai dengan urutan periods dari generatePeriods
+        // Pastikan urutan data sesuai dengan urutan periods
+        const quantityData = periods.map((periodLabel, periodIndex) => {
+          // Extract date info from period label
+          // Format period label: "DD MonthName YYYY" atau "DD MonthName"
+          let targetYear, targetMonthDay;
           
-          // Ambil semua data untuk tanggal ini (semua business unit)
-          // Pastikan matching dengan format period dari API (YYYY-MM-DD)
+          // Parse period label untuk mendapatkan tahun dan monthDay
+          const periodParts = periodLabel.split(' ');
+          if (periodParts.length === 3) {
+            // Format: "DD MonthName YYYY"
+            const day = parseInt(periodParts[0]);
+            const monthName = periodParts[1];
+            const yearFromLabel = parseInt(periodParts[2]);
+            
+            // Convert month name to number
+            const monthIndex = MONTH_NAMES_ID.indexOf(monthName);
+            if (monthIndex === -1) return 0;
+            const month = String(monthIndex + 1).padStart(2, '0');
+            const dayStr = String(day).padStart(2, '0');
+            
+            targetYear = yearFromLabel;
+            targetMonthDay = `${month}-${dayStr}`;
+          } else if (periodParts.length === 2) {
+            // Format: "DD MonthName" (old format)
+            const day = parseInt(periodParts[0]);
+            const monthName = periodParts[1];
+            
+            const monthIndex = MONTH_NAMES_ID.indexOf(monthName);
+            if (monthIndex === -1) return 0;
+            const month = String(monthIndex + 1).padStart(2, '0');
+            const dayStr = String(day).padStart(2, '0');
+            
+            targetYear = year;
+            targetMonthDay = `${month}-${dayStr}`;
+          } else {
+            return 0;
+          }
+          
+          // Only process if this period matches current year
+          if (targetYear !== year) {
+            return 0;
+          }
+          
+          // Convert to YYYY-MM-DD format untuk matching dengan API
+          const fullDate = `${targetYear}-${targetMonthDay}`;
+          
+          // Ambil semua data untuk tanggal ini dari API
+          // Filter berdasarkan period (YYYY-MM-DD) dan business_unit yang dipilih
+          // API mengembalikan period dalam format YYYY-MM-DD dan data sudah di-group per business_unit
           const records = invoiceData.filter(d => {
             if (!d.period) return false;
-            // Normalize period untuk matching
+            
+            // Normalize period untuk matching (API format: YYYY-MM-DD)
             const periodNormalized = String(d.period).trim();
             const fullDateNormalized = fullDate.trim();
-            return periodNormalized === fullDateNormalized;
+            
+            // Match period
+            const periodMatches = periodNormalized === fullDateNormalized;
+            
+            // Filter business_unit jika ada yang dipilih
+            const businessUnitMatches = businessUnits.length === 0 || 
+                                       (d.business_unit && businessUnits.includes(d.business_unit));
+            
+            return periodMatches && businessUnitMatches;
           });
           
           if (records.length > 0) {
             let total = 0;
             records.forEach(record => {
-              const quantity = record.total_quantity;
-              if (quantity !== null && quantity !== undefined && quantity !== '') {
-                const parsedQuantity = parseFloat(quantity);
+              // Pastikan field total_quantity ada dan valid
+              if (record.total_quantity !== null && record.total_quantity !== undefined && record.total_quantity !== '') {
+                const parsedQuantity = parseFloat(record.total_quantity);
                 if (!isNaN(parsedQuantity)) {
                   total += parsedQuantity;
                 }
               }
             });
+            
+            // Debug log untuk development
+            if (process.env.NODE_ENV === 'development' && periodIndex < 3) {
+              console.log(`[Quantity] Period ${periodIndex}: "${periodLabel}" -> Date: ${fullDate}, Records: ${records.length}, Total: ${total}`);
+            }
+            
             return total;
           }
+          
+          // Debug log untuk development
+          if (process.env.NODE_ENV === 'development' && periodIndex < 3) {
+            console.log(`[Quantity] Period ${periodIndex}: "${periodLabel}" -> Date: ${fullDate}, No records found`);
+          }
+          
           // Jika tidak ada data, tetap return 0 (bukan null)
           return 0;
         });
@@ -405,26 +586,61 @@ function createSpecificDateChart({
           label: `${year} - Quantity`,
           data: quantityData,
           borderColor: colorSet.quantity,
-          backgroundColor: colorSet.quantity.replace('rgb', 'rgba').replace(')', ', 0.1)'),
-          tension: 0.3,
-          fill: false,
+          backgroundColor: colorSet.quantity.replace('rgb', 'rgba').replace(')', ', 0.3)'),
+          tension: 0.4,
+          fill: true,
           pointRadius: 6,
           pointHoverRadius: 8,
           borderDash: [5, 5],
-          yAxisID: dataType === 'both' ? 'y1' : 'y'
+          yAxisID: dataType === 'both' ? 'y1' : 'y',
+          borderWidth: 2
         });
       }
     });
     
-    // Debug log untuk memastikan semua tahun ada
+    // Debug log untuk memastikan semua tahun ada dan data sesuai API
     if (process.env.NODE_ENV === 'development') {
       console.log('=== Specific Date Chart Debug ===');
-      console.log('Selected Dates (MM-DD):', specificDates);
-      console.log('Years to display:', years);
+      console.log('Selected Dates:', specificDates);
+      console.log('Display Years:', displayYears);
+      console.log('Periods (Labels):', periods);
       console.log('Invoice Data from API:', invoiceData);
       console.log('Unique periods from API:', [...new Set(invoiceData.map(d => d.period))]);
       console.log('Datasets created:', datasets.length);
-      console.log('Expected datasets:', years.length * (dataType === 'both' ? 2 : 1));
+      console.log('Expected datasets:', displayYears.length * (dataType === 'both' ? 2 : 1));
+      
+      // Verify data matching
+      console.log('Business Units selected:', businessUnits);
+      displayYears.forEach(year => {
+        const datesForYear = specificDates.filter(date => {
+          if (typeof date === 'string') return displayYears.includes(year);
+          return date.year === year;
+        });
+        console.log(`Year ${year} - Selected dates:`, datesForYear);
+        datesForYear.forEach(date => {
+          const monthDay = typeof date === 'string' ? date : date.monthDay;
+          const fullDate = `${year}-${monthDay}`;
+          
+          // Filter dengan business_unit juga
+          const matchingRecords = invoiceData.filter(d => {
+            if (!d.period) return false;
+            const periodMatches = String(d.period).trim() === fullDate.trim();
+            const businessUnitMatches = businessUnits.length === 0 || 
+                                       (d.business_unit && businessUnits.includes(d.business_unit));
+            return periodMatches && businessUnitMatches;
+          });
+          
+          console.log(`  Date ${fullDate}: ${matchingRecords.length} records found`);
+          if (matchingRecords.length > 0) {
+            console.log(`    Records:`, matchingRecords.map(r => ({
+              period: r.period,
+              business_unit: r.business_unit,
+              total_sales: r.total_sales,
+              total_quantity: r.total_quantity
+            })));
+          }
+        });
+      });
     }
   }
   
@@ -577,27 +793,29 @@ function createRangeChart({
         datasets.push({
           label: `${unit} - Penjualan`,
           data: periods.map(() => 0),
-          borderColor: COLOR_BUSINESS_UNIT_RANGE[unit]?.sales || 'rgb(75, 192, 192)',
-          backgroundColor: (COLOR_BUSINESS_UNIT_RANGE[unit]?.sales || 'rgb(75, 192, 192)').replace('rgb', 'rgba').replace(')', ', 0.1)'),
+          borderColor: COLOR_BUSINESS_UNIT_RANGE[unit]?.sales || 'rgb(66, 165, 245)',
+          backgroundColor: (COLOR_BUSINESS_UNIT_RANGE[unit]?.sales || 'rgb(66, 165, 245)').replace('rgb', 'rgba').replace(')', ', 0.3)'),
           yAxisID: 'y',
-          tension: 0.3,
-          fill: false,
+          tension: 0.4,
+          fill: true,
           pointRadius: 4,
-          pointHoverRadius: 6
+          pointHoverRadius: 6,
+          borderWidth: 2
         });
       }
       if (dataType === 'quantity' || dataType === 'both') {
         datasets.push({
           label: `${unit} - Quantity`,
           data: periods.map(() => 0),
-          borderColor: COLOR_BUSINESS_UNIT_RANGE[unit]?.quantity || 'rgb(54, 162, 235)',
-          backgroundColor: (COLOR_BUSINESS_UNIT_RANGE[unit]?.quantity || 'rgb(54, 162, 235)').replace('rgb', 'rgba').replace(')', ', 0.1)'),
+          borderColor: COLOR_BUSINESS_UNIT_RANGE[unit]?.quantity || 'rgb(129, 212, 250)',
+          backgroundColor: (COLOR_BUSINESS_UNIT_RANGE[unit]?.quantity || 'rgb(129, 212, 250)').replace('rgb', 'rgba').replace(')', ', 0.3)'),
           yAxisID: dataType === 'both' ? 'y1' : 'y',
-          tension: 0.3,
-          fill: false,
+          tension: 0.4,
+          fill: true,
           pointRadius: 4,
           pointHoverRadius: 6,
-          borderDash: [5, 5]
+          borderDash: [5, 5],
+          borderWidth: 2
         });
       }
     });
@@ -616,13 +834,14 @@ function createRangeChart({
         datasets.push({
           label: `${unit} - Penjualan`,
           data: salesData,
-          borderColor: COLOR_BUSINESS_UNIT_RANGE[unit]?.sales || 'rgb(75, 192, 192)',
-          backgroundColor: (COLOR_BUSINESS_UNIT_RANGE[unit]?.sales || 'rgb(75, 192, 192)').replace('rgb', 'rgba').replace(')', ', 0.1)'),
+          borderColor: COLOR_BUSINESS_UNIT_RANGE[unit]?.sales || 'rgb(66, 165, 245)',
+          backgroundColor: (COLOR_BUSINESS_UNIT_RANGE[unit]?.sales || 'rgb(66, 165, 245)').replace('rgb', 'rgba').replace(')', ', 0.3)'),
           yAxisID: 'y',
-          tension: 0.3,
-          fill: false,
+          tension: 0.4,
+          fill: true,
           pointRadius: 4,
-          pointHoverRadius: 6
+          pointHoverRadius: 6,
+          borderWidth: 2
         });
       }
       
@@ -639,14 +858,15 @@ function createRangeChart({
         datasets.push({
           label: `${unit} - Quantity`,
           data: quantityData,
-          borderColor: COLOR_BUSINESS_UNIT_RANGE[unit]?.quantity || 'rgb(54, 162, 235)',
-          backgroundColor: (COLOR_BUSINESS_UNIT_RANGE[unit]?.quantity || 'rgb(54, 162, 235)').replace('rgb', 'rgba').replace(')', ', 0.1)'),
+          borderColor: COLOR_BUSINESS_UNIT_RANGE[unit]?.quantity || 'rgb(129, 212, 250)',
+          backgroundColor: (COLOR_BUSINESS_UNIT_RANGE[unit]?.quantity || 'rgb(129, 212, 250)').replace('rgb', 'rgba').replace(')', ', 0.3)'),
           yAxisID: dataType === 'both' ? 'y1' : 'y',
-          tension: 0.3,
-          fill: false,
+          tension: 0.4,
+          fill: true,
           pointRadius: 4,
           pointHoverRadius: 6,
-          borderDash: [5, 5]
+          borderDash: [5, 5],
+          borderWidth: 2
         });
       }
     });
@@ -792,8 +1012,21 @@ export function generateChartConfig({
     console.log('Invoice Data from API:', invoiceData);
     console.log('Invoice Data Count:', invoiceData.length);
     console.log('Unique Periods from API:', [...new Set(invoiceData.map(d => d.period))]);
-    console.log('Dates selected but not in API:', specificDates.filter(date => 
-      !invoiceData.some(d => d.period && d.period.trim() === date.trim())
+    
+    // Convert specificDates to YYYY-MM-DD format for comparison
+    const datesForComparison = specificDates.map(date => {
+      if (typeof date === 'string') {
+        // Old format: MM-DD - need to determine year (use first available year or current)
+        const year = years && years.length > 0 ? years[0] : new Date().getFullYear();
+        return `${year}-${date}`;
+      } else {
+        // New format: {year, monthDay}
+        return `${date.year}-${date.monthDay}`;
+      }
+    });
+    
+    console.log('Dates selected but not in API:', datesForComparison.filter(dateStr => 
+      !invoiceData.some(d => d.period && d.period.trim() === dateStr.trim())
     ));
   }
   
