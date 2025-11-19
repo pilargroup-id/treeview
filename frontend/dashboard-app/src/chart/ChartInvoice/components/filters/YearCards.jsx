@@ -34,7 +34,10 @@ function calculatePercentageChange(currentYear, yearTotals, availableYears) {
   return change;
 }
 
-function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, isLoading = false }) {
+function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, isLoading = false, dateFilterType = 'year' }) {
+  // Disable YearCards hanya untuk filter 'range' karena tahun dipilih dari checkbox di DateRangePickerWithPresets
+  const isDisabled = dateFilterType === 'range';
+  
   return (
     <Box sx={{ 
       width: '100%',
@@ -114,7 +117,7 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
           return (
             <Card 
               key={year}
-              onClick={() => onToggleYear(year)}
+              onClick={() => !isDisabled && onToggleYear && onToggleYear(year)}
               sx={{ 
                 p: { xs: 1.5, md: 1.75 },
                 borderRadius: 1.5,
@@ -122,24 +125,26 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
                 display: 'flex',
                 flexDirection: 'column',
                 border: `1px solid ${isSelected ? '#3B82F6' : '#E2E8F0'}`,
-                cursor: 'pointer',
+                cursor: isDisabled ? 'default' : 'pointer',
                 transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 bgcolor: isSelected ? '#EFF6FF' : '#FFFFFF',
                 position: 'relative',
                 overflow: 'hidden',
                 height: 'fit-content',
-                '&:hover': {
+                opacity: isDisabled ? 0.8 : 1,
+                pointerEvents: isDisabled ? 'none' : 'auto',
+                '&:hover': !isDisabled ? {
                   borderColor: isSelected ? '#3B82F6' : '#CBD5E1',
                   boxShadow: isSelected 
                     ? '0 2px 6px rgba(59, 130, 246, 0.15)' 
                     : '0 2px 4px rgba(0, 0, 0, 0.1)',
                   transform: 'translateY(-1px)',
                   bgcolor: isSelected ? '#EFF6FF' : '#F8FAFC'
-                },
-                '&:active': {
+                } : {},
+                '&:active': !isDisabled ? {
                   transform: 'translateY(0)',
                   transition: 'all 0.1s ease'
-                }
+                } : {}
               }}
             >
               <Box sx={{ 

@@ -60,32 +60,35 @@ export function getAvailableYears() {
   return availableYears;
 }
 
-// Color palette
+// Color palette - Warna terang dan bervariasi
 export const COLOR_PALETTE_YEAR = [
-  { sales: 'rgb(33, 33, 33)', quantity: 'rgb(97, 97, 97)' },
-  { sales: 'rgb(13, 71, 161)', quantity: 'rgb(30, 136, 229)' },     
-  { sales: 'rgb(0, 77, 64)', quantity: 'rgb(0, 150, 136)' },          
-  { sales: 'rgb(74, 20, 140)', quantity: 'rgb(103, 58, 183)' },      
-  { sales: 'rgb(109, 76, 65)', quantity: 'rgb(141, 110, 99)' }
+  { sales: 'rgb(66, 165, 245)', quantity: 'rgb(129, 212, 250)' },      // Biru terang
+  { sales: 'rgb(102, 187, 106)', quantity: 'rgb(165, 214, 167)' },    // Hijau terang
+  { sales: 'rgb(255, 152, 0)', quantity: 'rgb(255, 183, 77)' },       // Orange terang
+  { sales: 'rgb(156, 39, 176)', quantity: 'rgb(186, 104, 200)' },     // Ungu terang
+  { sales: 'rgb(236, 64, 122)', quantity: 'rgb(244, 143, 177)' },     // Pink terang
+  { sales: 'rgb(0, 188, 212)', quantity: 'rgb(77, 208, 225)' },       // Cyan terang
+  { sales: 'rgb(255, 87, 34)', quantity: 'rgb(255, 138, 101)' },      // Orange merah terang
+  { sales: 'rgb(121, 85, 72)', quantity: 'rgb(161, 136, 127)' }       // Coklat terang
 ];
 
 export const COLOR_BUSINESS_UNIT_SPECIFIC = {
   'Gosave': { 
-    sales: 'rgba(25, 118, 210, 0.8)', 
-    salesBorder: 'rgb(25, 118, 210)',
-    quantity: 'rgba(25, 118, 210, 0.6)',
-    quantityBorder: 'rgb(21, 101, 192)'
-  },   
-  'Goto': { 
     sales: 'rgba(66, 165, 245, 0.8)', 
     salesBorder: 'rgb(66, 165, 245)',
-    quantity: 'rgba(66, 165, 245, 0.6)',
-    quantityBorder: 'rgb(33, 150, 243)'
+    quantity: 'rgba(129, 212, 250, 0.8)',
+    quantityBorder: 'rgb(129, 212, 250)'
+  },   
+  'Goto': { 
+    sales: 'rgba(102, 187, 106, 0.8)', 
+    salesBorder: 'rgb(102, 187, 106)',
+    quantity: 'rgba(165, 214, 167, 0.8)',
+    quantityBorder: 'rgb(165, 214, 167)'
   }  
 };
 
 export const COLOR_BUSINESS_UNIT_RANGE = {
-  'Gosave': { sales: 'rgb(33, 33, 33)', quantity: 'rgb(97, 97, 97)' },   
-  'Goto': { sales: 'rgb(66, 66, 66)', quantity: 'rgb(117, 117, 117)' }  
+  'Gosave': { sales: 'rgb(66, 165, 245)', quantity: 'rgb(129, 212, 250)' },   // Biru terang
+  'Goto': { sales: 'rgb(102, 187, 106)', quantity: 'rgb(165, 214, 167)' }     // Hijau terang
 };
 

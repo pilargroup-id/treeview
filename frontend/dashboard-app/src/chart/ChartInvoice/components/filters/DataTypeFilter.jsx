@@ -106,5 +106,4 @@ function DataTypeFilter({ dataType, onChange }) {
   );
 }
 
-export default DataTypeFilter;
-
+export default DataTypeFilter;  

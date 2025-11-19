@@ -50,47 +50,68 @@ export function buildApiParams({
       throw new Error('Pilih minimal 1 tanggal');
     }
     
-    // Jika years dipilih, gunakan years yang dipilih
-    const yearsToUse = (years && Array.isArray(years) && years.length > 0) 
-      ? years 
-      : (availableYears && Array.isArray(availableYears) && availableYears.length > 0)
-        ? availableYears
-        : [2021, 2022, 2023, 2024, 2025]; // Fallback default
-    
-    // Validasi format setiap tanggal
-    const isValidMonthDay = (value) => {
-      if (!value || typeof value !== 'string') return false;
-      const parts = value.split('-');
-      if (parts.length !== 2) return false;
-      const month = parseInt(parts[0], 10);
-      const day = parseInt(parts[1], 10);
-      return !isNaN(month) && !isNaN(day) && month >= 1 && month <= 12 && day >= 1 && day <= 31;
+    // Validasi format setiap tanggal (support both old and new format)
+    const isValidDate = (date) => {
+      if (typeof date === 'string') {
+        // Old format: MM-DD string
+        const parts = date.split('-');
+        if (parts.length !== 2) return false;
+        const month = parseInt(parts[0], 10);
+        const day = parseInt(parts[1], 10);
+        return !isNaN(month) && !isNaN(day) && month >= 1 && month <= 12 && day >= 1 && day <= 31;
+      } else if (typeof date === 'object' && date.year && date.monthDay) {
+        // New format: {year, monthDay}
+        const parts = date.monthDay.split('-');
+        if (parts.length !== 2) return false;
+        const month = parseInt(parts[0], 10);
+        const day = parseInt(parts[1], 10);
+        return !isNaN(month) && !isNaN(day) && month >= 1 && month <= 12 && day >= 1 && day <= 31 &&
+               !isNaN(date.year) && date.year > 0;
+      }
+      return false;
     };
     
     // Validasi semua tanggal
-    const invalidDates = specificDates.filter(date => !isValidMonthDay(date));
+    const invalidDates = specificDates.filter(date => !isValidDate(date));
     if (invalidDates.length > 0) {
       console.error('Invalid dates found:', invalidDates);
-      throw new Error(`Format tanggal tidak valid: ${invalidDates.join(', ')}. Gunakan format MM-DD (contoh: 12-25)`);
+      throw new Error(`Format tanggal tidak valid: ${invalidDates.length} tanggal. Pastikan format benar.`);
     }
     
     // API membatasi maksimal 30 tanggal YYYY-MM-DD
     const MAX_API_DATES = 30;
-    const totalParams = specificDates.length * yearsToUse.length;
     
-    if (totalParams > MAX_API_DATES) {
-      const maxDates = Math.floor(MAX_API_DATES / yearsToUse.length);
-      throw new Error(`Total tanggal yang akan dikirim (${totalParams}) melebihi batas API (${MAX_API_DATES}). Maksimal ${maxDates} tanggal MM-DD untuk ${yearsToUse.length} tahun.`);
+    if (specificDates.length > MAX_API_DATES) {
+      throw new Error(`Total tanggal yang akan dikirim (${specificDates.length}) melebihi batas API (${MAX_API_DATES}).`);
     }
     
+    // Extract unique years from selected dates
+    const selectedYears = [...new Set(specificDates.map(date => {
+      if (typeof date === 'string') {
+        // Old format: use availableYears or current year
+        return (years && years.length > 0) ? years[0] : (availableYears && availableYears.length > 0 ? availableYears[0] : new Date().getFullYear());
+      }
+      return date.year;
+    }))];
+    
     try {
-      specificDates.forEach(monthDay => {
-        if (monthDay && monthDay.includes('-')) {
-          yearsToUse.forEach(year => {
-            const fullDate = `${year}-${monthDay}`;
-            params.append('specific_dates[]', fullDate);
-          });
+      // Convert dates to YYYY-MM-DD format and send to API
+      specificDates.forEach(date => {
+        let year, monthDay;
+        
+        if (typeof date === 'string') {
+          // Old format: MM-DD string
+          monthDay = date;
+          // Use first selected year or available year
+          year = selectedYears[0] || (availableYears && availableYears.length > 0 ? availableYears[0] : new Date().getFullYear());
+        } else {
+          // New format: {year, monthDay}
+          year = date.year;
+          monthDay = date.monthDay;
         }
+        
+        const fullDate = `${year}-${monthDay}`;
+        params.append('specific_dates[]', fullDate);
       });
     } catch (appendError) {
       console.error('Error appending specific dates to params:', appendError);
@@ -100,15 +121,20 @@ export function buildApiParams({
     // Debug log
     if (process.env.NODE_ENV === 'development') {
       console.log('=== API Request Debug (Specific Dates) ===');
-      console.log('Input specificDates (MM-DD):', specificDates);
+      console.log('Input specificDates:', specificDates);
       console.log('Number of dates:', specificDates.length);
-      console.log('Years to use:', yearsToUse);
-      console.log('Total parameters to send:', totalParams);
+      console.log('Selected years from dates:', selectedYears);
       const allDates = [];
-      specificDates.forEach(monthDay => {
-        yearsToUse.forEach(year => {
-          allDates.push(`${year}-${monthDay}`);
-        });
+      specificDates.forEach(date => {
+        let year, monthDay;
+        if (typeof date === 'string') {
+          monthDay = date;
+          year = selectedYears[0] || (availableYears && availableYears.length > 0 ? availableYears[0] : new Date().getFullYear());
+        } else {
+          year = date.year;
+          monthDay = date.monthDay;
+        }
+        allDates.push(`${year}-${monthDay}`);
       });
       console.log('Converted to API format (YYYY-MM-DD):', allDates);
     }
@@ -189,14 +215,9 @@ export async function loadInvoiceSales({
       alert('Tambahkan minimal 1 range tanggal');
       return;
     }
-    if (years.length === 0) {
-      alert('Pilih minimal 1 tahun dari card tahun');
-      return;
-    }
-    if (years.length > 1) {
-      alert('Range tanggal hanya bisa menggunakan 1 tahun. Pilih 1 tahun saja dari card tahun.');
-      return;
-    }
+    
+    // Validasi tahun tidak diperlukan untuk range filter karena tahun sudah dipilih dari checkbox di dalam DateRangePickerWithPresets
+    // Tahun sudah tersimpan di rangeDates[].year
     
     const MAX_RANGE_DATES = 20;
     if (rangeDates.length > MAX_RANGE_DATES) {
@@ -211,20 +232,20 @@ export async function loadInvoiceSales({
       return;
     }
     
-    // Untuk specific dates
-    const yearsToUse = (years && Array.isArray(years) && years.length > 0) 
-      ? years 
-      : (availableYears && Array.isArray(availableYears) && availableYears.length > 0)
-        ? availableYears
-        : [2021, 2022, 2023, 2024, 2025]; 
+    // Untuk specific dates, extract years dari dates yang dipilih
+    const selectedYears = [...new Set(specificDates.map(date => {
+      if (typeof date === 'string') {
+        // Old format: use availableYears or current year
+        return (years && years.length > 0) ? years[0] : (availableYears && availableYears.length > 0 ? availableYears[0] : new Date().getFullYear());
+      }
+      return date.year;
+    }))];
     
     // Validasi total tanggal 
     const MAX_API_DATES = 30;
-    const totalDates = specificDates.length * yearsToUse.length;
     
-    if (totalDates > MAX_API_DATES) {
-      const maxDates = Math.floor(MAX_API_DATES / yearsToUse.length);
-      alert(`Total tanggal yang akan dikirim (${totalDates}) melebihi batas API (${MAX_API_DATES}). Maksimal ${maxDates} tanggal MM-DD untuk ${yearsToUse.length} tahun.`);
+    if (specificDates.length > MAX_API_DATES) {
+      alert(`Total tanggal yang akan dikirim (${specificDates.length}) melebihi batas API (${MAX_API_DATES}).`);
       return;
     }
   }

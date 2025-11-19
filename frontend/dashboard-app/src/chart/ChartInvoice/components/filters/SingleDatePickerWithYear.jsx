@@ -1,132 +1,185 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Box, Typography, Button, Chip, Paper, Portal, Backdrop, Fade } from "@mui/material";
-import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
+import { Box, Typography, Button, Chip, Paper, Portal, Backdrop, Fade, Select, MenuItem } from "@mui/material";
+import EventAvailableRoundedIcon from '@mui/icons-material/EventAvailableRounded';
 import { DateRangePicker } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 
+const TWIN_DATE_PRESETS = [
+  { monthDay: '01-01', label: '1 Januari' },
+  { monthDay: '02-02', label: '2 Februari' },
+  { monthDay: '03-03', label: '3 Maret' },
+  { monthDay: '04-04', label: '4 April' },
+  { monthDay: '05-05', label: '5 Mei' },
+  { monthDay: '06-06', label: '6 Juni' },
+  { monthDay: '07-07', label: '7 Juli' },
+  { monthDay: '08-08', label: '8 Agustus' },
+  { monthDay: '09-09', label: '9 September' },
+  { monthDay: '10-10', label: '10 Oktober' },
+  { monthDay: '11-11', label: '11 November' },
+  { monthDay: '12-12', label: '12 Desember' },
+];
+
 // Format tanggal untuk display
-const formatDateDisplay = (monthDay, year) => {
+const formatDateDisplay = (dateObj) => {
+  // Support both old format (string MM-DD) and new format (object {year, monthDay})
+  if (typeof dateObj === 'string') {
+    const [month, day] = dateObj.split('-');
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    return `${parseInt(day)} ${monthNames[parseInt(month) - 1]}`;
+  }
+  
+  // New format: {year, monthDay}
+  const { year, monthDay } = dateObj;
   const [month, day] = monthDay.split('-');
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  const dateStr = `${parseInt(day)} ${monthNames[parseInt(month) - 1]}`;
-  return year ? `${dateStr} ${year}` : dateStr;
+  return `${parseInt(day)} ${monthNames[parseInt(month) - 1]} ${year}`;
 };
 
-export const DateRangePickerWithPresets = ({ 
-  rangeDates = [],
-  onAddRange,
-  onRemoveRange,
-  availableYears = [],
-  selectedYears = []
+export const SingleDatePickerWithYear = ({ 
+  specificDates = [],
+  onAddDate,
+  onRemoveDate,
+  availableYears = []
 }) => {
-  // State untuk DateRangePicker
-  const [selectionRange, setSelectionRange] = useState({
-    startDate: new Date(),
-    endDate: new Date(),
-    key: 'selection',
+  // Generate tahun dari availableYears untuk menentukan default date
+  const years = React.useMemo(() => {
+    return availableYears.length > 0 
+      ? [...availableYears].sort((a, b) => b - a) // Sort descending (tahun terbaru dulu)
+      : [2025, 2024, 2023, 2022, 2021].sort((a, b) => b - a);
+  }, [availableYears]);
+  
+  // State untuk DatePicker (single date) - default ke tahun terbaru
+  const [selectionDate, setSelectionDate] = useState(() => {
+    const defaultYear = years.length > 0 ? years[0] : new Date().getFullYear();
+    return {
+      startDate: new Date(defaultYear, 0, 1),
+      endDate: new Date(defaultYear, 0, 1),
+      key: 'selection',
+    };
   });
   
-  // State untuk mengontrol visibility DateRangePicker
+  // State untuk mengontrol visibility DatePicker
   const [showPicker, setShowPicker] = useState(false);
   
   // Ref untuk anchor element
   const anchorRef = useRef(null);
   const pickerRef = useRef(null);
   
-  const MAX_RANGE_DATES = 1; // Maksimal 1 
+  const MAX_SPECIFIC_DATES = 30; // Maksimal 30 tanggal
 
-  // Reset selection range jika range sudah ada
+  // Update default date ketika availableYears berubah
   useEffect(() => {
-    if (rangeDates.length > 0) {
-      setSelectionRange({
-        startDate: new Date(),
-        endDate: new Date(),
+    if (years.length > 0) {
+      const defaultYear = years[0];
+      // Hanya update jika selectionDate belum di-set atau tahunnya tidak sesuai
+      const currentYear = selectionDate.startDate?.getFullYear();
+      if (!currentYear || !availableYears.includes(currentYear)) {
+        setSelectionDate({
+          startDate: new Date(defaultYear, 0, 1),
+          endDate: new Date(defaultYear, 0, 1),
+          key: 'selection',
+        });
+      }
+    }
+  }, [availableYears, years]);
+
+  // Handle perubahan date dari DatePicker
+  const handleSelect = (ranges) => {
+    console.log('handleSelect called with ranges:', ranges);
+    // Untuk single date picker, pastikan startDate dan endDate sama
+    const selection = ranges.selection;
+    if (selection.startDate) {
+      console.log('Setting selectionDate to:', selection.startDate);
+      setSelectionDate({
+        startDate: selection.startDate,
+        endDate: selection.startDate, // Set endDate sama dengan startDate untuk single date
         key: 'selection',
       });
+    } else {
+      console.log('No startDate in selection');
     }
-  }, [rangeDates]);
-
-  // Handle perubahan date range dari DateRangePicker
-  const handleSelect = (ranges) => {
-    setSelectionRange(ranges.selection);
   };
 
-  // Handle tambah range
-  const handleAddRange = () => {
+  // Handle tambah date
+  const handleAddDate = () => {
+    console.log('handleAddDate called');
+    console.log('selectionDate:', selectionDate);
+    console.log('availableYears:', availableYears);
+    console.log('specificDates:', specificDates);
+    
     try {
       // Validasi input
-      if (!selectionRange.startDate || !selectionRange.endDate) {
-        alert('Pilih tanggal mulai dan akhir terlebih dahulu');
+      if (!selectionDate.startDate) {
+        console.log('No startDate selected');
+        alert('Pilih tanggal terlebih dahulu');
         return;
       }
       
-      // Ambil tahun dari tanggal yang dipilih (gunakan tahun dari startDate)
-      const year = selectionRange.startDate.getFullYear();
+      // Ambil tahun dari tanggal yang dipilih
+      const year = selectionDate.startDate.getFullYear();
+      console.log('Selected year:', year);
       
-      // Format: MM-DD (bulan-hari)
-      const startMonth = String(selectionRange.startDate.getMonth() + 1).padStart(2, '0');
-      const startDay = String(selectionRange.startDate.getDate()).padStart(2, '0');
-      const endMonth = String(selectionRange.endDate.getMonth() + 1).padStart(2, '0');
-      const endDay = String(selectionRange.endDate.getDate()).padStart(2, '0');
+      // Validasi bahwa tahun yang dipilih ada di availableYears
+      if (availableYears.length > 0 && !availableYears.includes(year)) {
+        console.log('Year not in availableYears');
+        alert(`Tahun ${year} tidak tersedia. Silakan pilih tanggal dari tahun yang tersedia.`);
+        return;
+      }
       
-      const startMonthDay = `${startMonth}-${startDay}`;
-      const endMonthDay = `${endMonth}-${endDay}`;
+      // Format: MM-DD (bulan-hari) dan tahun
+      const month = String(selectionDate.startDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectionDate.startDate.getDate()).padStart(2, '0');
+      
+      const monthDay = `${month}-${day}`;
+      console.log('Formatted monthDay:', monthDay);
       
       // Validasi tanggal
-      const testStartDate = new Date(year, parseInt(startMonth) - 1, parseInt(startDay));
-      const testEndDate = new Date(year, parseInt(endMonth) - 1, parseInt(endDay));
+      const testDate = new Date(year, parseInt(month) - 1, parseInt(day));
       
-      // Validasi tanggal mulai valid
-      if (testStartDate.getMonth() !== (parseInt(startMonth) - 1) || 
-          testStartDate.getDate() !== parseInt(startDay)) {
-        alert('Tanggal mulai tidak valid');
+      // Validasi tanggal valid
+      if (testDate.getMonth() !== (parseInt(month) - 1) || 
+          testDate.getDate() !== parseInt(day)) {
+        console.log('Invalid date');
+        alert('Tanggal tidak valid');
         return;
       }
       
-      // Validasi tanggal akhir valid
-      if (testEndDate.getMonth() !== (parseInt(endMonth) - 1) || 
-          testEndDate.getDate() !== parseInt(endDay)) {
-        alert('Tanggal akhir tidak valid');
+      // Format data dengan tahun: {year, monthDay}
+      const dateWithYear = { year, monthDay };
+      console.log('dateWithYear to add:', dateWithYear);
+      
+      // Cek apakah tanggal dengan tahun ini sudah ada
+      const dateExists = specificDates.some(date => {
+        if (typeof date === 'string') {
+          // Old format: MM-DD string - check if monthDay matches
+          return date === monthDay;
+        }
+        // New format: {year, monthDay}
+        return date.year === year && date.monthDay === monthDay;
+      });
+      
+      if (dateExists) {
+        console.log('Date already exists');
+        alert(`Tanggal ${day}/${month}/${year} sudah dipilih`);
         return;
       }
       
-      // Validasi bahwa tanggal akhir >= tanggal mulai
-      if (testEndDate < testStartDate) {
-        alert('Tanggal akhir harus >= tanggal mulai');
+      // Cek maksimal tanggal
+      if (specificDates.length >= MAX_SPECIFIC_DATES) {
+        console.log('Max dates reached');
+        alert(`Maksimal ${MAX_SPECIFIC_DATES} tanggal yang bisa dipilih untuk menghindari error`);
         return;
       }
       
-      // Validasi maksimal 31 hari (31 tanggal)
-      const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
-      const diffInDays = Math.floor((testEndDate - testStartDate) / MILLISECONDS_PER_DAY) + 1;
-      if (diffInDays > 31) {
-        alert('Range tanggal maksimal 31 hari');
-        return;
-      }
-      
-      // Cek apakah range dengan tahun ini sudah ada
-      const rangeExists = rangeDates.some(range => 
-        range.start === startMonthDay && range.end === endMonthDay && range.year === year
-      );
-      
-      if (rangeExists) {
-        alert('Range dengan tanggal ini sudah ada');
-        return;
-      }
-      
-      // Cek maksimal range
-      if (MAX_RANGE_DATES === 1 && rangeDates.length >= 1) {
-        alert(`Maksimal ${MAX_RANGE_DATES} range yang bisa dipilih. Hapus range yang ada terlebih dahulu.`);
-        return;
-      }
-      
-      // Tambahkan range
+      // Tambahkan date dengan tahun
+      console.log('Calling onAddDate with:', dateWithYear);
       try {
-        onAddRange({ start: startMonthDay, end: endMonthDay, year });
+        onAddDate(dateWithYear);
+        console.log('onAddDate called successfully');
         
-        // Reset selection range setelah berhasil menambahkan
-        setSelectionRange({
+        // Reset selection date setelah berhasil menambahkan
+        setSelectionDate({
           startDate: new Date(),
           endDate: new Date(),
           key: 'selection',
@@ -135,12 +188,74 @@ export const DateRangePickerWithPresets = ({
         // Sembunyikan picker setelah berhasil menambahkan
         setShowPicker(false);
       } catch (addError) {
-        console.error('Error adding range:', addError);
-        alert('Error menambahkan range: ' + (addError.message || 'Unknown error'));
+        console.error('Error adding date:', addError);
+        alert('Error menambahkan tanggal: ' + (addError.message || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Unexpected error in handleAddRange:', error);
+      console.error('Unexpected error in handleAddDate:', error);
       alert('Terjadi error: ' + (error.message || 'Unknown error'));
+    }
+  };
+
+  const presetYear = React.useMemo(() => {
+    const fallbackYear = years.length > 0 ? years[0] : new Date().getFullYear();
+    return selectionDate.startDate?.getFullYear() || fallbackYear;
+  }, [selectionDate.startDate, years]);
+
+  const [presetYearOverride, setPresetYearOverride] = useState(presetYear);
+
+  useEffect(() => {
+    const validYear = availableYears.length > 0
+      ? availableYears.includes(presetYearOverride) ? presetYearOverride : presetYear
+      : presetYear;
+    if (validYear !== presetYearOverride) {
+      setPresetYearOverride(validYear);
+    }
+  }, [presetYear, availableYears]);
+
+  const activePresetYear = presetYearOverride || presetYear;
+
+  const getIsSameDate = (date, year, monthDay) => {
+    if (typeof date === 'string') {
+      return date === monthDay;
+    }
+    return date.year === year && date.monthDay === monthDay;
+  };
+
+  const remainingTwinDates = React.useMemo(() => {
+    return TWIN_DATE_PRESETS.filter(preset => 
+      !specificDates.some(date => getIsSameDate(date, activePresetYear, preset.monthDay))
+    );
+  }, [specificDates, activePresetYear]);
+
+  const handleAddTwinDatesPreset = () => {
+    try {
+      const year = activePresetYear;
+
+      if (availableYears.length > 0 && !availableYears.includes(year)) {
+        alert(`Tahun ${year} tidak tersedia. Pilih tahun yang ada di daftar terlebih dahulu.`);
+        return;
+      }
+
+      const datesToAdd = TWIN_DATE_PRESETS
+        .filter(preset => !specificDates.some(date => getIsSameDate(date, year, preset.monthDay)))
+        .map(preset => ({ year, monthDay: preset.monthDay }));
+
+      if (datesToAdd.length === 0) {
+        alert(`Semua tanggal kembar untuk tahun ${year} sudah ditambahkan.`);
+        return;
+      }
+
+      if (specificDates.length + datesToAdd.length > MAX_SPECIFIC_DATES) {
+        alert(`Preset membutuhkan ${datesToAdd.length} slot, sedangkan sisa slot hanya ${MAX_SPECIFIC_DATES - specificDates.length}. Hapus beberapa tanggal terlebih dahulu.`);
+        return;
+      }
+
+      datesToAdd.forEach(date => onAddDate(date));
+      setShowPicker(false);
+    } catch (error) {
+      console.error('Unexpected error in handleAddTwinDatesPreset:', error);
+      alert('Terjadi error saat menambahkan preset tanggal kembar.');
     }
   };
 
@@ -157,7 +272,7 @@ export const DateRangePickerWithPresets = ({
     return new Date(maxYear, 11, 31);
   };
 
-  // Handle styling untuk DateRangePicker
+  // Handle styling untuk DatePicker
   useEffect(() => {
     if (!showPicker || !pickerRef.current) return;
 
@@ -200,9 +315,9 @@ export const DateRangePickerWithPresets = ({
       if (calendars.length > 0) {
         calendars.forEach(calendar => {
           calendar.style.setProperty('font-size', '0.875rem', 'important');
-          calendar.style.setProperty('width', '50%', 'important');
-          calendar.style.setProperty('max-width', '50%', 'important');
-          calendar.style.setProperty('flex', '1 1 50%', 'important');
+          calendar.style.setProperty('width', '100%', 'important');
+          calendar.style.setProperty('max-width', '100%', 'important');
+          calendar.style.setProperty('flex', '1 1 100%', 'important');
         });
       }
       if (month) {
@@ -295,6 +410,8 @@ export const DateRangePickerWithPresets = ({
     };
   }, [showPicker]);
 
+  // Picker selalu enabled karena tahun dipilih langsung di kalender
+
   return (
     <Box sx={{ 
       display: 'flex', 
@@ -316,19 +433,19 @@ export const DateRangePickerWithPresets = ({
           letterSpacing: '-0.01em',
           lineHeight: 1.3
         }}>
-          Range Tanggal (Bulan & Hari) - Max 1 Range, 31 Hari
+          Tanggal Tertentu (Bulan & Hari) - Max 30
         </Typography>
       </Box>
 
-      {/* Tombol untuk menampilkan DateRangePicker */}
+      {/* Tombol untuk menampilkan DatePicker */}
       <Box sx={{ mb: 2, position: 'relative' }} ref={anchorRef}>
         <Button 
           variant="outlined" 
           size="small" 
           onClick={() => setShowPicker(!showPicker)}
-          disabled={rangeDates.length >= MAX_RANGE_DATES}
+          disabled={specificDates.length >= MAX_SPECIFIC_DATES}
           startIcon={
-            <CalendarMonthRoundedIcon 
+            <EventAvailableRoundedIcon 
               sx={{ 
                 fontSize: '1.1rem',
                 color: showPicker ? '#2563EB' : '#64748B',
@@ -369,7 +486,7 @@ export const DateRangePickerWithPresets = ({
             }
           }}
         >
-          {showPicker ? 'Tutup Kalender' : 'Pilih Range Tanggal'}
+          {showPicker ? 'Tutup Kalender' : 'Pilih Tanggal'}
         </Button>
 
         {/* Backdrop Overlay dengan Portal */}
@@ -386,7 +503,7 @@ export const DateRangePickerWithPresets = ({
               }}
             />
             
-            {/* DateRangePicker Modal - Terpusat dan Besar */}
+            {/* DatePicker Modal - Terpusat dan Besar */}
             <Fade in={showPicker} timeout={300}>
               <Paper
                 ref={pickerRef}
@@ -434,11 +551,11 @@ export const DateRangePickerWithPresets = ({
                   },
                   '& .rdr-Calendar': {
                     borderRadius: 3,
-                    width: '50% !important',
-                    maxWidth: '50% !important',
+                    width: '100% !important',
+                    maxWidth: '100% !important',
                     fontSize: '0.875rem !important',
                     minHeight: 'auto !important',
-                    flex: '1 1 50% !important',
+                    flex: '1 1 100% !important',
                   },
                   '& .rdr-Month': {
                     width: '100% !important',
@@ -522,12 +639,12 @@ export const DateRangePickerWithPresets = ({
                     fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
                     letterSpacing: '-0.01em'
                   }}>
-                    Pilih Range Tanggal
+                    Pilih Tanggal
                   </Typography>
                   <Button
                     onClick={() => {
                       setShowPicker(false);
-                      setSelectionRange({
+                      setSelectionDate({
                         startDate: new Date(),
                         endDate: new Date(),
                         key: 'selection',
@@ -556,22 +673,123 @@ export const DateRangePickerWithPresets = ({
                   borderRadius: 3,
                   overflow: 'hidden',
                   width: '100%',
-                  '& > div': {
-                    width: '100% !important',
-                  }
                 }}>
-                  <DateRangePicker
-                    ranges={[selectionRange]}
-                    onChange={handleSelect}
-                    minDate={getMinDate()}
-                    maxDate={getMaxDate()}
-                    months={2}
-                    direction="horizontal"
-                    showDateDisplay={true}
-                    showMonthAndYearPickers={true}
-                  />
-                  
-                  {/* Tombol Batal dan Tambah Range */}
+                  <Box sx={{
+                    display: 'flex',
+                    flexDirection: { xs: 'column', md: 'row' },
+                    gap: 2,
+                  }}>
+                    <Box sx={{
+                      width: { xs: '100%', md: 240 },
+                      flexShrink: 0,
+                      border: '1px solid #E2E8F0',
+                      borderRadius: 2,
+                      bgcolor: '#FFFFFF',
+                      p: 2,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 1,
+                    }}>
+                      <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 0.75,
+                      }}>
+                        <Typography sx={{
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          color: '#0F172A',
+                          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                        }}>
+                          Preset Tanggal Kembar
+                        </Typography>
+                        <Select
+                          size="small"
+                          value={activePresetYear}
+                          onChange={(e) => setPresetYearOverride(Number(e.target.value))}
+                          sx={{
+                            minWidth: 110,
+                            fontSize: '0.8125rem',
+                            fontWeight: 500,
+                            bgcolor: '#F8FAFC',
+                            borderRadius: 1.5,
+                            '& .MuiSelect-select': {
+                              py: 0.75,
+                              px: 1.5,
+                            }
+                          }}
+                        >
+                          {(availableYears.length > 0 ? years : years).map(yearOption => (
+                            <MenuItem key={yearOption} value={yearOption}>
+                              Tahun {yearOption}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </Box>
+                      <Typography sx={{
+                        fontSize: '0.75rem',
+                        color: '#475569',
+                        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                        lineHeight: 1.4
+                      }}>
+                        Tambah 1/1 s.d 12/12 untuk tahun yang dipilih.
+                      </Typography>
+                      <Button
+                        variant="contained"
+                        size="medium"
+                        onClick={handleAddTwinDatesPreset}
+                        disabled={specificDates.length >= MAX_SPECIFIC_DATES || remainingTwinDates.length === 0}
+                        sx={{
+                          alignSelf: 'stretch',
+                          bgcolor: '#3B82F6',
+                          textTransform: 'none',
+                          fontSize: '0.8125rem',
+                          fontWeight: 600,
+                          py: 0.9,
+                          borderRadius: 1.5,
+                          boxShadow: 'none',
+                          '&:hover': {
+                            bgcolor: '#2563EB',
+                          },
+                          '&:disabled': {
+                            bgcolor: '#E2E8F0',
+                            color: '#94A3B8',
+                            boxShadow: 'none'
+                          }
+                        }}
+                      >
+                        Tambah ({remainingTwinDates.length}/12)
+                      </Button>
+                      <Typography sx={{
+                        fontSize: '0.75rem',
+                        color: '#94A3B8',
+                        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                        lineHeight: 1.3,
+                        fontStyle: 'normal'
+                      }}>
+                        Ubah tahun melalui kalender bila perlu.
+                      </Typography>
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <DateRangePicker
+                        ranges={[selectionDate]}
+                        onChange={handleSelect}
+                        minDate={getMinDate()}
+                        maxDate={getMaxDate()}
+                        months={1}
+                        direction="horizontal"
+                        showDateDisplay={true}
+                        showMonthAndYearPickers={true}
+                        moveRangeOnFirstSelection={false}
+                        retainEndDateOnFirstSelection={false}
+                        editableDateInputs={false}
+                      />
+                    </Box>
+                  </Box>
+
+                  {/* Tombol Batal dan Tambah Tanggal */}
                   <Box sx={{ 
                     display: 'flex', 
                     gap: 1.5,
@@ -585,7 +803,7 @@ export const DateRangePickerWithPresets = ({
                       size="medium" 
                       onClick={() => {
                         setShowPicker(false);
-                        setSelectionRange({
+                        setSelectionDate({
                           startDate: new Date(),
                           endDate: new Date(),
                           key: 'selection',
@@ -617,8 +835,8 @@ export const DateRangePickerWithPresets = ({
                     <Button 
                       variant="contained" 
                       size="medium" 
-                      onClick={handleAddRange}
-                      disabled={rangeDates.length >= MAX_RANGE_DATES}
+                      onClick={handleAddDate}
+                      disabled={!selectionDate.startDate || specificDates.length >= MAX_SPECIFIC_DATES}
                       sx={{
                         bgcolor: '#3B82F6',
                         color: 'white',
@@ -651,7 +869,7 @@ export const DateRangePickerWithPresets = ({
                         }
                       }}
                     >
-                      Tambah Range
+                      Tambah Tanggal
                     </Button>
                   </Box>
                 </Box>
@@ -670,12 +888,41 @@ export const DateRangePickerWithPresets = ({
         fontStyle: 'italic'
       }}>
         {showPicker 
-          ? '* Pilih range tanggal menggunakan kalender, lalu klik "Tambah Range". Tahun akan diambil dari tanggal yang dipilih.'
-          : '* Klik tombol "Pilih Range Tanggal" untuk memilih range tanggal.'}
+          ? '* Pilih tanggal menggunakan kalender (bisa pilih tahun dan bulan di kalender), lalu klik "Tambah Tanggal".'
+          : '* Klik tombol "Pilih Tanggal" untuk memilih tanggal. Pilih tahun dan bulan langsung di kalender.'}
       </Typography>
 
-      {/* Daftar Range yang Sudah Ditambahkan */}
-      {rangeDates.length > 0 && (
+      {/* Counter */}
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center',
+        gap: 1,
+        mt: 1
+      }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center',
+          height: '38px',
+          px: 1.5,
+          borderRadius: 1.5,
+          bgcolor: '#F8FAFC',
+          border: '1px solid #F1F5F9'
+        }}>
+          <Typography sx={{ 
+            fontSize: '0.75rem', 
+            color: '#64748B',
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            fontWeight: 500,
+            lineHeight: 1.5,
+            whiteSpace: 'nowrap'
+          }}>
+            {specificDates.length}/30
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Daftar Tanggal yang Sudah Ditambahkan */}
+      {specificDates.length > 0 && (
         <Box sx={{ 
           display: 'flex', 
           flexWrap: 'wrap', 
@@ -684,39 +931,52 @@ export const DateRangePickerWithPresets = ({
           pt: 1.5,
           borderTop: '1px solid #F1F5F9'
         }}>
-          {rangeDates.map((range, index) => (
-            <Chip
-              key={`${range.start}_${range.end}_${range.year}_${index}`}
-              label={`${formatDateDisplay(range.start, range.year)} - ${formatDateDisplay(range.end, range.year)}`}
-              onDelete={() => onRemoveRange(range)}
-              size="small"
-              variant="outlined"
-              sx={{
-                borderColor: '#E2E8F0',
-                color: '#475569',
-                fontSize: '0.75rem',
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-                height: 28,
-                borderRadius: 1.5,
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  borderColor: '#CBD5E1',
-                  bgcolor: '#F8FAFC'
-                },
-                '& .MuiChip-deleteIcon': {
-                  color: '#94A3B8',
-                  fontSize: '0.875rem',
+          {specificDates.sort((a, b) => {
+            // Sort by year first, then by monthDay
+            const aYear = typeof a === 'string' ? 0 : a.year;
+            const bYear = typeof b === 'string' ? 0 : b.year;
+            if (aYear !== bYear) return aYear - bYear;
+            
+            const aMonthDay = typeof a === 'string' ? a : a.monthDay;
+            const bMonthDay = typeof b === 'string' ? b : b.monthDay;
+            return aMonthDay.localeCompare(bMonthDay);
+          }).map((date, index) => {
+            const key = typeof date === 'string' ? date : `${date.year}-${date.monthDay}-${index}`;
+            return (
+              <Chip
+                key={key}
+                label={formatDateDisplay(date)}
+                onDelete={() => onRemoveDate(date)}
+                size="small"
+                variant="outlined"
+                sx={{
+                  borderColor: '#E2E8F0',
+                  color: '#475569',
+                  fontSize: '0.75rem',
+                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                  height: 28,
+                  borderRadius: 1.5,
+                  transition: 'all 0.2s ease',
                   '&:hover': {
-                    color: '#64748B'
+                    borderColor: '#CBD5E1',
+                    bgcolor: '#F8FAFC'
+                  },
+                  '& .MuiChip-deleteIcon': {
+                    color: '#94A3B8',
+                    fontSize: '0.875rem',
+                    '&:hover': {
+                      color: '#64748B'
+                    }
                   }
-                }
-              }}
-            />
-          ))}
+                }}
+              />
+            );
+          })}
         </Box>
       )}
     </Box>
   );
 };
 
-export default DateRangePickerWithPresets;
+export default SingleDatePickerWithYear;
+
