@@ -238,15 +238,15 @@ class FinancialRepository
     public function getLastUpdateInfo()
     {
         $query = "
-            SELECT 'financial_gl' AS source_table, MAX(date) AS last_date
+            SELECT 'Revenue' AS source_table, MAX(date) AS last_date
             FROM `even-gearbox-255203.ds_netbackup.financial_gl`
             WHERE date IS NOT NULL
 
             UNION ALL
 
-            SELECT 'header_invoice' AS source_table, MAX(date) AS last_date
+            SELECT 'Revenue Invoice' AS source_table, MAX(date) AS last_date
             FROM `even-gearbox-255203.ds_netbackup.header_invoice`
-            WHERE date IS NOT NULL
+            WHERE date IS NOT NULL;
         ";
 
         $cacheKey = "last_update_info";
