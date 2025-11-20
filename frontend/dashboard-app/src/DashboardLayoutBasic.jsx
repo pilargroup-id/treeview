@@ -134,7 +134,7 @@ function Footer() {
     setSlideIn(true);
     const interval = setInterval(() => {
       setSlideIn(false);
-      setTimeout(() => setSlideIn(true), 500); 
+      setTimeout(() => setSlideIn(true), 700); 
     }, 2000);
     return () => clearInterval(interval);
   }, []);
@@ -158,7 +158,16 @@ function Footer() {
         gap: 1,
       }}
     >
-      <span style={{ display: 'flex', alignItems: 'center', marginRight: 8 }}>
+      <span
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          marginRight: 8,
+          transition: 'transform 0.4s cubic-bezier(.4,0,.6,1), opacity 0.4s cubic-bezier(.4,0,.6,1)',
+          transform: slideIn ? 'translateY(0)' : 'translateY(40px)',
+          opacity: slideIn ? 1 : 0,
+        }}
+      >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="12" cy="12" r="10" fill="#90caf9" />
           <path d="M12 6v6l4 2" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
