@@ -120,4 +120,24 @@ class FinancialController extends Controller
         ], 500);
     }
 
+    /**
+     * GET /api/financial/last-update
+     */
+    public function getLastUpdate()
+    {
+        $result = $this->financialRepo->getLastUpdateInfo();
+
+        if ($result['success']) {
+            return response()->json([
+                'status' => 'success',
+                'data' => $result['data']
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => $result['error']
+        ], 500);
+    }
+
 }

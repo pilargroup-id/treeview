@@ -24,6 +24,12 @@ async function loadRevenue() {
 
     try {
         document.getElementById('loading').style.display = 'inline';
+
+        const lastUpdate = await fetchLastUpdateInfo();
+        if (lastUpdate) {
+            const financialGLDate = lastUpdate.find(i => i.source_table === 'financial_gl')?.last_date;
+            console.log(`ℹ️ Data financial_gl terakhir update: ${financialGLDate}`);
+        }
         
         // Build query params
         const params = new URLSearchParams();
@@ -54,6 +60,10 @@ async function loadRevenue() {
         document.getElementById('loading').style.display = 'none';
     }
 }
+
+// Usage example - call this function anywhere you need:
+const lastUpdate = await fetchLastUpdateInfo();
+console.log(lastUpdate);
 
 function renderChart(data) {
     const ctx = document.getElementById('revenue_chart').getContext('2d');
@@ -160,6 +170,21 @@ function formatCurrency(num) {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0
     }).format(value);
+}
+
+async function fetchLastUpdateInfo() {
+    try {
+        const response = await fetch(`${API_URL}/financial/last-update`);
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            return result.data;
+        }
+        return null;
+    } catch (error) {
+        console.error('Failed to fetch last update info:', error);
+        return null;
+    }
 }
 
 window.toggleRevenueBusinessUnit = toggleRevenueBusinessUnit;

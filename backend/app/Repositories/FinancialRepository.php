@@ -231,4 +231,28 @@ class FinancialRepository
         
         return "(" . implode(" OR ", $conditions) . ")";
     }
+
+    /**
+     * Get last update info from all tables
+     */
+    public function getLastUpdateInfo()
+    {
+        $query = "
+            SELECT 'financial_gl' AS source_table, MAX(date) AS last_date
+            FROM `even-gearbox-255203.ds_netbackup.financial_gl`
+            WHERE date IS NOT NULL
+
+            UNION ALL
+
+            SELECT 'header_invoice' AS source_table, MAX(date) AS last_date
+            FROM `even-gearbox-255203.ds_netbackup.header_invoice`
+            WHERE date IS NOT NULL
+        ";
+
+        $cacheKey = "last_update_info";
+        
+        return Cache::remember($cacheKey, 3600, function () use ($query) {
+            return $this->bigQueryService->runQuery($query);
+        });
+    }
 }
