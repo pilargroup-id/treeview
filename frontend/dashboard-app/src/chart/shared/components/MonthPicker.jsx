@@ -5,7 +5,6 @@ import CloseIcon from '@mui/icons-material/Close';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { monthNames } from '../constants';
 
-// Styles untuk MonthPicker (bisa di-override dari parent)
 const monthPickerStyles = {
   monthPickerContainer: {
     position: 'relative',

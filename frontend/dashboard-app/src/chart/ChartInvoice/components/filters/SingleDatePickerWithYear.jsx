@@ -20,19 +20,16 @@ const TWIN_DATE_PRESETS = [
   { monthDay: '12-12', label: '12 Desember' },
 ];
 
-// Format tanggal untuk display
 const formatDateDisplay = (dateObj) => {
-  // Support both old format (string MM-DD) and new format (object {year, monthDay})
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
   if (typeof dateObj === 'string') {
     const [month, day] = dateObj.split('-');
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     return `${parseInt(day)} ${monthNames[parseInt(month) - 1]}`;
   }
-  
-  // New format: {year, monthDay}
-  const { year, monthDay } = dateObj;
+  // Jika object, ambil monthDay dan year
+  const { monthDay, year } = dateObj;
+  if (!monthDay || !year) return '';
   const [month, day] = monthDay.split('-');
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
   return `${parseInt(day)} ${monthNames[parseInt(month) - 1]} ${year}`;
 };
 
@@ -42,14 +39,13 @@ export const SingleDatePickerWithYear = ({
   onRemoveDate,
   availableYears = []
 }) => {
-  // Generate tahun dari availableYears untuk menentukan default date
+  // Generate tahun 
   const years = React.useMemo(() => {
     return availableYears.length > 0 
-      ? [...availableYears].sort((a, b) => b - a) // Sort descending (tahun terbaru dulu)
+      ? [...availableYears].sort((a, b) => b - a) 
       : [2025, 2024, 2023, 2022, 2021].sort((a, b) => b - a);
   }, [availableYears]);
   
-  // State untuk DatePicker (single date) - default ke tahun terbaru
   const [selectionDate, setSelectionDate] = useState(() => {
     const defaultYear = years.length > 0 ? years[0] : new Date().getFullYear();
     return {
@@ -59,20 +55,17 @@ export const SingleDatePickerWithYear = ({
     };
   });
   
-  // State untuk mengontrol visibility DatePicker
-  const [showPicker, setShowPicker] = useState(false);
+    const [showPicker, setShowPicker] = useState(false);
   
-  // Ref untuk anchor element
   const anchorRef = useRef(null);
   const pickerRef = useRef(null);
   
-  const MAX_SPECIFIC_DATES = 30; // Maksimal 30 tanggal
+  const MAX_SPECIFIC_DATES = 30; 
 
-  // Update default date ketika availableYears berubah
   useEffect(() => {
     if (years.length > 0) {
       const defaultYear = years[0];
-      // Hanya update jika selectionDate belum di-set atau tahunnya tidak sesuai
+      // Hanya update
       const currentYear = selectionDate.startDate?.getFullYear();
       if (!currentYear || !availableYears.includes(currentYear)) {
         setSelectionDate({
@@ -84,16 +77,14 @@ export const SingleDatePickerWithYear = ({
     }
   }, [availableYears, years]);
 
-  // Handle perubahan date dari DatePicker
   const handleSelect = (ranges) => {
     console.log('handleSelect called with ranges:', ranges);
-    // Untuk single date picker, pastikan startDate dan endDate sama
     const selection = ranges.selection;
     if (selection.startDate) {
       console.log('Setting selectionDate to:', selection.startDate);
       setSelectionDate({
         startDate: selection.startDate,
-        endDate: selection.startDate, // Set endDate sama dengan startDate untuk single date
+        endDate: selection.startDate, 
         key: 'selection',
       });
     } else {
@@ -101,7 +92,7 @@ export const SingleDatePickerWithYear = ({
     }
   };
 
-  // Handle tambah date
+  // Add Date
   const handleAddDate = () => {
     console.log('handleAddDate called');
     console.log('selectionDate:', selectionDate);
@@ -109,35 +100,29 @@ export const SingleDatePickerWithYear = ({
     console.log('specificDates:', specificDates);
     
     try {
-      // Validasi input
       if (!selectionDate.startDate) {
         console.log('No startDate selected');
         alert('Pilih tanggal terlebih dahulu');
         return;
       }
       
-      // Ambil tahun dari tanggal yang dipilih
       const year = selectionDate.startDate.getFullYear();
       console.log('Selected year:', year);
       
-      // Validasi bahwa tahun yang dipilih ada di availableYears
       if (availableYears.length > 0 && !availableYears.includes(year)) {
         console.log('Year not in availableYears');
         alert(`Tahun ${year} tidak tersedia. Silakan pilih tanggal dari tahun yang tersedia.`);
         return;
       }
       
-      // Format: MM-DD (bulan-hari) dan tahun
       const month = String(selectionDate.startDate.getMonth() + 1).padStart(2, '0');
       const day = String(selectionDate.startDate.getDate()).padStart(2, '0');
       
       const monthDay = `${month}-${day}`;
       console.log('Formatted monthDay:', monthDay);
       
-      // Validasi tanggal
       const testDate = new Date(year, parseInt(month) - 1, parseInt(day));
       
-      // Validasi tanggal valid
       if (testDate.getMonth() !== (parseInt(month) - 1) || 
           testDate.getDate() !== parseInt(day)) {
         console.log('Invalid date');
@@ -145,17 +130,13 @@ export const SingleDatePickerWithYear = ({
         return;
       }
       
-      // Format data dengan tahun: {year, monthDay}
       const dateWithYear = { year, monthDay };
       console.log('dateWithYear to add:', dateWithYear);
       
-      // Cek apakah tanggal dengan tahun ini sudah ada
       const dateExists = specificDates.some(date => {
         if (typeof date === 'string') {
-          // Old format: MM-DD string - check if monthDay matches
           return date === monthDay;
         }
-        // New format: {year, monthDay}
         return date.year === year && date.monthDay === monthDay;
       });
       
@@ -172,20 +153,17 @@ export const SingleDatePickerWithYear = ({
         return;
       }
       
-      // Tambahkan date dengan tahun
       console.log('Calling onAddDate with:', dateWithYear);
       try {
         onAddDate(dateWithYear);
         console.log('onAddDate called successfully');
         
-        // Reset selection date setelah berhasil menambahkan
         setSelectionDate({
           startDate: new Date(),
           endDate: new Date(),
           key: 'selection',
         });
         
-        // Sembunyikan picker setelah berhasil menambahkan
         setShowPicker(false);
       } catch (addError) {
         console.error('Error adding date:', addError);
@@ -259,7 +237,6 @@ export const SingleDatePickerWithYear = ({
     }
   };
 
-  // Tentukan minDate dan maxDate berdasarkan availableYears
   const getMinDate = () => {
     if (availableYears.length === 0) return new Date();
     const minYear = Math.min(...availableYears);
@@ -272,7 +249,6 @@ export const SingleDatePickerWithYear = ({
     return new Date(maxYear, 11, 31);
   };
 
-  // Handle styling untuk DatePicker
   useEffect(() => {
     if (!showPicker || !pickerRef.current) return;
 
@@ -280,13 +256,11 @@ export const SingleDatePickerWithYear = ({
       const picker = pickerRef.current;
       if (!picker) return;
 
-      // Sembunyikan preset ranges
       const definedRangesWrapper = picker.querySelector('.rdr-DefinedRangesWrapper');
       if (definedRangesWrapper) {
         definedRangesWrapper.style.setProperty('display', 'none', 'important');
       }
 
-      // Apply style ke semua elemen dengan ukuran yang lebih besar
       const dateRange = picker.querySelector('.rdr-DateRange');
       const calendarWrapper = picker.querySelector('.rdr-CalendarWrapper');
       const calendars = picker.querySelectorAll('.rdr-Calendar');
@@ -384,7 +358,6 @@ export const SingleDatePickerWithYear = ({
       }
     };
 
-    // Apply styles dengan beberapa delay untuk memastikan DOM sudah ter-render
     const timeouts = [
       setTimeout(applyStyles, 0),
       setTimeout(applyStyles, 50),
@@ -392,7 +365,6 @@ export const SingleDatePickerWithYear = ({
       setTimeout(applyStyles, 200),
     ];
 
-    // Observer untuk mendeteksi perubahan DOM
     const observer = new MutationObserver(() => {
       applyStyles();
     });
@@ -409,8 +381,6 @@ export const SingleDatePickerWithYear = ({
       observer.disconnect();
     };
   }, [showPicker]);
-
-  // Picker selalu enabled karena tahun dipilih langsung di kalender
 
   return (
     <Box sx={{ 

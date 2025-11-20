@@ -1,4 +1,3 @@
-// Chart configuration untuk ChartInvoice
 import {
   formatCurrency,
   formatShortNumber,
@@ -10,9 +9,6 @@ import {
   COLOR_BUSINESS_UNIT_RANGE
 } from './utils';
 
-/**
- * Generate periods/labels untuk chart berdasarkan filter type
- */
 export function generatePeriods({
   dateFilterType,
   specificDates,
@@ -23,25 +19,19 @@ export function generatePeriods({
   
   let periods = [];
   if (isYearFilter) {
-    // Untuk filter tahun, selalu gunakan 12 bulan
     periods = MONTH_LABELS;
   } else if (isSpecificDate) {
-    // Untuk specific dates, format label dari specificDates
-    // Support both old format (string MM-DD) and new format (object {year, monthDay})
     if (specificDates.length > 0) {
-      // Sort dates: by year first, then by monthDay
       const sortedDates = [...specificDates].sort((a, b) => {
-        // Handle old format (string)
         if (typeof a === 'string' && typeof b === 'string') {
           return a.localeCompare(b);
         }
         if (typeof a === 'string') {
-          return -1; // Old format comes first
+          return -1; 
         }
         if (typeof b === 'string') {
-          return 1; // Old format comes first
+          return 1; 
         }
-        // New format: compare by year, then by monthDay
         if (a.year !== b.year) {
           return a.year - b.year;
         }
@@ -51,17 +41,14 @@ export function generatePeriods({
       periods = sortedDates.map(date => {
         let monthDay;
         if (typeof date === 'string') {
-          // Old format: MM-DD string
           monthDay = date;
         } else {
-          // New format: {year, monthDay}
           monthDay = date.monthDay;
         }
         const [month, day] = monthDay.split('-');
         const monthName = MONTH_NAMES_ID[parseInt(month) - 1];
         const dayNum = parseInt(day);
         
-        // Include year in label if using new format
         if (typeof date === 'object' && date.year) {
           return `${dayNum} ${monthName} ${date.year}`;
         }
@@ -84,9 +71,6 @@ export function generatePeriods({
   return periods;
 }
 
-/**
- * Create chart data dan options untuk year filter
- */
 function createYearFilterChart({
   invoiceData,
   years,
@@ -327,11 +311,6 @@ function createYearFilterChart({
   return { datasets, options };
 }
 
-/**
- * Create chart data dan options untuk specific date filter
- * Format specificDates: Support both old format (string MM-DD) and new format (object {year, monthDay})
- * Chart menampilkan garis untuk setiap tahun yang ada di specificDates
- */
 function createSpecificDateChart({
   invoiceData,
   businessUnits,
@@ -340,19 +319,15 @@ function createSpecificDateChart({
   dataType,
   formatCurrency
 }) {
-  // Extract unique years from specificDates
-  // Support both old format (string MM-DD) and new format (object {year, monthDay})
+
   const years = [...new Set(specificDates.map(date => {
     if (typeof date === 'string') {
-      // Old format: MM-DD - use default years (2021-2025)
-      return null; // Will be filtered out
+      return null; 
     } else {
-      // New format: {year, monthDay}
       return date.year;
     }
   }).filter(year => year !== null))].sort((a, b) => a - b);
   
-  // If no years found (all old format), use default years
   const displayYears = years.length > 0 ? years : [2021, 2022, 2023, 2024, 2025];
   
   const datasets = [];
@@ -367,29 +342,21 @@ function createSpecificDateChart({
       borderWidth: 0
     });
   } else {
-    // Untuk setiap tahun, buat dataset
     displayYears.forEach((year, yearIndex) => {
       const colorSet = COLOR_PALETTE_YEAR[yearIndex % COLOR_PALETTE_YEAR.length];
       
-      // Sales dataset
+      // Penjualan dataset
       if (dataType === 'penjualan' || dataType === 'both') {
-        // Map periods to data points - sesuai dengan urutan periods dari generatePeriods
-        // Setiap period label akan di-map ke data yang sesuai dari API
-        // Pastikan urutan data sesuai dengan urutan periods
         const salesData = periods.map((periodLabel, periodIndex) => {
-          // Extract date info from period label
-          // Format period label: "DD MonthName YYYY" atau "DD MonthName"
+
           let targetYear, targetMonthDay;
           
-          // Parse period label untuk mendapatkan tahun dan monthDay
           const periodParts = periodLabel.split(' ');
           if (periodParts.length === 3) {
-            // Format: "DD MonthName YYYY"
             const day = parseInt(periodParts[0]);
             const monthName = periodParts[1];
             const yearFromLabel = parseInt(periodParts[2]);
             
-            // Convert month name to number
             const monthIndex = MONTH_NAMES_ID.indexOf(monthName);
             if (monthIndex === -1) return 0;
             const month = String(monthIndex + 1).padStart(2, '0');
@@ -398,7 +365,6 @@ function createSpecificDateChart({
             targetYear = yearFromLabel;
             targetMonthDay = `${month}-${dayStr}`;
           } else if (periodParts.length === 2) {
-            // Format: "DD MonthName" (old format)
             const day = parseInt(periodParts[0]);
             const monthName = periodParts[1];
             
@@ -413,30 +379,22 @@ function createSpecificDateChart({
             return 0;
           }
           
-          // Only process if this period matches current year
           if (targetYear !== year) {
             return 0;
           }
           
-          // Convert to YYYY-MM-DD format untuk matching dengan API
           const fullDate = `${targetYear}-${targetMonthDay}`;
           
-          // Ambil semua data untuk tanggal ini dari API
-          // Filter berdasarkan period (YYYY-MM-DD) dan business_unit yang dipilih
-          // API mengembalikan period dalam format YYYY-MM-DD dan data sudah di-group per business_unit
           const records = invoiceData.filter(d => {
             if (!d.period) return false;
             
-            // Normalize period untuk matching (API format: YYYY-MM-DD)
             const periodNormalized = String(d.period).trim();
             const fullDateNormalized = fullDate.trim();
             
-            // Match period
             const periodMatches = periodNormalized === fullDateNormalized;
             
-            // Filter business_unit jika ada yang dipilih
             const businessUnitMatches = businessUnits.length === 0 || 
-                                       (d.business_unit && businessUnits.includes(d.business_unit));
+            (d.business_unit && businessUnits.includes(d.business_unit));
             
             return periodMatches && businessUnitMatches;
           });
@@ -444,7 +402,6 @@ function createSpecificDateChart({
           if (records.length > 0) {
             let total = 0;
             records.forEach(record => {
-              // Pastikan field total_sales ada dan valid
               if (record.total_sales !== null && record.total_sales !== undefined && record.total_sales !== '') {
                 const parsedSales = parseFloat(record.total_sales);
                 if (!isNaN(parsedSales)) {
@@ -453,7 +410,6 @@ function createSpecificDateChart({
               }
             });
             
-            // Debug log untuk development
             if (process.env.NODE_ENV === 'development' && periodIndex < 3) {
               console.log(`[Sales] Period ${periodIndex}: "${periodLabel}" -> Date: ${fullDate}, Records: ${records.length}, Total: ${total}`);
             }
@@ -461,12 +417,10 @@ function createSpecificDateChart({
             return total;
           }
           
-          // Debug log untuk development
           if (process.env.NODE_ENV === 'development' && periodIndex < 3) {
             console.log(`[Sales] Period ${periodIndex}: "${periodLabel}" -> Date: ${fullDate}, No records found`);
           }
           
-          // Jika tidak ada data, tetap return 0 (bukan null)
           return 0;
         });
         
@@ -486,22 +440,15 @@ function createSpecificDateChart({
       
       // Quantity dataset
       if (dataType === 'quantity' || dataType === 'both') {
-        // Map periods to data points - sesuai dengan urutan periods dari generatePeriods
-        // Pastikan urutan data sesuai dengan urutan periods
         const quantityData = periods.map((periodLabel, periodIndex) => {
-          // Extract date info from period label
-          // Format period label: "DD MonthName YYYY" atau "DD MonthName"
           let targetYear, targetMonthDay;
           
-          // Parse period label untuk mendapatkan tahun dan monthDay
           const periodParts = periodLabel.split(' ');
           if (periodParts.length === 3) {
-            // Format: "DD MonthName YYYY"
             const day = parseInt(periodParts[0]);
             const monthName = periodParts[1];
             const yearFromLabel = parseInt(periodParts[2]);
             
-            // Convert month name to number
             const monthIndex = MONTH_NAMES_ID.indexOf(monthName);
             if (monthIndex === -1) return 0;
             const month = String(monthIndex + 1).padStart(2, '0');
@@ -510,7 +457,6 @@ function createSpecificDateChart({
             targetYear = yearFromLabel;
             targetMonthDay = `${month}-${dayStr}`;
           } else if (periodParts.length === 2) {
-            // Format: "DD MonthName" (old format)
             const day = parseInt(periodParts[0]);
             const monthName = periodParts[1];
             
@@ -525,28 +471,20 @@ function createSpecificDateChart({
             return 0;
           }
           
-          // Only process if this period matches current year
           if (targetYear !== year) {
             return 0;
           }
           
-          // Convert to YYYY-MM-DD format untuk matching dengan API
           const fullDate = `${targetYear}-${targetMonthDay}`;
           
-          // Ambil semua data untuk tanggal ini dari API
-          // Filter berdasarkan period (YYYY-MM-DD) dan business_unit yang dipilih
-          // API mengembalikan period dalam format YYYY-MM-DD dan data sudah di-group per business_unit
           const records = invoiceData.filter(d => {
             if (!d.period) return false;
             
-            // Normalize period untuk matching (API format: YYYY-MM-DD)
             const periodNormalized = String(d.period).trim();
             const fullDateNormalized = fullDate.trim();
             
-            // Match period
             const periodMatches = periodNormalized === fullDateNormalized;
             
-            // Filter business_unit jika ada yang dipilih
             const businessUnitMatches = businessUnits.length === 0 || 
                                        (d.business_unit && businessUnits.includes(d.business_unit));
             
@@ -556,7 +494,6 @@ function createSpecificDateChart({
           if (records.length > 0) {
             let total = 0;
             records.forEach(record => {
-              // Pastikan field total_quantity ada dan valid
               if (record.total_quantity !== null && record.total_quantity !== undefined && record.total_quantity !== '') {
                 const parsedQuantity = parseFloat(record.total_quantity);
                 if (!isNaN(parsedQuantity)) {
@@ -565,7 +502,6 @@ function createSpecificDateChart({
               }
             });
             
-            // Debug log untuk development
             if (process.env.NODE_ENV === 'development' && periodIndex < 3) {
               console.log(`[Quantity] Period ${periodIndex}: "${periodLabel}" -> Date: ${fullDate}, Records: ${records.length}, Total: ${total}`);
             }
@@ -573,12 +509,10 @@ function createSpecificDateChart({
             return total;
           }
           
-          // Debug log untuk development
           if (process.env.NODE_ENV === 'development' && periodIndex < 3) {
             console.log(`[Quantity] Period ${periodIndex}: "${periodLabel}" -> Date: ${fullDate}, No records found`);
           }
           
-          // Jika tidak ada data, tetap return 0 (bukan null)
           return 0;
         });
         
@@ -598,7 +532,6 @@ function createSpecificDateChart({
       }
     });
     
-    // Debug log untuk memastikan semua tahun ada dan data sesuai API
     if (process.env.NODE_ENV === 'development') {
       console.log('=== Specific Date Chart Debug ===');
       console.log('Selected Dates:', specificDates);
@@ -762,9 +695,6 @@ function createSpecificDateChart({
   return { datasets, options };
 }
 
-/**
- * Create chart data dan options untuk range/default filter
- */
 function createRangeChart({
   invoiceData,
   businessUnits,
@@ -986,7 +916,7 @@ function createRangeChart({
 }
 
 /**
- * Main function untuk generate chart data dan options berdasarkan filter type
+ * Generate Chart Data
  */
 export function generateChartConfig({
   dateFilterType,
@@ -996,14 +926,12 @@ export function generateChartConfig({
   specificDates,
   dataType
 }) {
-  // Generate periods/labels
   const periods = generatePeriods({
     dateFilterType,
     specificDates,
     invoiceData
   });
   
-  // Debug log untuk specific dates
   if (invoiceData.length > 0 && dateFilterType === 'specific' && process.env.NODE_ENV === 'development') {
     console.log('=== Specific Dates Debug Info ===');
     console.log('Selected Specific Dates (from user):', specificDates);
@@ -1013,14 +941,11 @@ export function generateChartConfig({
     console.log('Invoice Data Count:', invoiceData.length);
     console.log('Unique Periods from API:', [...new Set(invoiceData.map(d => d.period))]);
     
-    // Convert specificDates to YYYY-MM-DD format for comparison
     const datesForComparison = specificDates.map(date => {
       if (typeof date === 'string') {
-        // Old format: MM-DD - need to determine year (use first available year or current)
         const year = years && years.length > 0 ? years[0] : new Date().getFullYear();
         return `${year}-${date}`;
       } else {
-        // New format: {year, monthDay}
         return `${date.year}-${date.monthDay}`;
       }
     });
@@ -1033,7 +958,6 @@ export function generateChartConfig({
   let chartData = { labels: periods, datasets: [] };
   let chartOptions = {};
   
-  // Generate chart berdasarkan filter type
   if (dateFilterType === 'year') {
     const result = createYearFilterChart({
       invoiceData,
@@ -1056,7 +980,6 @@ export function generateChartConfig({
     chartData.datasets = result.datasets;
     chartOptions = result.options;
   } else {
-    // Range atau default
     const result = createRangeChart({
       invoiceData,
       businessUnits,

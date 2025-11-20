@@ -45,22 +45,20 @@ export function buildApiParams({
       params.append('end_date', endDate);
     }
   } else if (dateFilterType === 'specific') {
-    // Validasi jumlah tanggal
     if (!specificDates || !Array.isArray(specificDates) || specificDates.length === 0) {
       throw new Error('Pilih minimal 1 tanggal');
     }
     
-    // Validasi format setiap tanggal (support both old and new format)
     const isValidDate = (date) => {
       if (typeof date === 'string') {
-        // Old format: MM-DD string
+      
         const parts = date.split('-');
         if (parts.length !== 2) return false;
         const month = parseInt(parts[0], 10);
         const day = parseInt(parts[1], 10);
         return !isNaN(month) && !isNaN(day) && month >= 1 && month <= 12 && day >= 1 && day <= 31;
       } else if (typeof date === 'object' && date.year && date.monthDay) {
-        // New format: {year, monthDay}
+     
         const parts = date.monthDay.split('-');
         if (parts.length !== 2) return false;
         const month = parseInt(parts[0], 10);
@@ -71,41 +69,33 @@ export function buildApiParams({
       return false;
     };
     
-    // Validasi semua tanggal
     const invalidDates = specificDates.filter(date => !isValidDate(date));
     if (invalidDates.length > 0) {
       console.error('Invalid dates found:', invalidDates);
       throw new Error(`Format tanggal tidak valid: ${invalidDates.length} tanggal. Pastikan format benar.`);
     }
     
-    // API membatasi maksimal 30 tanggal YYYY-MM-DD
     const MAX_API_DATES = 30;
     
     if (specificDates.length > MAX_API_DATES) {
       throw new Error(`Total tanggal yang akan dikirim (${specificDates.length}) melebihi batas API (${MAX_API_DATES}).`);
     }
     
-    // Extract unique years from selected dates
     const selectedYears = [...new Set(specificDates.map(date => {
       if (typeof date === 'string') {
-        // Old format: use availableYears or current year
         return (years && years.length > 0) ? years[0] : (availableYears && availableYears.length > 0 ? availableYears[0] : new Date().getFullYear());
       }
       return date.year;
     }))];
     
     try {
-      // Convert dates to YYYY-MM-DD format and send to API
       specificDates.forEach(date => {
         let year, monthDay;
         
         if (typeof date === 'string') {
-          // Old format: MM-DD string
           monthDay = date;
-          // Use first selected year or available year
           year = selectedYears[0] || (availableYears && availableYears.length > 0 ? availableYears[0] : new Date().getFullYear());
         } else {
-          // New format: {year, monthDay}
           year = date.year;
           monthDay = date.monthDay;
         }
@@ -216,9 +206,6 @@ export async function loadInvoiceSales({
       return;
     }
     
-    // Validasi tahun tidak diperlukan untuk range filter karena tahun sudah dipilih dari checkbox di dalam DateRangePickerWithPresets
-    // Tahun sudah tersimpan di rangeDates[].year
-    
     const MAX_RANGE_DATES = 20;
     if (rangeDates.length > MAX_RANGE_DATES) {
       alert(`Maksimal ${MAX_RANGE_DATES} range yang bisa dipilih untuk menghindari error. Saat ini ada ${rangeDates.length} range.`);
@@ -232,16 +219,13 @@ export async function loadInvoiceSales({
       return;
     }
     
-    // Untuk specific dates, extract years dari dates yang dipilih
     const selectedYears = [...new Set(specificDates.map(date => {
       if (typeof date === 'string') {
-        // Old format: use availableYears or current year
         return (years && years.length > 0) ? years[0] : (availableYears && availableYears.length > 0 ? availableYears[0] : new Date().getFullYear());
       }
       return date.year;
     }))];
     
-    // Validasi total tanggal 
     const MAX_API_DATES = 30;
     
     if (specificDates.length > MAX_API_DATES) {
@@ -253,7 +237,6 @@ export async function loadInvoiceSales({
   try {
     setInvoiceLoading(true);
     
-    // Untuk multiple ranges
     if (dateFilterType === 'range' && rangeDates && rangeDates.length > 0) {
       const allData = [];
       const errors = [];
@@ -310,7 +293,6 @@ export async function loadInvoiceSales({
         }
       }
       
-      // Gabungkan dan set data
       if (allData.length > 0) {
         console.log('Total Invoice Data dari semua ranges:', allData.length);
         if (process.env.NODE_ENV === 'development') {

@@ -35,7 +35,6 @@ function calculatePercentageChange(currentYear, yearTotals, availableYears) {
 }
 
 function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, isLoading = false, dateFilterType = 'year' }) {
-  // Disable YearCards hanya untuk filter 'range' karena tahun dipilih dari checkbox di DateRangePickerWithPresets
   const isDisabled = dateFilterType === 'range';
   
   return (
@@ -110,7 +109,6 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
           </Card>
         ))
       ) : (
-        // Actual cards
         availableYears.map(year => {
           const isSelected = selectedYears.includes(year);
           const yearData = yearTotals[year] || { sales: 0, quantity: 0 };
@@ -121,7 +119,7 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
               sx={{ 
                 p: { xs: 1.5, md: 1.75 },
                 borderRadius: 1.5,
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
+                boxShadow: '0 5px 3px rgba(0, 0, 0, 0.08)',
                 display: 'flex',
                 flexDirection: 'column',
                 border: `1px solid ${isSelected ? '#3B82F6' : '#E2E8F0'}`,
@@ -176,7 +174,7 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
                   <Box sx={{
                       width: 6,
                       height: 6,
-                      borderRadius: '50%',
+                      borderRadius: '70%',
                       bgcolor: isSelected ? '#3B82F6' : '#E2E8F0',
                       flexShrink: 0,
                       transition: 'background-color 0.2s ease'
