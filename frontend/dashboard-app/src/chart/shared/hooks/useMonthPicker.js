@@ -8,7 +8,6 @@ export const useMonthPicker = (selectedMonths) => {
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const monthPickerRef = useRef(null);
 
-  // Handle click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (monthPickerRef.current && !monthPickerRef.current.contains(event.target)) {

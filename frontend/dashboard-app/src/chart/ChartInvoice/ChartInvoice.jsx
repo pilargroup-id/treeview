@@ -76,7 +76,6 @@ function ChartInvoice() {
         const datasets = chart.data.datasets;
         const chartArea = chart.chartArea;
         
-        // Dapatkan skala untuk mendapatkan batas chart
         const yScale = chart.scales.y || chart.scales.y1;
         if (!yScale) return;
         
@@ -118,12 +117,11 @@ function ChartInvoice() {
         const labelPadding = 6;
         const labelHeight = 20;
         const labelSpacing = 4;
-        const minXDistance = 50; // Jarak minimum antar label di sumbu X
-        const maxLabelWidth = 80; // Estimasi lebar maksimal label
+        const minXDistance = 50; 
+        const maxLabelWidth = 80; 
         
         const allLabels = [];
         
-        // Kumpulkan semua label dengan dimensi
         labelsByX.forEach((labels, x) => {
           labels.sort((a, b) => a.baseY - b.baseY);
           
@@ -132,12 +130,10 @@ function ChartInvoice() {
             const textMetrics = ctx.measureText(labelText);
             const textWidth = textMetrics.width;
             
-            // Tentukan posisi awal (di atas atau di bawah berdasarkan posisi di chart)
             const chartTop = chartArea.top;
             const chartBottom = chartArea.bottom;
             const isNearTop = label.baseY < (chartTop + (chartBottom - chartTop) * 0.3);
             
-            // Offset awal berdasarkan posisi
             const baseOffset = isNearTop ? 25 : -25;
             const offsetY = baseOffset + (index * (labelHeight + labelSpacing) * (isNearTop ? 1 : -1));
             let initialY = label.baseY + offsetY;
@@ -156,10 +152,8 @@ function ChartInvoice() {
           });
         });
         
-        // Sort berdasarkan Y position
         allLabels.sort((a, b) => a.y - b.y);
         
-        // Collision detection dan adjustment yang lebih baik
         for (let i = 0; i < allLabels.length; i++) {
           const label = allLabels[i];
           let adjustedY = label.y;
@@ -171,54 +165,45 @@ function ChartInvoice() {
           while (hasAnyCollision && iteration < maxIterations) {
             hasAnyCollision = false;
             
-            // Cek collision dengan label yang sudah di-adjust (indeks < i)
             for (let j = 0; j < i; j++) {
               const otherLabel = allLabels[j];
               const xDiff = Math.abs(otherLabel.x - adjustedX);
               const yDiff = Math.abs(otherLabel.y - adjustedY);
               
-              // Collision jika terlalu dekat di X dan Y
               const minYDistance = (label.height + otherLabel.height) / 2 + labelSpacing;
               if (xDiff < minXDistance && yDiff < minYDistance) {
                 hasAnyCollision = true;
                 
-                // Tentukan arah perpindahan berdasarkan posisi relatif
                 const yDirection = adjustedY < otherLabel.y ? -1 : 1;
                 const xDirection = adjustedX < otherLabel.x ? -1 : 1;
                 
-                // Geser vertikal terlebih dahulu
                 adjustedY = otherLabel.y + (yDirection * minYDistance);
                 
-                // Jika masih collision setelah geser vertikal, geser horizontal juga
                 const newYDiff = Math.abs(otherLabel.y - adjustedY);
                 if (xDiff < minXDistance && newYDiff < minYDistance) {
                   adjustedX = otherLabel.x + (xDirection * (minXDistance - xDiff + 5));
                 }
                 
-                break; // Keluar dari loop untuk re-check semua collision
+                break; 
               }
             }
             
-            // Cek apakah label masih dalam batas chart area
             const labelTop = adjustedY - label.height / 2;
             const labelBottom = adjustedY + label.height / 2;
             const labelLeft = adjustedX - label.width / 2 - labelPadding;
             const labelRight = adjustedX + label.width / 2 + labelPadding;
             
-            // Jika keluar dari batas atas, pindah ke bawah
             if (labelTop < chartArea.top + 10) {
               adjustedY = label.baseY + 35;
               label.isNearTop = false;
-              hasAnyCollision = true; // Re-check setelah pindah
+              hasAnyCollision = true; 
             }
-            // Jika keluar dari batas bawah, pindah ke atas
             else if (labelBottom > chartArea.bottom - 10) {
               adjustedY = label.baseY - 35;
               label.isNearTop = true;
-              hasAnyCollision = true; // Re-check setelah pindah
+              hasAnyCollision = true; 
             }
             
-            // Jika keluar dari batas kiri/kanan, kembalikan ke posisi X asli
             if (labelLeft < chartArea.left + 5) {
               adjustedX = Math.max(chartArea.left + label.width / 2 + labelPadding + 5, label.x);
               hasAnyCollision = true;
@@ -234,20 +219,17 @@ function ChartInvoice() {
           label.y = adjustedY;
         }
         
-        // Render semua label dengan background
         allLabels.forEach(label => {
           const labelWidth = label.width + (labelPadding * 2);
           const labelHeight = label.height;
           const x = label.x;
           const y = label.y;
           
-          // Draw background dengan rounded rectangle
           ctx.save();
           ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
           ctx.strokeStyle = label.color;
           ctx.lineWidth = 1.5;
           
-          // Rounded rectangle
           const radius = 4;
           ctx.beginPath();
           ctx.moveTo(x - labelWidth / 2 + radius, y - labelHeight / 2);
@@ -288,10 +270,8 @@ function ChartInvoice() {
     loadYearSummary(availableYears, setYearSummary, setYearSummaryLoading);
   }, []);
 
-  // Reset years ke single select ketika dateFilterType bukan 'year'
   useEffect(() => {
     if (dateFilterType !== 'year' && years.length > 1) {
-      // Jika ada multiple years dan dateFilterType bukan 'year', ambil tahun pertama saja
       setYears(prev => prev.length > 0 ? [prev[0]] : []);
     }
   }, [dateFilterType]);
@@ -323,23 +303,20 @@ function ChartInvoice() {
   };
 
   const toggleYear = (year) => {
-    // Multi select untuk filter "pertahun (bulanan)", single select untuk filter lainnya
     if (dateFilterType === 'year') {
-      // Multi select: toggle tahun yang diklik
       setYears(prev => {
         if (prev.includes(year)) {
-          return prev.filter(y => y !== year); // Hapus tahun jika sudah dipilih
+          return prev.filter(y => y !== year); 
         } else {
-          return [...prev, year].sort((a, b) => a - b); // Tambahkan tahun dan sort
+          return [...prev, year].sort((a, b) => a - b); 
         }
       });
     } else {
-      // Single select: jika tahun yang sama diklik, deselect. Jika berbeda, select tahun baru
       setYears(prev => {
         if (prev.includes(year)) {
-          return []; // Deselect jika tahun yang sama diklik
+          return [];
         } else {
-          return [year]; // Hanya 1 tahun yang bisa dipilih
+          return [year]; 
         }
       });
     }
@@ -350,22 +327,18 @@ function ChartInvoice() {
     console.log('Current specificDates:', specificDates);
     
     try {
-      // Validasi input - support both old format (string) and new format (object)
       let dateWithYear;
       
       if (typeof dateObj === 'string') {
-        // Old format: MM-DD string (backward compatibility)
         const parts = dateObj.split('-');
         if (parts.length !== 2) {
           console.error('Invalid dateObj format:', dateObj);
           alert('Format tanggal tidak valid');
           return;
         }
-        // Convert to new format with current year as default
         const currentYear = new Date().getFullYear();
         dateWithYear = { year: currentYear, monthDay: dateObj };
       } else if (typeof dateObj === 'object' && dateObj.year && dateObj.monthDay) {
-        // New format: {year, monthDay}
         dateWithYear = dateObj;
       } else {
         console.error('Invalid dateObj:', dateObj);
@@ -373,7 +346,6 @@ function ChartInvoice() {
         return;
       }
       
-      // Validasi format MM-DD
       const parts = dateWithYear.monthDay.split('-');
       if (parts.length !== 2) {
         console.error('Invalid monthDay format:', dateWithYear.monthDay);
@@ -416,7 +388,6 @@ function ChartInvoice() {
         return;
       }
       
-      // Validasi bahwa tanggal valid (misalnya 31 Februari tidak valid)
       const testDate = dayjs(`${dateWithYear.year}-${dateWithYear.monthDay}`);
       if (!testDate.isValid() || testDate.month() !== (month - 1) || testDate.date() !== day) {
         alert(`Tanggal ${day}/${month}/${dateWithYear.year} tidak valid. Silakan pilih tanggal yang valid.`);
@@ -429,7 +400,6 @@ function ChartInvoice() {
         try {
           const newDates = [...prev, dateWithYear];
           console.log('newDates before sort:', newDates);
-          // Sort by year, then by monthDay
           const sorted = newDates.sort((a, b) => {
             const aYear = typeof a === 'string' ? 0 : a.year;
             const bYear = typeof b === 'string' ? 0 : b.year;
@@ -454,14 +424,13 @@ function ChartInvoice() {
 
   const removeSpecificDate = (date) => {
     setSpecificDates(prev => {
-      // Support both old format (string) and new format (object)
       if (typeof date === 'string') {
         return prev.filter(d => {
           if (typeof d === 'string') return d !== date;
           return d.monthDay !== date;
         });
       }
-      // New format: object
+
       return prev.filter(d => {
         if (typeof d === 'string') return false;
         return !(d.year === date.year && d.monthDay === date.monthDay);
@@ -493,14 +462,12 @@ function ChartInvoice() {
         return;
       }
       
-      // Batasi jumlah range - maksimal 1
       const MAX_RANGE_DATES = 1;
       if (rangeDates.length >= MAX_RANGE_DATES) {
         alert(`Maksimal ${MAX_RANGE_DATES} range yang bisa dipilih. Hapus range yang ada terlebih dahulu.`);
         return;
       }
       
-      // Cek apakah range dengan tahun yang sama sudah ada
       const rangeExists = rangeDates.some(r => 
         r.start === range.start && r.end === range.end && r.year === range.year
       );
@@ -510,7 +477,6 @@ function ChartInvoice() {
         return;
       }
       
-      // Validasi bahwa tanggal valid menggunakan tahun dari range
       const testStartDate = dayjs(`${range.year}-${range.start}`);
       const testEndDate = dayjs(`${range.year}-${range.end}`);
       
@@ -519,7 +485,6 @@ function ChartInvoice() {
         return;
       }
       
-      // Validasi bahwa tanggal akhir >= tanggal mulai
       if (testEndDate.isBefore(testStartDate)) {
         alert('Tanggal akhir harus lebih besar atau sama dengan tanggal mulai');
         return;
@@ -528,7 +493,6 @@ function ChartInvoice() {
       setRangeDates(prev => {
         try {
           const newRanges = [...prev, range];
-          // Sort ranges by year, then by start date, then by end date
           return newRanges.sort((a, b) => {
             if (a.year !== b.year) return a.year - b.year;
             const aStart = dayjs(`${a.year}-${a.start}`);
@@ -571,7 +535,6 @@ function ChartInvoice() {
     });
   };
 
-  // Invoice chart data - data API
   const isYearFilter = dateFilterType === 'year';
   const isSpecificDate = dateFilterType === 'specific';
   
