@@ -5,7 +5,6 @@ import { DateRangePicker } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 
-// Format tanggal untuk display
 const formatDateDisplay = (monthDay, year) => {
   const [month, day] = monthDay.split('-');
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -20,23 +19,19 @@ export const DateRangePickerWithPresets = ({
   availableYears = [],
   selectedYears = []
 }) => {
-  // State untuk DateRangePicker
   const [selectionRange, setSelectionRange] = useState({
     startDate: new Date(),
     endDate: new Date(),
     key: 'selection',
   });
   
-  // State untuk mengontrol visibility DateRangePicker
   const [showPicker, setShowPicker] = useState(false);
   
-  // Ref untuk anchor element
   const anchorRef = useRef(null);
   const pickerRef = useRef(null);
   
-  const MAX_RANGE_DATES = 1; // Maksimal 1 
+  const MAX_RANGE_DATES = 1; 
 
-  // Reset selection range jika range sudah ada
   useEffect(() => {
     if (rangeDates.length > 0) {
       setSelectionRange({
@@ -47,12 +42,10 @@ export const DateRangePickerWithPresets = ({
     }
   }, [rangeDates]);
 
-  // Handle perubahan date range dari DateRangePicker
   const handleSelect = (ranges) => {
     setSelectionRange(ranges.selection);
   };
 
-  // Handle tambah range
   const handleAddRange = () => {
     try {
       // Validasi input
@@ -61,10 +54,8 @@ export const DateRangePickerWithPresets = ({
         return;
       }
       
-      // Ambil tahun dari tanggal yang dipilih (gunakan tahun dari startDate)
       const year = selectionRange.startDate.getFullYear();
       
-      // Format: MM-DD (bulan-hari)
       const startMonth = String(selectionRange.startDate.getMonth() + 1).padStart(2, '0');
       const startDay = String(selectionRange.startDate.getDate()).padStart(2, '0');
       const endMonth = String(selectionRange.endDate.getMonth() + 1).padStart(2, '0');
@@ -84,20 +75,17 @@ export const DateRangePickerWithPresets = ({
         return;
       }
       
-      // Validasi tanggal akhir valid
       if (testEndDate.getMonth() !== (parseInt(endMonth) - 1) || 
           testEndDate.getDate() !== parseInt(endDay)) {
         alert('Tanggal akhir tidak valid');
         return;
       }
       
-      // Validasi bahwa tanggal akhir >= tanggal mulai
       if (testEndDate < testStartDate) {
         alert('Tanggal akhir harus >= tanggal mulai');
         return;
       }
       
-      // Validasi maksimal 31 hari (31 tanggal)
       const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
       const diffInDays = Math.floor((testEndDate - testStartDate) / MILLISECONDS_PER_DAY) + 1;
       if (diffInDays > 31) {
@@ -105,7 +93,6 @@ export const DateRangePickerWithPresets = ({
         return;
       }
       
-      // Cek apakah range dengan tahun ini sudah ada
       const rangeExists = rangeDates.some(range => 
         range.start === startMonthDay && range.end === endMonthDay && range.year === year
       );
@@ -121,18 +108,15 @@ export const DateRangePickerWithPresets = ({
         return;
       }
       
-      // Tambahkan range
       try {
         onAddRange({ start: startMonthDay, end: endMonthDay, year });
         
-        // Reset selection range setelah berhasil menambahkan
         setSelectionRange({
           startDate: new Date(),
           endDate: new Date(),
           key: 'selection',
         });
         
-        // Sembunyikan picker setelah berhasil menambahkan
         setShowPicker(false);
       } catch (addError) {
         console.error('Error adding range:', addError);
@@ -144,7 +128,6 @@ export const DateRangePickerWithPresets = ({
     }
   };
 
-  // Tentukan minDate dan maxDate berdasarkan availableYears
   const getMinDate = () => {
     if (availableYears.length === 0) return new Date();
     const minYear = Math.min(...availableYears);
@@ -157,7 +140,6 @@ export const DateRangePickerWithPresets = ({
     return new Date(maxYear, 11, 31);
   };
 
-  // Handle styling untuk DateRangePicker
   useEffect(() => {
     if (!showPicker || !pickerRef.current) return;
 
@@ -165,13 +147,11 @@ export const DateRangePickerWithPresets = ({
       const picker = pickerRef.current;
       if (!picker) return;
 
-      // Sembunyikan preset ranges
       const definedRangesWrapper = picker.querySelector('.rdr-DefinedRangesWrapper');
       if (definedRangesWrapper) {
         definedRangesWrapper.style.setProperty('display', 'none', 'important');
       }
 
-      // Apply style ke semua elemen dengan ukuran yang lebih besar
       const dateRange = picker.querySelector('.rdr-DateRange');
       const calendarWrapper = picker.querySelector('.rdr-CalendarWrapper');
       const calendars = picker.querySelectorAll('.rdr-Calendar');
@@ -269,7 +249,6 @@ export const DateRangePickerWithPresets = ({
       }
     };
 
-    // Apply styles dengan beberapa delay untuk memastikan DOM sudah ter-render
     const timeouts = [
       setTimeout(applyStyles, 0),
       setTimeout(applyStyles, 50),
@@ -277,7 +256,6 @@ export const DateRangePickerWithPresets = ({
       setTimeout(applyStyles, 200),
     ];
 
-    // Observer untuk mendeteksi perubahan DOM
     const observer = new MutationObserver(() => {
       applyStyles();
     });

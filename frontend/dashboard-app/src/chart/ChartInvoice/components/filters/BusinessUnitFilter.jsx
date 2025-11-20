@@ -87,4 +87,3 @@ function BusinessUnitFilter({ businessUnits, onToggle }) {
 }
 
 export default BusinessUnitFilter;
-
