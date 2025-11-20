@@ -58,7 +58,7 @@ function DemoPageContent({ pathname }) {
         <Box sx={{
           transform: 'scale(0.67)',
           transformOrigin: 'top left',
-          width: '149.25%', // 100% / 0.67 = 149.25%
+          width: '149.25%', 
           height: '149.25%',
           position: 'absolute',
           top: 0,
@@ -79,7 +79,6 @@ function DemoPageContent({ pathname }) {
     );
   }
 
-  // Default content untuk halaman lain
   return (
     <Box
       sx={{
@@ -100,6 +99,40 @@ function DemoPageContent({ pathname }) {
   );
 }
 
+// Updated Footer component to always stay visible
+function Footer() {
+  const [lastUpdate, setLastUpdate] = React.useState('Loading...');
+
+  React.useEffect(() => {
+    const API_URL = 'http://localhost:8000/api'; 
+    fetch(`${API_URL}/financial/last-update`)
+      .then(response => response.json())
+      .then(data => setLastUpdate(data.lastUpdate))
+      .catch(() => setLastUpdate('Error fetching update'));
+  }, []);
+
+  return (
+    <Box
+      sx={{
+        width: '100%',
+        py: 2,
+        textAlign: 'center',
+        borderTop: '1px solid #ddd',
+        backgroundColor: '#f9f9f9',
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        zIndex: 1000,
+      }}
+    >
+      <Typography variant="body2" color="text.secondary">
+        Last update: {lastUpdate}
+      </Typography>
+    </Box>
+  );
+}
+
+// Updated layout to account for fixed footer
 export default function DashboardLayoutBasic() {
   const router = useDemoRouter('/dashboard');
 
@@ -118,7 +151,13 @@ export default function DashboardLayoutBasic() {
           branding: () => null,
         }}
       >
-        <DemoPageContent pathname={router.pathname} />
+        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingBottom: '64px' }}> {/* Add padding to avoid content overlap */}
+          <Box sx={{ flex: 1 }}>
+            <DemoPageContent pathname={router.pathname} />
+          </Box>
+          {/* Last update logic moved to Footer component */}
+          <Footer />
+        </Box>
       </DashboardLayout>
     </AppProvider>
   );
