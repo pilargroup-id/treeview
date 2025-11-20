@@ -99,16 +99,44 @@ function DemoPageContent({ pathname }) {
   );
 }
 
-// Updated Footer component to always stay visible
 function Footer() {
   const [lastUpdate, setLastUpdate] = React.useState('Loading...');
+  const [isError, setIsError] = React.useState(false);
+  const [animate, setAnimate] = React.useState(true);
+  const [slideIn, setSlideIn] = React.useState(true);
 
   React.useEffect(() => {
-    const API_URL = 'http://localhost:8000/api'; 
+    const API_URL = 'http://localhost:8000/api';
     fetch(`${API_URL}/financial/last-update`)
       .then(response => response.json())
-      .then(data => setLastUpdate(data.lastUpdate))
-      .catch(() => setLastUpdate('Error fetching update'));
+      .then(data => {
+        if (data.status === 'success' && Array.isArray(data.data)) {
+          const last = data.data.find(i => i.source_table === 'financial_gl')?.last_date;
+          if (last) {
+            setLastUpdate(last);
+            setIsError(false);
+          } else {
+            setLastUpdate('-');
+            setIsError(true);
+          }
+        } else {
+          setLastUpdate('-');
+          setIsError(true);
+        }
+      })
+      .catch(() => {
+        setLastUpdate('-');
+        setIsError(true);
+      });
+  }, []);
+
+  React.useEffect(() => {
+    setSlideIn(true);
+    const interval = setInterval(() => {
+      setSlideIn(false);
+      setTimeout(() => setSlideIn(true), 500); 
+    }, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -117,16 +145,40 @@ function Footer() {
         width: '100%',
         py: 2,
         textAlign: 'center',
-        borderTop: '1px solid #ddd',
-        backgroundColor: '#f9f9f9',
+        borderTop: '1px solid #e0e0e0',
+        background: 'linear-gradient(90deg, #f9f9f9 0%, #e3f2fd 100%)',
         position: 'fixed',
         bottom: 0,
         left: 0,
         zIndex: 1000,
+        boxShadow: '0 -2px 8px rgba(33,150,243,0.07)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 1,
       }}
     >
-      <Typography variant="body2" color="text.secondary">
-        Last update: {lastUpdate}
+      <span style={{ display: 'flex', alignItems: 'center', marginRight: 8 }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" fill="#90caf9" />
+          <path d="M12 6v6l4 2" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+      <Typography
+        variant="body2"
+        color={isError ? 'error' : 'text.secondary'}
+        sx={{
+          fontWeight: 500,
+          letterSpacing: 0.2,
+          display: 'inline-block',
+          transition: 'transform 0.4s cubic-bezier(.4,0,.6,1), opacity 0.4s cubic-bezier(.4,0,.6,1)',
+          transform: slideIn ? 'translateY(0)' : 'translateY(40px)',
+          opacity: slideIn ? 1 : 0,
+        }}
+      >
+        {isError
+          ? 'Last update: Gagal mengambil data'
+          : `Last update: ${lastUpdate}`}
       </Typography>
     </Box>
   );
