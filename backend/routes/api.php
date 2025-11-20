@@ -10,3 +10,4 @@ Route::get('/user', function (Request $request) {
 
 Route::get('/financial/monthly-revenue', [FinancialController::class, 'getMonthlyRevenue']);
 Route::get('/financial/invoice-sales', [FinancialController::class, 'getInvoiceSales']);
+Route::get('/financial/last-update', [FinancialController::class, 'getLastUpdate']);

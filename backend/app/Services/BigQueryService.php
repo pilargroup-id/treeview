@@ -55,6 +55,12 @@ class BigQueryService
         foreach ($row as $key => $value) {
             if ($value instanceof Numeric) {
                 $converted[$key] = (float) $value->get();
+            } elseif ($value instanceof \Google\Cloud\BigQuery\Date) {
+                // Convert Date object to string (Y-m-d format)
+                $converted[$key] = $value->formatAsString();
+            } elseif ($value instanceof \Google\Cloud\BigQuery\Timestamp) {
+                // Convert Timestamp to datetime string
+                $converted[$key] = $value->get()->format('Y-m-d H:i:s');
             } elseif (is_null($value)) {
                 $converted[$key] = 0;
             } else {
