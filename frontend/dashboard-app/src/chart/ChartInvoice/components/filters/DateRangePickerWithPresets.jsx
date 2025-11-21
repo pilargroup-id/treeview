@@ -111,7 +111,7 @@ export const DateRangePickerWithPresets = ({
         return;
       }
       
-      // Cek maksimal range
+      // Cek maksimal 
       if (MAX_RANGE_DATES === 1 && rangeDates.length >= 1) {
         alert(`Maksimal ${MAX_RANGE_DATES} range yang bisa dipilih. Hapus range yang ada terlebih dahulu.`);
         return;

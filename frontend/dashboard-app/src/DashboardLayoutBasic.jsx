@@ -113,7 +113,7 @@ function DemoPageContent({ pathname }) {
       <Box sx={{ 
         width: '100%',
         height: '100%',
-        overflow: 'auto',
+        overflow: 'hidden',
         position: 'relative'
       }}>
         <Box sx={{
@@ -124,7 +124,7 @@ function DemoPageContent({ pathname }) {
           position: 'absolute',
           top: 0,
           left: 0,
-          overflow: 'auto'
+          overflow: 'hidden'
         }}>
           <ChartInvoice />
         </Box>
@@ -205,11 +205,11 @@ function LastUpdateHeader() {
         setCurrentIndex((prev) => {
           const nextIdx = (prev + 1) % maxLength;
           // Setelah index berubah, trigger animasi masuk
-          setTimeout(() => setShow(true), 30); // delay kecil agar animasi masuk berjalan
+          setTimeout(() => setShow(true), 30); 
           return nextIdx;
         });
         timeoutRef.current = setTimeout(cycle, 1800);
-      }, 400); // waktu animasi keluar
+      }, 400); 
     }
     timeoutRef.current = setTimeout(cycle, 1800);
     return () => clearTimeout(timeoutRef.current);
@@ -361,8 +361,8 @@ export default function DashboardLayoutBasic() {
         }}
       >
         <LastUpdateHeader />
-        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-          <Box sx={{ flex: 1 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+          <Box sx={{ flex: 1, overflow: 'hidden' }}>
             <DemoPageContent pathname={router.pathname} />
           </Box>
         </Box>
