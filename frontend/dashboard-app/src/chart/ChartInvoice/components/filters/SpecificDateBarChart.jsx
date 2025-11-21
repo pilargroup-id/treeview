@@ -13,8 +13,6 @@ import {
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 export default function SpecificDateBarChart({ specificDates = [] }) {
-  // Convert specificDates to labels and counts
-  // Group by year if available, otherwise just show monthDay
   const dateMap = {};
   specificDates.forEach(date => {
     let label;

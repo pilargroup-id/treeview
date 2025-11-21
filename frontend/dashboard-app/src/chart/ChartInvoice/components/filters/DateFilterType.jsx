@@ -78,7 +78,7 @@ function DateFilterType({ value, onChange }) {
             }
           }}
         >
-          Range Tanggal
+          Range Tanggal (Max 31)
         </MenuItem>
         <MenuItem 
           value="specific" 
@@ -95,7 +95,7 @@ function DateFilterType({ value, onChange }) {
             }
           }}
         >
-          Tanggal Tertentu (Max 30)
+          Tanggal Tertentu
         </MenuItem>
       </Select>
     </FormControl>

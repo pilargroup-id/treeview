@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Box, Typography, Button, Chip, Paper, Portal, Backdrop, Fade, Select, MenuItem, Card } from "@mui/material";
+import { Box, Typography, Button, Chip, Paper, Portal, Backdrop, Fade, Select, MenuItem, Card, IconButton } from "@mui/material";
 import EventAvailableRoundedIcon from '@mui/icons-material/EventAvailableRounded';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import BusinessIcon from '@mui/icons-material/Business';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import FilterListIcon from '@mui/icons-material/FilterList';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { DateRangePicker } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
@@ -413,9 +410,52 @@ export const SingleDatePickerWithYear = ({
           letterSpacing: '-0.01em',
           lineHeight: 1.3
         }}>
-          Tanggal Tertentu (Bulan & Hari) - Max 30
+          Tanggal Tertentu (Bulan & Hari) 
         </Typography>
       </Box>
+
+      {/* Icon tong sampah di pojok kanan bawah */}
+      {specificDates.length > 0 && (
+        <IconButton
+          onClick={() => {
+            // Hapus semua tanggal yang sudah dipilih
+            specificDates.forEach(date => {
+              onRemoveDate(date);
+            });
+            // Reset selection date ke default
+            const defaultYear = years.length > 0 ? years[0] : new Date().getFullYear();
+            setSelectionDate({
+              startDate: new Date(defaultYear, 0, 1),
+              endDate: new Date(defaultYear, 0, 1),
+              key: 'selection',
+            });
+            setPresetYearOverride(defaultYear);
+          }}
+          sx={{
+            position: 'absolute',
+            bottom: 0,
+            right: 0,
+            width: '28px',
+            height: '28px',
+            p: 0.5,
+            color: '#94A3B8',
+            bgcolor: 'transparent',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              color: '#EF4444',
+              bgcolor: 'rgba(239, 68, 68, 0.08)',
+              transform: 'scale(1.1)'
+            },
+            '&:active': {
+              transform: 'scale(0.95)'
+            }
+          }}
+          size="small"
+          aria-label="Hapus semua pilihan tanggal"
+        >
+          <DeleteOutlineIcon sx={{ fontSize: '1rem' }} />
+        </IconButton>
+      )}
 
       {/* Tombol untuk menampilkan DatePicker */}
       <Box sx={{ mb: 2, position: 'relative' }} ref={anchorRef}>
@@ -957,284 +997,6 @@ export const SingleDatePickerWithYear = ({
           ? '* Pilih tanggal menggunakan kalender (bisa pilih tahun dan bulan di kalender), lalu klik "Tambah Tanggal".'
           : '* Klik tombol "Pilih Tanggal" untuk memilih tanggal. Pilih tahun dan bulan langsung di kalender.'}
       </Typography>
-
-      {/* Preview Card - Ringkasan Data */}
-      <Box sx={{ 
-        mt: 1.5,
-        pt: 1.5,
-        borderTop: '1px solid #F1F5F9'
-      }}>
-        <Typography sx={{ 
-          fontSize: '0.875rem', 
-          fontWeight: 600, 
-          color: '#0F172A',
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-          letterSpacing: '-0.01em',
-          lineHeight: 1.3,
-          mb: 1
-        }}>
-          Ringkasan Data
-        </Typography>
-        
-        <Box sx={{ 
-          display: 'grid',
-          gridTemplateColumns: { 
-            xs: 'repeat(2, 1fr)', 
-            sm: 'repeat(2, 1fr)', 
-            md: 'repeat(4, 1fr)' 
-          },
-          gap: { xs: 1, md: 1.25 }
-        }}>
-          {/* Business Unit */}
-          <Card sx={{ 
-            bgcolor: '#FAFAFA', 
-            borderRadius: '12px', 
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-            border: '1px solid #E5E7EB',
-            p: { xs: 1.5, md: 2 },
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1,
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-            '&:hover': {
-              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
-              borderColor: '#D1D5DB',
-              bgcolor: '#FFFFFF',
-              transform: 'translateY(-1px)'
-            }
-          }}>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-            }}>
-              <Typography sx={{ 
-                fontSize: '0.6875rem', 
-                color: '#757575',
-                fontWeight: 500,
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                lineHeight: 1.2,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5
-              }}>
-                <Box sx={{ 
-                  color: '#9E9E9E',
-                  display: 'flex',
-                  alignItems: 'center',
-                  fontSize: '0.875rem'
-                }}>
-                  <BusinessIcon />
-                </Box>
-                BUSINESS UNIT
-              </Typography>
-            </Box>
-            <Typography sx={{ 
-              fontSize: { xs: '0.875rem', md: '0.9375rem' }, 
-              fontWeight: 600, 
-              color: '#212121',
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-              lineHeight: 1.4,
-              wordBreak: 'break-word'
-            }}>
-              {businessUnits && businessUnits.length > 0 ? businessUnits.join(', ') : 'Belum dipilih'}
-            </Typography>
-          </Card>
-
-          {/* Tanggal Tertentu */}
-          <Card sx={{ 
-            bgcolor: '#FAFAFA', 
-            borderRadius: '12px', 
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-            border: '1px solid #E5E7EB',
-            p: { xs: 1.5, md: 2 },
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1,
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-            '&:hover': {
-              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
-              borderColor: '#D1D5DB',
-              bgcolor: '#FFFFFF',
-              transform: 'translateY(-1px)'
-            }
-          }}>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-            }}>
-              <Typography sx={{ 
-                fontSize: '0.6875rem', 
-                color: '#757575',
-                fontWeight: 500,
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                lineHeight: 1.2,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5
-              }}>
-                <Box sx={{ 
-                  color: '#9E9E9E',
-                  display: 'flex',
-                  alignItems: 'center',
-                  fontSize: '0.875rem'
-                }}>
-                  <CalendarMonthIcon />
-                </Box>
-                TANGGAL TERTENTU
-              </Typography>
-            </Box>
-            <Typography sx={{ 
-              fontSize: { xs: '0.875rem', md: '0.9375rem' }, 
-              fontWeight: 600, 
-              color: '#212121',
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-              lineHeight: 1.4,
-              wordBreak: 'break-word'
-            }}>
-              {specificDates && specificDates.length > 0 
-                ? `${specificDates.length} tanggal dipilih`
-                : 'Belum dipilih'}
-            </Typography>
-          </Card>
-
-          {/* Status Data */}
-          <Card sx={{ 
-            bgcolor: '#FAFAFA', 
-            borderRadius: '12px', 
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-            border: '1px solid #E5E7EB',
-            p: { xs: 1.5, md: 2 },
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1,
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-            '&:hover': {
-              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
-              borderColor: '#D1D5DB',
-              bgcolor: '#FFFFFF',
-              transform: 'translateY(-1px)'
-            }
-          }}>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-            }}>
-              <Typography sx={{ 
-                fontSize: '0.6875rem', 
-                color: '#757575',
-                fontWeight: 500,
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                lineHeight: 1.2,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5
-              }}>
-                <Box sx={{ 
-                  color: '#9E9E9E',
-                  display: 'flex',
-                  alignItems: 'center',
-                  fontSize: '0.875rem'
-                }}>
-                  <CheckCircleIcon />
-                </Box>
-                STATUS DATA
-              </Typography>
-            </Box>
-            <Typography sx={{ 
-              fontSize: { xs: '0.875rem', md: '0.9375rem' }, 
-              fontWeight: 600, 
-              color: '#212121',
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-              lineHeight: 1.4,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.75
-            }}>
-              <Box
-                sx={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  backgroundColor: invoiceData && invoiceData.length > 0 ? '#6BA3D0' : '#BDBDBD',
-                  flexShrink: 0
-                }}
-              />
-              {invoiceData && invoiceData.length > 0 ? 'Dimuat' : 'Belum dimuat'}
-            </Typography>
-          </Card>
-
-          {/* Tipe Filter */}
-          <Card sx={{ 
-            bgcolor: '#FAFAFA', 
-            borderRadius: '12px', 
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-            border: '1px solid #E5E7EB',
-            p: { xs: 1.5, md: 2 },
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1,
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-            '&:hover': {
-              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
-              borderColor: '#D1D5DB',
-              bgcolor: '#FFFFFF',
-              transform: 'translateY(-1px)'
-            }
-          }}>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-            }}>
-              <Typography sx={{ 
-                fontSize: '0.6875rem', 
-                color: '#757575',
-                fontWeight: 500,
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                lineHeight: 1.2,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5
-              }}>
-                <Box sx={{ 
-                  color: '#9E9E9E',
-                  display: 'flex',
-                  alignItems: 'center',
-                  fontSize: '0.875rem'
-                }}>
-                  <FilterListIcon />
-                </Box>
-                TIPE FILTER
-              </Typography>
-            </Box>
-            <Typography sx={{ 
-              fontSize: { xs: '0.875rem', md: '0.9375rem' }, 
-              fontWeight: 600, 
-              color: '#212121',
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-              lineHeight: 1.4,
-              wordBreak: 'break-word'
-            }}>
-              Tanggal Tertentu (Bulan & Hari)
-            </Typography>
-          </Card>
-        </Box>
-      </Box>
 
       {/* Counter */}
       <Box sx={{ 

@@ -554,17 +554,20 @@ function ChartInvoice() {
     <Box sx={{
       width: '100%',
       maxWidth: '100%',
-      minHeight: '100vh',
+      height: '100%',
       display: 'flex',
       flexDirection: 'column',
       // Background gradient subtle yang menarik dengan kontras baik
       background: 'linear-gradient(135deg, #F5F7FA 0%, #F8F9FA 50%, #FAFBFC 100%)',
       // Alternatif: Background solid yang lebih menarik
       // bgcolor: '#F5F7FA',
-      p: { xs: 3, sm: 4, md: 5 },
+      pt: { xs: 3, sm: 4, md: 5 },
+      px: { xs: 3, sm: 4, md: 5 },
+      pb: { xs: 3, sm: 4, md: 5 },
       gap: { xs: 3, md: 4 },
       fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
       position: 'relative',
+      overflow: 'hidden',
       // Subtle pattern overlay untuk depth
       '&::before': {
         content: '""',
@@ -638,66 +641,66 @@ function ChartInvoice() {
           </Box>
 
           {/* Filter Tambahan (Range, Specific, Compare Year)*/}
-          <Card sx={{
-            bgcolor: '#FFFFFF',
-            borderRadius: '16px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)',
-            border: '1px solid #E5E7EB',
-            p: { xs: 3, md: 3.5 },
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 2.5,
-            width: '100%',
-            flex: 1,
-            minHeight: 0,
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-            position: 'relative',
-            zIndex: 1,
-            '&:hover': {
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.06)',
-              borderColor: '#D1D5DB',
-              transform: 'translateY(-1px)'
-            }
-          }}>
-            {dateFilterType === 'range' && (
-              <RangeDateFilter
-                rangeDates={rangeDates}
-                onAddRange={addRangeDate}
-                onRemoveRange={removeRangeDate}
-                availableYears={availableYears}
-                selectedYears={years}
-                businessUnits={businessUnits}
-                onBusinessUnitToggle={toggleBusinessUnit}
-                dataType={dataType}
-                onDataTypeChange={setDataType}
-                invoiceData={invoiceData}
-              />
-            )}
+          {dateFilterType === 'year' ? (
+            <SummaryCard
+              businessUnits={businessUnits}
+              selectedYears={years}
+              dateFilterType={dateFilterType}
+              invoiceData={invoiceData}
+            />
+          ) : (
+            <Card sx={{
+              bgcolor: '#FFFFFF',
+              borderRadius: '16px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)',
+              border: '1px solid #E5E7EB',
+              p: { xs: 3, md: 3.5 },
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2.5,
+              width: '100%',
+              flex: 1,
+              minHeight: 0,
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+              position: 'relative',
+              zIndex: 1,
+              '&:hover': {
+                boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.06)',
+                borderColor: '#D1D5DB',
+                transform: 'translateY(-1px)'
+              }
+            }}>
+              {dateFilterType === 'range' && (
+                <RangeDateFilter
+                  rangeDates={rangeDates}
+                  onAddRange={addRangeDate}
+                  onRemoveRange={removeRangeDate}
+                  availableYears={availableYears}
+                  selectedYears={years}
+                  businessUnits={businessUnits}
+                  onBusinessUnitToggle={toggleBusinessUnit}
+                  dataType={dataType}
+                  onDataTypeChange={setDataType}
+                  invoiceData={invoiceData}
+                />
+              )}
 
-            {dateFilterType === 'specific' && (
-              <SpecificDateFilter
-                specificDates={specificDates}
-                onAddDate={addSpecificDate}
-                onRemoveDate={removeSpecificDate}
-                availableYears={availableYears}
-                businessUnits={businessUnits}
-                onBusinessUnitToggle={toggleBusinessUnit}
-                dataType={dataType}
-                onDataTypeChange={setDataType}
-                invoiceData={invoiceData}
-              />
-            )}
-
-            {dateFilterType === 'year' && (
-              <SummaryCard
-                businessUnits={businessUnits}
-                selectedYears={years}
-                dateFilterType={dateFilterType}
-                invoiceData={invoiceData}
-              />
-            )}
-          </Card>
+              {dateFilterType === 'specific' && (
+                <SpecificDateFilter
+                  specificDates={specificDates}
+                  onAddDate={addSpecificDate}
+                  onRemoveDate={removeSpecificDate}
+                  availableYears={availableYears}
+                  businessUnits={businessUnits}
+                  onBusinessUnitToggle={toggleBusinessUnit}
+                  dataType={dataType}
+                  onDataTypeChange={setDataType}
+                  invoiceData={invoiceData}
+                />
+              )}
+            </Card>
+          )}
         </Box>
       </Box>
 

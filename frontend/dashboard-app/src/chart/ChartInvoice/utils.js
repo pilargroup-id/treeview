@@ -60,9 +60,9 @@ export function getAvailableYears() {
   return availableYears;
 }
 
-// Color palette - Setiap tahun memiliki warna yang berbeda dan cerah untuk mudah dibedakan
+// Color palette 
 export const COLOR_PALETTE_YEAR = [
-  { sales: 'rgb(33, 150, 243)', quantity: 'rgb(66, 165, 245)' },      // Biru cerah (tema utama)
+  { sales: 'rgb(33, 150, 243)', quantity: 'rgb(66, 165, 245)' },      // Biru cerah 
   { sales: 'rgb(244, 67, 54)', quantity: 'rgb(255, 82, 82)' },         // Merah cerah
   { sales: 'rgb(255, 193, 7)', quantity: 'rgb(255, 213, 79)' },      // Kuning cerah
   { sales: 'rgb(76, 175, 80)', quantity: 'rgb(129, 199, 132)' },     // Hijau cerah
@@ -73,17 +73,12 @@ export const COLOR_PALETTE_YEAR = [
 ];
 
 /**
- * Get color for a specific year
- * Memastikan setiap tahun selalu mendapatkan warna yang sama
- * berdasarkan nilai tahunnya, dan tahun-tahun berurutan memiliki warna yang berbeda
+ * Ambil Warna
  */
 export function getYearColor(year) {
   const yearNum = parseInt(year);
   if (isNaN(yearNum)) return COLOR_PALETTE_YEAR[0];
   
-  // Gunakan tahun relatif terhadap tahun dasar (2020) untuk konsistensi
-  // Ini memastikan tahun yang sama selalu dapat warna yang sama,
-  // dan tahun-tahun berurutan mendapatkan warna yang berbeda
   const baseYear = 2020;
   const yearOffset = yearNum - baseYear;
   const colorIndex = Math.abs(yearOffset) % COLOR_PALETTE_YEAR.length;
