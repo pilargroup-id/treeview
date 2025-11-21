@@ -19,18 +19,22 @@ function FilterSection({
   return (
     <Card sx={{ 
       bgcolor: '#FFFFFF', 
-      borderRadius: 1.5, 
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
-      border: '1px solid #E2E8F0',
-      p: { xs: 2, md: 2.5 },
+      borderRadius: '16px', 
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
+      border: '1px solid #E5E7EB',
+      p: { xs: 3, md: 3.5 },
       display: 'flex',
       flexDirection: 'column',
-      gap: 2,
+      gap: 2.5,
       height: '100%',
       transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+      position: 'relative',
+      zIndex: 1,
       '&:hover': {
-        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)',
-        borderColor: '#CBD5E1'
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06)',
+        borderColor: '#D1D5DB',
+        transform: 'translateY(-1px)'
       }
     }}>
       <Box sx={{ 
@@ -42,8 +46,8 @@ function FilterSection({
         <Typography sx={{ 
           fontSize: { xs: '0.9375rem', md: '1rem' }, 
           fontWeight: 600, 
-          color: '#0F172A',
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          color: '#212121',
+          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
           letterSpacing: '-0.01em',
           lineHeight: 1.4
         }}>
@@ -54,15 +58,14 @@ function FilterSection({
           disabled={isLoading}
           size="small"
           sx={{
-            color: '#64748B',
+            color: '#9E9E9E',
             transition: 'all 0.2s ease',
             '&:hover': {
-              color: '#3B82F6',
-              bgcolor: '#F1F5F9',
-              transform: 'rotate(180deg)'
+              color: '#6BA3D0',
+              bgcolor: '#FAFAFA'
             },
             '&:disabled': {
-              color: '#CBD5E1'
+              color: '#E0E0E0'
             }
           }}
           title="Refresh Data"
@@ -94,28 +97,27 @@ function FilterSection({
         fullWidth
         sx={{ 
           mt: 'auto',
-          bgcolor: '#3B82F6',
+          bgcolor: '#6BA3D0',
           color: 'white',
           textTransform: 'none',
           fontSize: '0.875rem',
-          fontWeight: 600,
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-          py: 1.25,
-          borderRadius: 1,
+          fontWeight: 500,
+          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+          py: 1.5,
+          borderRadius: '12px',
           boxShadow: 'none',
           transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
-            bgcolor: '#2563EB',
-            boxShadow: '0 1px 3px rgba(59, 130, 246, 0.2)',
-            transform: 'translateY(-1px)'
+            bgcolor: '#5A9FD0',
+            boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)'
           },
           '&:active': {
-            transform: 'translateY(0)',
+            transform: 'scale(0.98)',
             transition: 'all 0.1s ease'
           },
           '&:disabled': {
-            bgcolor: '#E2E8F0',
-            color: '#94A3B8',
+            bgcolor: '#F5F5F5',
+            color: '#BDBDBD',
             transform: 'none',
             boxShadow: 'none'
           }

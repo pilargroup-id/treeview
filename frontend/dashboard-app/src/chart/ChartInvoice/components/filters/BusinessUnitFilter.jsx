@@ -11,8 +11,8 @@ function BusinessUnitFilter({ businessUnits, onToggle }) {
         fontWeight: 500, 
         fontSize: '0.875rem', 
         whiteSpace: 'nowrap', 
-        color: '#475569',
-        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        color: '#757575',
+        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
         letterSpacing: '0.01em',
         lineHeight: 1.4
       }}>
@@ -28,22 +28,21 @@ function BusinessUnitFilter({ businessUnits, onToggle }) {
             textTransform: 'none',
             fontSize: '0.875rem',
             fontWeight: isGosaveSelected ? 600 : 500,
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            bgcolor: isGosaveSelected ? '#3B82F6' : 'transparent',
-            color: isGosaveSelected ? 'white' : '#475569',
-            border: isGosaveSelected ? 'none' : '1px solid #E2E8F0',
-            borderRadius: 1,
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+            bgcolor: isGosaveSelected ? '#6BA3D0' : 'transparent',
+            color: isGosaveSelected ? 'white' : '#757575',
+            border: isGosaveSelected ? 'none' : '1px solid #E5E5E5',
+            borderRadius: '12px',
             py: 0.875,
             boxShadow: 'none',
             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': {
-              bgcolor: isGosaveSelected ? '#2563EB' : '#F1F5F9',
-              border: isGosaveSelected ? 'none' : '1px solid #CBD5E1',
-              boxShadow: isGosaveSelected ? '0 1px 2px rgba(59, 130, 246, 0.2)' : 'none',
-              transform: 'translateY(-1px)'
+              bgcolor: isGosaveSelected ? '#5A9FD0' : '#FAFAFA',
+              border: isGosaveSelected ? 'none' : '1px solid #E0E0E0',
+              boxShadow: 'none'
             },
             '&:active': {
-              transform: 'translateY(0)',
+              transform: 'scale(0.98)',
               transition: 'all 0.1s ease'
             }
           }}
@@ -60,21 +59,20 @@ function BusinessUnitFilter({ businessUnits, onToggle }) {
             fontSize: '0.875rem',
             fontWeight: isGotoSelected ? 600 : 500,
             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            bgcolor: isGotoSelected ? '#3B82F6' : 'transparent',
-            color: isGotoSelected ? 'white' : '#475569',
-            border: isGotoSelected ? 'none' : '1px solid #E2E8F0',
-            borderRadius: 1,
+            bgcolor: isGotoSelected ? '#6BA3D0' : 'transparent',
+            color: isGotoSelected ? 'white' : '#757575',
+            border: isGotoSelected ? 'none' : '1px solid #E5E5E5',
+            borderRadius: '12px',
             py: 0.875,
             boxShadow: 'none',
             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': {
-              bgcolor: isGotoSelected ? '#2563EB' : '#F1F5F9',
-              border: isGotoSelected ? 'none' : '1px solid #CBD5E1',
-              boxShadow: isGotoSelected ? '0 1px 2px rgba(59, 130, 246, 0.2)' : 'none',
-              transform: 'translateY(-1px)'
+              bgcolor: isGotoSelected ? '#5A9FD0' : '#FAFAFA',
+              border: isGotoSelected ? 'none' : '1px solid #E0E0E0',
+              boxShadow: 'none'
             },
             '&:active': {
-              transform: 'translateY(0)',
+              transform: 'scale(0.98)',
               transition: 'all 0.1s ease'
             }
           }}

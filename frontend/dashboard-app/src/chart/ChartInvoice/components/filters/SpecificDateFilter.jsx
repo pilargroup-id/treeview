@@ -1,11 +1,18 @@
+
 import React from 'react';
 import SingleDatePickerWithYear from './SingleDatePickerWithYear';
+
 
 function SpecificDateFilter({ 
   specificDates,
   onAddDate,
   onRemoveDate,
-  availableYears = []
+  availableYears = [],
+  businessUnits = [],
+  onBusinessUnitToggle,
+  dataType = 'both',
+  onDataTypeChange,
+  invoiceData = []
 }) {
   return (
     <SingleDatePickerWithYear
@@ -13,6 +20,11 @@ function SpecificDateFilter({
       onAddDate={onAddDate}
       onRemoveDate={onRemoveDate}
       availableYears={availableYears}
+      businessUnits={businessUnits}
+      onBusinessUnitToggle={onBusinessUnitToggle}
+      dataType={dataType}
+      onDataTypeChange={onDataTypeChange}
+      invoiceData={invoiceData}
     />
   );
 }

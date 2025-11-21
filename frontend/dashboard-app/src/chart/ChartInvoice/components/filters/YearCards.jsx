@@ -35,7 +35,7 @@ function calculatePercentageChange(currentYear, yearTotals, availableYears) {
 }
 
 function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, isLoading = false, dateFilterType = 'year' }) {
-  const isDisabled = dateFilterType === 'range';
+  const isDisabled = dateFilterType === 'range' || dateFilterType === 'specific';
   
   return (
     <Box sx={{ 
@@ -47,8 +47,9 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
         md: 'repeat(4, 1fr)', 
         lg: 'repeat(5, 1fr)' 
       },
-      gap: { xs: 1.25, md: 1.5 },
-      alignItems: 'start'
+      gap: { xs: 2, md: 2.5 },
+      alignItems: 'start',
+      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
     }}>
       {isLoading ? (
         // Loading 
@@ -56,16 +57,17 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
           <Card 
             key={year}
             sx={{ 
-              p: { xs: 1.5, md: 1.75 },
-              borderRadius: 1.5,
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
+              p: { xs: 2, md: 2.5 },
+              borderRadius: 2,
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
               display: 'flex',
               flexDirection: 'column',
-              border: '1px solid #E2E8F0',
+              border: '1px solid #E5E5E5',
               bgcolor: '#FFFFFF',
               position: 'relative',
               overflow: 'hidden',
-              height: 'fit-content'
+              height: 'fit-content',
+              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
             }}
           >
             <Box sx={{ 
@@ -117,30 +119,34 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
               key={year}
               onClick={() => !isDisabled && onToggleYear && onToggleYear(year)}
               sx={{ 
-                p: { xs: 1.5, md: 1.75 },
-                borderRadius: 1.5,
-                boxShadow: '0 5px 3px rgba(0, 0, 0, 0.08)',
+                p: { xs: 2.5, md: 3 },
+                borderRadius: '16px',
+                boxShadow: isSelected 
+                  ? '0 4px 12px rgba(107, 163, 208, 0.15), 0 2px 4px rgba(107, 163, 208, 0.1)' 
+                  : '0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
                 display: 'flex',
                 flexDirection: 'column',
-                border: `1px solid ${isSelected ? '#3B82F6' : '#E2E8F0'}`,
+                border: `1px solid ${isSelected ? '#6BA3D0' : '#E5E7EB'}`,
                 cursor: isDisabled ? 'default' : 'pointer',
                 transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                bgcolor: isSelected ? '#EFF6FF' : '#FFFFFF',
+                bgcolor: isSelected ? '#F5F8FB' : '#FFFFFF',
                 position: 'relative',
                 overflow: 'hidden',
                 height: 'fit-content',
-                opacity: isDisabled ? 0.8 : 1,
+                opacity: isDisabled ? 0.6 : 1,
                 pointerEvents: isDisabled ? 'none' : 'auto',
+                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+                zIndex: 1,
                 '&:hover': !isDisabled ? {
-                  borderColor: isSelected ? '#3B82F6' : '#CBD5E1',
+                  borderColor: isSelected ? '#6BA3D0' : '#D1D5DB',
                   boxShadow: isSelected 
-                    ? '0 2px 6px rgba(59, 130, 246, 0.15)' 
-                    : '0 2px 4px rgba(0, 0, 0, 0.1)',
-                  transform: 'translateY(-1px)',
-                  bgcolor: isSelected ? '#EFF6FF' : '#F8FAFC'
+                    ? '0 6px 16px rgba(107, 163, 208, 0.2), 0 2px 6px rgba(107, 163, 208, 0.15)' 
+                    : '0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06)',
+                  bgcolor: isSelected ? '#F5F8FB' : '#FAFAFA',
+                  transform: 'translateY(-2px)'
                 } : {},
                 '&:active': !isDisabled ? {
-                  transform: 'translateY(0)',
+                  transform: 'scale(0.98)',
                   transition: 'all 0.1s ease'
                 } : {}
               }}
@@ -161,12 +167,12 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
                   mb: 0.5
                 }}>
                   <Typography sx={{ 
-                    fontSize: { xs: '0.9375rem', md: '1rem' }, 
-                    color: isSelected ? '#3B82F6' : '#0F172A', 
+                    fontSize: { xs: '1.25rem', md: '1.5rem' }, 
+                    color: isSelected ? '#6BA3D0' : '#212121', 
                     fontWeight: 600,
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-                    letterSpacing: '-0.01em',
-                    lineHeight: 1.3,
+                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.2,
                     transition: 'color 0.2s ease'
                   }}>
                     {year}
@@ -174,8 +180,8 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
                   <Box sx={{
                       width: 6,
                       height: 6,
-                      borderRadius: '70%',
-                      bgcolor: isSelected ? '#3B82F6' : '#E2E8F0',
+                      borderRadius: '50%',
+                      bgcolor: isSelected ? '#6BA3D0' : '#E5E5E5',
                       flexShrink: 0,
                       transition: 'background-color 0.2s ease'
                     }} />
@@ -185,25 +191,26 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
                 <Box>
                   <Typography sx={{ 
                     fontSize: '0.6875rem', 
-                    color: '#64748B',
+                    color: '#757575',
                     fontWeight: 500,
-                    mb: 0.5,
+                    mb: 1,
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
                     lineHeight: 1.2,
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
                     transition: 'color 0.2s ease'
                   }}>
                     Total Penjualan
                   </Typography>
                   <Typography sx={{ 
-                    fontSize: { xs: '0.8125rem', md: '0.875rem' }, 
+                    fontSize: { xs: '1.125rem', md: '1.25rem' }, 
                     fontWeight: 600, 
-                    color: '#0F172A',
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-                    lineHeight: 1.4,
+                    color: '#212121',
+                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+                    lineHeight: 1.3,
                     wordBreak: 'break-word',
-                    transition: 'color 0.2s ease'
+                    transition: 'color 0.2s ease',
+                    letterSpacing: '-0.01em'
                   }}>
                     {formatCurrency(yearData.sales)}
                   </Typography>
@@ -211,9 +218,9 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
                 
                 {/* Quantity */}
                 <Box sx={{ 
-                  pt: 1,
-                  borderTop: '1px solid #F1F5F9',
-                  mt: 0.5,
+                  pt: 1.5,
+                  borderTop: '1px solid #F5F5F5',
+                  mt: 1,
                   transition: 'border-color 0.2s ease',
                   position: 'relative'
                 }}>
@@ -224,16 +231,16 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
                     gap: 1
                   }}>
                     <Typography sx={{ 
-                      fontSize: '0.75rem', 
-                      color: '#94A3B8',
-                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                      fontSize: '0.6875rem', 
+                      color: '#9E9E9E',
+                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
                       lineHeight: 1.5,
                       transition: 'color 0.2s ease',
                       flex: 1
                     }}>
                       <Box component="span" sx={{ 
-                        fontWeight: 600, 
-                        color: '#475569',
+                        fontWeight: 500, 
+                        color: '#757575',
                         transition: 'color 0.2s ease'
                       }}>
                         {yearData.quantity.toLocaleString('id-ID')}

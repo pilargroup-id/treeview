@@ -99,18 +99,26 @@ function SummaryCard({ businessUnits, selectedYears, dateFilterType, invoiceData
       <Box sx={{ 
         display: 'flex',
         flexDirection: 'column',
-        gap: 2,
-        bgcolor: '#F8FAFC',
-        borderRadius: 1.5,
-        p: { xs: 2, md: 2.5 },
-        border: '1px solid #E2E8F0',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)'
+        gap: 2.5,
+        bgcolor: '#FFFFFF',
+        borderRadius: '16px',
+        p: { xs: 3, md: 3.5 },
+        border: '1px solid #E5E7EB',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
+        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+        position: 'relative',
+        zIndex: 1,
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        '&:hover': {
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06)',
+          borderColor: '#D1D5DB'
+        }
       }}>
         <Typography sx={{ 
           fontSize: { xs: '0.9375rem', md: '1rem' }, 
           fontWeight: 600, 
-          color: '#0F172A',
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          color: '#212121',
+          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
           letterSpacing: '-0.01em',
           lineHeight: 1.4,
           mb: 0.5
@@ -131,23 +139,25 @@ function SummaryCard({ businessUnits, selectedYears, dateFilterType, invoiceData
             <Card 
               key={index}
               sx={{ 
-                bgcolor: '#FFFFFF', 
-                borderRadius: 1, 
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
-                border: '1px solid #E2E8F0',
-                p: { xs: 1.5, md: 1.75 },
+                bgcolor: '#FAFAFA', 
+                borderRadius: '12px', 
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                border: '1px solid #E5E7EB',
+                p: { xs: 2, md: 2.5 },
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 1,
+                gap: 1.5,
                 transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 position: 'relative',
                 overflow: 'hidden',
                 opacity: isVisible ? 1 : 0,
                 transform: isVisible ? 'translateY(0)' : 'translateY(10px)',
                 animation: isVisible ? `fadeInUp 0.3s ease-out ${index * 0.05}s both` : 'none',
+                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
                 '&:hover': {
-                  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)',
-                  borderColor: '#CBD5E1',
+                  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
+                  borderColor: '#D1D5DB',
+                  bgcolor: '#FFFFFF',
                   transform: 'translateY(-1px)'
                 }
               }}
@@ -160,9 +170,9 @@ function SummaryCard({ businessUnits, selectedYears, dateFilterType, invoiceData
               }}>
                 <Typography sx={{ 
                   fontSize: '0.6875rem', 
-                  color: '#64748B',
+                  color: '#757575',
                   fontWeight: 500,
-                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                   lineHeight: 1.2,
@@ -171,7 +181,7 @@ function SummaryCard({ businessUnits, selectedYears, dateFilterType, invoiceData
                   gap: 0.5
                 }}>
                   <Box sx={{ 
-                    color: '#94A3B8',
+                    color: '#9E9E9E',
                     display: 'flex',
                     alignItems: 'center',
                     fontSize: '0.875rem',
@@ -185,8 +195,8 @@ function SummaryCard({ businessUnits, selectedYears, dateFilterType, invoiceData
               <Typography sx={{ 
                 fontSize: { xs: '0.875rem', md: '0.9375rem' }, 
                 fontWeight: 600, 
-                color: '#0F172A',
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                color: '#212121',
+                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
                 lineHeight: 1.4,
                 wordBreak: 'break-word',
                 display: 'flex',
@@ -199,7 +209,7 @@ function SummaryCard({ businessUnits, selectedYears, dateFilterType, invoiceData
                       width: 6,
                       height: 6,
                       borderRadius: '50%',
-                      backgroundColor: item.hasData ? '#10B981' : '#F59E0B',
+                      backgroundColor: item.hasData ? '#6BA3D0' : '#BDBDBD',
                       flexShrink: 0
                     }}
                   />

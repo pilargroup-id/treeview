@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Box, Typography, Button, Chip, Paper, Portal, Backdrop, Fade } from "@mui/material";
+import { Box, Typography, Button, Chip, Paper, Portal, Backdrop, Fade, Card } from "@mui/material";
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
+import BusinessIcon from '@mui/icons-material/Business';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import { DateRangePicker } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
@@ -17,7 +21,12 @@ export const DateRangePickerWithPresets = ({
   onAddRange,
   onRemoveRange,
   availableYears = [],
-  selectedYears = []
+  selectedYears = [],
+  businessUnits = [],
+  onBusinessUnitToggle,
+  dataType = 'both',
+  onDataTypeChange,
+  invoiceData = []
 }) => {
   const [selectionRange, setSelectionRange] = useState({
     startDate: new Date(),
@@ -309,30 +318,30 @@ export const DateRangePickerWithPresets = ({
             <CalendarMonthRoundedIcon 
               sx={{ 
                 fontSize: '1.1rem',
-                color: showPicker ? '#2563EB' : '#64748B',
+                color: showPicker ? '#6BA3D0' : '#64748B',
                 transition: 'color 0.2s ease'
               }} 
             />
           }
           sx={{
-            borderColor: showPicker ? '#3B82F6' : '#E2E8F0',
-            color: showPicker ? '#3B82F6' : '#475569',
-            bgcolor: showPicker ? 'rgba(59, 130, 246, 0.04)' : 'transparent',
+            borderColor: showPicker ? '#6BA3D0' : '#E2E8F0',
+            color: showPicker ? '#6BA3D0' : '#475569',
+            bgcolor: showPicker ? 'rgba(107, 163, 208, 0.08)' : 'transparent',
             textTransform: 'none',
             fontSize: '0.8125rem',
-            fontWeight: 500,
+            fontWeight: showPicker ? 600 : 500,
             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
             borderRadius: 1.5,
             px: 2,
             py: 0.875,
             minWidth: '180px',
             height: '38px',
-            boxShadow: showPicker ? '0 2px 4px rgba(59, 130, 246, 0.15)' : 'none',
+            boxShadow: showPicker ? '0 2px 4px rgba(107, 163, 208, 0.15)' : 'none',
             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': {
-              borderColor: '#3B82F6',
-              bgcolor: 'rgba(59, 130, 246, 0.08)',
-              boxShadow: '0 2px 6px rgba(59, 130, 246, 0.2)',
+              borderColor: '#6BA3D0',
+              bgcolor: showPicker ? 'rgba(107, 163, 208, 0.12)' : 'rgba(107, 163, 208, 0.06)',
+              boxShadow: showPicker ? '0 2px 6px rgba(107, 163, 208, 0.2)' : 'none',
               transform: 'translateY(-1px)'
             },
             '&:active': {
@@ -552,7 +561,7 @@ export const DateRangePickerWithPresets = ({
                   {/* Tombol Batal dan Tambah Range */}
                   <Box sx={{ 
                     display: 'flex', 
-                    gap: 1.5,
+                    gap: 1,
                     mt: 2,
                     pt: 2,
                     borderTop: '1px solid #F1F5F9',
@@ -583,10 +592,10 @@ export const DateRangePickerWithPresets = ({
                         height: '40px',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         '&:hover': {
-                          borderColor: '#3B82F6',
-                          color: '#3B82F6',
-                          bgcolor: 'rgba(59, 130, 246, 0.04)',
-                          boxShadow: '0 2px 4px rgba(59, 130, 246, 0.15)',
+                          borderColor: '#6BA3D0',
+                          color: '#6BA3D0',
+                          bgcolor: 'rgba(107, 163, 208, 0.08)',
+                          boxShadow: '0 2px 4px rgba(107, 163, 208, 0.15)',
                         }
                       }}
                     >
@@ -598,7 +607,7 @@ export const DateRangePickerWithPresets = ({
                       onClick={handleAddRange}
                       disabled={rangeDates.length >= MAX_RANGE_DATES}
                       sx={{
-                        bgcolor: '#3B82F6',
+                        bgcolor: '#6BA3D0',
                         color: 'white',
                         textTransform: 'none',
                         fontSize: '0.875rem',
@@ -609,16 +618,16 @@ export const DateRangePickerWithPresets = ({
                         py: 0.75,
                         minWidth: '140px',
                         height: '40px',
-                        boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)',
+                        boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         '&:hover': {
-                          bgcolor: '#2563EB',
-                          boxShadow: '0 4px 8px rgba(59, 130, 246, 0.3)',
+                          bgcolor: '#5A9FD0',
+                          boxShadow: '0 4px 8px rgba(107, 163, 208, 0.3)',
                           transform: 'translateY(-1px)'
                         },
                         '&:active': {
                           transform: 'translateY(0)',
-                          boxShadow: '0 2px 4px rgba(59, 130, 246, 0.25)'
+                          boxShadow: '0 2px 4px rgba(107, 163, 208, 0.25)'
                         },
                         '&:disabled': {
                           bgcolor: '#E2E8F0',
@@ -651,6 +660,284 @@ export const DateRangePickerWithPresets = ({
           ? '* Pilih range tanggal menggunakan kalender, lalu klik "Tambah Range". Tahun akan diambil dari tanggal yang dipilih.'
           : '* Klik tombol "Pilih Range Tanggal" untuk memilih range tanggal.'}
       </Typography>
+
+      {/* Preview Card - Ringkasan Data */}
+      <Box sx={{ 
+        mt: 1.5,
+        pt: 1.5,
+        borderTop: '1px solid #F1F5F9'
+      }}>
+        <Typography sx={{ 
+          fontSize: '0.875rem', 
+          fontWeight: 600, 
+          color: '#0F172A',
+          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          letterSpacing: '-0.01em',
+          lineHeight: 1.3,
+          mb: 1
+        }}>
+          Ringkasan Data
+        </Typography>
+        
+        <Box sx={{ 
+          display: 'grid',
+          gridTemplateColumns: { 
+            xs: 'repeat(2, 1fr)', 
+            sm: 'repeat(2, 1fr)', 
+            md: 'repeat(4, 1fr)' 
+          },
+          gap: { xs: 1, md: 1.25 }
+        }}>
+          {/* Business Unit */}
+          <Card sx={{ 
+            bgcolor: '#FAFAFA', 
+            borderRadius: '12px', 
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+            border: '1px solid #E5E7EB',
+            p: { xs: 1.5, md: 2 },
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1,
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+            '&:hover': {
+              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
+              borderColor: '#D1D5DB',
+              bgcolor: '#FFFFFF',
+              transform: 'translateY(-1px)'
+            }
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between'
+            }}>
+              <Typography sx={{ 
+                fontSize: '0.6875rem', 
+                color: '#757575',
+                fontWeight: 500,
+                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                lineHeight: 1.2,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5
+              }}>
+                <Box sx={{ 
+                  color: '#9E9E9E',
+                  display: 'flex',
+                  alignItems: 'center',
+                  fontSize: '0.875rem'
+                }}>
+                  <BusinessIcon />
+                </Box>
+                BUSINESS UNIT
+              </Typography>
+            </Box>
+            <Typography sx={{ 
+              fontSize: { xs: '0.875rem', md: '0.9375rem' }, 
+              fontWeight: 600, 
+              color: '#212121',
+              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+              lineHeight: 1.4,
+              wordBreak: 'break-word'
+            }}>
+              {businessUnits && businessUnits.length > 0 ? businessUnits.join(', ') : 'Belum dipilih'}
+            </Typography>
+          </Card>
+
+          {/* Range Tanggal */}
+          <Card sx={{ 
+            bgcolor: '#FAFAFA', 
+            borderRadius: '12px', 
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+            border: '1px solid #E5E7EB',
+            p: { xs: 1.5, md: 2 },
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1,
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+            '&:hover': {
+              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
+              borderColor: '#D1D5DB',
+              bgcolor: '#FFFFFF',
+              transform: 'translateY(-1px)'
+            }
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+            }}>
+              <Typography sx={{ 
+                fontSize: '0.6875rem', 
+                color: '#757575',
+                fontWeight: 500,
+                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                lineHeight: 1.2,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5
+              }}>
+                <Box sx={{ 
+                  color: '#9E9E9E',
+                  display: 'flex',
+                  alignItems: 'center',
+                  fontSize: '0.875rem'
+                }}>
+                  <CalendarMonthIcon />
+                </Box>
+                RANGE TANGGAL
+              </Typography>
+            </Box>
+            <Typography sx={{ 
+              fontSize: { xs: '0.875rem', md: '0.9375rem' }, 
+              fontWeight: 600, 
+              color: '#212121',
+              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+              lineHeight: 1.4,
+              wordBreak: 'break-word'
+            }}>
+              {rangeDates && rangeDates.length > 0 
+                ? rangeDates.map(range => `${formatDateDisplay(range.start, range.year)} - ${formatDateDisplay(range.end, range.year)}`).join(', ')
+                : 'Belum dipilih'}
+            </Typography>
+          </Card>
+
+          {/* Status Data */}
+          <Card sx={{ 
+            bgcolor: '#FAFAFA', 
+            borderRadius: '12px', 
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+            border: '1px solid #E5E7EB',
+            p: { xs: 1.5, md: 2 },
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1,
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+            '&:hover': {
+              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
+              borderColor: '#D1D5DB',
+              bgcolor: '#FFFFFF',
+              transform: 'translateY(-1px)'
+            }
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+            }}>
+              <Typography sx={{ 
+                fontSize: '0.6875rem', 
+                color: '#757575',
+                fontWeight: 500,
+                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                lineHeight: 1.2,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5
+              }}>
+                <Box sx={{ 
+                  color: '#9E9E9E',
+                  display: 'flex',
+                  alignItems: 'center',
+                  fontSize: '0.875rem'
+                }}>
+                  <CheckCircleIcon />
+                </Box>
+                STATUS DATA
+              </Typography>
+            </Box>
+            <Typography sx={{ 
+              fontSize: { xs: '0.875rem', md: '0.9375rem' }, 
+              fontWeight: 600, 
+              color: '#212121',
+              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+              lineHeight: 1.4,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.75
+            }}>
+              <Box
+                sx={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  backgroundColor: invoiceData && invoiceData.length > 0 ? '#6BA3D0' : '#BDBDBD',
+                  flexShrink: 0
+                }}
+              />
+              {invoiceData && invoiceData.length > 0 ? 'Dimuat' : 'Belum dimuat'}
+            </Typography>
+          </Card>
+
+          {/* Tipe Filter */}
+          <Card sx={{ 
+            bgcolor: '#FAFAFA', 
+            borderRadius: '12px', 
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+            border: '1px solid #E5E7EB',
+            p: { xs: 1.5, md: 2 },
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1,
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+            '&:hover': {
+              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
+              borderColor: '#D1D5DB',
+              bgcolor: '#FFFFFF',
+              transform: 'translateY(-1px)'
+            }
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+            }}>
+              <Typography sx={{ 
+                fontSize: '0.6875rem', 
+                color: '#757575',
+                fontWeight: 500,
+                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                lineHeight: 1.2,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5
+              }}>
+                <Box sx={{ 
+                  color: '#9E9E9E',
+                  display: 'flex',
+                  alignItems: 'center',
+                  fontSize: '0.875rem'
+                }}>
+                  <FilterListIcon />
+                </Box>
+                TIPE FILTER
+              </Typography>
+            </Box>
+            <Typography sx={{ 
+              fontSize: { xs: '0.875rem', md: '0.9375rem' }, 
+              fontWeight: 600, 
+              color: '#212121',
+              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+              lineHeight: 1.4,
+              wordBreak: 'break-word'
+            }}>
+              Range Tanggal (Bulan & Hari)
+            </Typography>
+          </Card>
+        </Box>
+      </Box>
 
       {/* Daftar Range yang Sudah Ditambahkan */}
       {rangeDates.length > 0 && (

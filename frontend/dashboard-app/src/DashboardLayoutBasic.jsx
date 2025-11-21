@@ -1,7 +1,7 @@
 import * as React from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { createTheme } from '@mui/material/styles';
+import { createTheme, GlobalStyles } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import BarChartIcon from '@mui/icons-material/BarChart';
@@ -41,8 +41,69 @@ const NAVIGATION = [
 
 const demoTheme = createTheme({
   cssVariables: { colorSchemeSelector: 'data-toolpad-color-scheme' },
-  colorSchemes: { light: true, dark: true },
+  colorSchemes: { 
+    light: {
+      palette: {
+        primary: {
+          main: '#6BA3D0', // Biru soft yang matching dengan tombol
+          light: '#89B7DC',
+          dark: '#5A9FD0',
+          contrastText: '#FFFFFF',
+        },
+      },
+    }
+  },
   breakpoints: { values: { xs: 0, sm: 600, md: 600, lg: 1200, xl: 1536 } },
+  components: {
+    MuiListItemButton: {
+      styleOverrides: {
+        root: {
+          '&.Mui-selected': {
+            backgroundColor: 'rgba(107, 163, 208, 0.12) !important',
+            color: '#6BA3D0 !important',
+            '&:hover': {
+              backgroundColor: 'rgba(107, 163, 208, 0.16) !important',
+            },
+            '& .MuiListItemIcon-root': {
+              color: '#6BA3D0 !important',
+            },
+            '& svg': {
+              color: '#6BA3D0 !important',
+            },
+          },
+          '&:hover': {
+            backgroundColor: 'rgba(107, 163, 208, 0.08)',
+          },
+        },
+      },
+    },
+    MuiListItemIcon: {
+      styleOverrides: {
+        root: {
+          '&.Mui-selected': {
+            color: '#6BA3D0 !important',
+          },
+          '& svg': {
+            '&.Mui-selected': {
+              color: '#6BA3D0 !important',
+            },
+          },
+        },
+      },
+    },
+    MuiButtonBase: {
+      styleOverrides: {
+        root: {
+          '&.Mui-selected': {
+            color: '#6BA3D0 !important',
+            '& svg': {
+              color: '#6BA3D0 !important',
+            },
+          },
+        },
+      },
+    },
+  },
 });
 
 function DemoPageContent({ pathname }) {
@@ -99,101 +160,155 @@ function DemoPageContent({ pathname }) {
   );
 }
 
-function Footer() {
-  const [lastUpdate, setLastUpdate] = React.useState('Loading...');
+
+function LastUpdateHeader() {
+  const [lastUpdates, setLastUpdates] = React.useState([]);
   const [isError, setIsError] = React.useState(false);
-  const [animate, setAnimate] = React.useState(true);
-  const [slideIn, setSlideIn] = React.useState(true);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [currentIndex, setCurrentIndex] = React.useState(0);
+  const [show, setShow] = React.useState(true);
+  const timeoutRef = React.useRef();
 
   React.useEffect(() => {
+    setIsLoading(true);
     const API_URL = 'http://localhost:8000/api';
     fetch(`${API_URL}/financial/last-update`)
       .then(response => response.json())
       .then(data => {
         if (data.status === 'success' && Array.isArray(data.data)) {
-          const last = data.data.find(i => i.source_table === 'financial_gl')?.last_date;
-          if (last) {
-            setLastUpdate(last);
-            setIsError(false);
-          } else {
-            setLastUpdate('-');
-            setIsError(true);
-          }
+          setLastUpdates(data.data);
+          setIsError(false);
         } else {
-          setLastUpdate('-');
+          setLastUpdates([]);
           setIsError(true);
         }
+        setIsLoading(false);
       })
       .catch(() => {
-        setLastUpdate('-');
+        setLastUpdates([]);
         setIsError(true);
+        setIsLoading(false);
       });
   }, []);
 
+  // Animasi: hanya satu data tampil, bergantian
   React.useEffect(() => {
-    setSlideIn(true);
-    const interval = setInterval(() => {
-      setSlideIn(false);
-      setTimeout(() => setSlideIn(true), 700); 
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
+    if (isLoading) return;
+    let maxLength = isError ? 1 : lastUpdates.length;
+    if (maxLength === 0) return;
+    setCurrentIndex(0);
+    setShow(true);
+    clearTimeout(timeoutRef.current);
+    function cycle() {
+      setShow(false);
+      timeoutRef.current = setTimeout(() => {
+        setCurrentIndex((prev) => {
+          const nextIdx = (prev + 1) % maxLength;
+          // Setelah index berubah, trigger animasi masuk
+          setTimeout(() => setShow(true), 30); // delay kecil agar animasi masuk berjalan
+          return nextIdx;
+        });
+        timeoutRef.current = setTimeout(cycle, 1800);
+      }, 400); // waktu animasi keluar
+    }
+    timeoutRef.current = setTimeout(cycle, 1800);
+    return () => clearTimeout(timeoutRef.current);
+  }, [lastUpdates, isError, isLoading]);
 
   return (
     <Box
       sx={{
-        width: '100%',
-        py: 2,
-        textAlign: 'center',
-        borderTop: '1px solid #e0e0e0',
-        background: 'linear-gradient(90deg, #f9f9f9 0%, #e3f2fd 100%)',
         position: 'fixed',
-        bottom: 0,
-        left: 0,
-        zIndex: 1000,
-        boxShadow: '0 -2px 8px rgba(33,150,243,0.07)',
+        top: 16,
+        right: 16,
+        zIndex: 1300,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
         gap: 1,
+        px: 2,
+        py: 1,
+        borderRadius: 1,
+        bgcolor: 'rgba(255, 255, 255, 0.95)',
+        boxShadow: '0 2px 8px rgba(255, 255, 255, 0.15)',
+        // backdropFilter: 'blur(10px)',
+        minHeight: '32px',
       }}
     >
-      <span
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          marginRight: 8,
-          transition: 'transform 0.4s cubic-bezier(.4,0,.6,1), opacity 0.4s cubic-bezier(.4,0,.6,1)',
-          transform: slideIn ? 'translateY(0)' : 'translateY(40px)',
-          opacity: slideIn ? 1 : 0,
-        }}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="10" fill="#90caf9" />
-          <path d="M12 6v6l4 2" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </span>
-      <Typography
-        variant="body2"
-        color={isError ? 'error' : 'text.secondary'}
-        sx={{
-          fontWeight: 500,
-          letterSpacing: 0.2,
-          display: 'inline-block',
-          transition: 'transform 0.4s cubic-bezier(.4,0,.6,1), opacity 0.4s cubic-bezier(.4,0,.6,1)',
-          transform: slideIn ? 'translateY(0)' : 'translateY(40px)',
-          opacity: slideIn ? 1 : 0,
-        }}
-      >
-        {isError
-          ? 'Last update: Gagal mengambil data'
-          : `Last update: ${lastUpdate}`}
-      </Typography>
+      {isLoading ? (
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{
+            fontWeight: 500,
+            fontSize: '0.75rem',
+          }}
+        >
+          Loading...
+        </Typography>
+      ) : isError ? (
+        <>
+          <span
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              transition: 'opacity 0.4s cubic-bezier(.4,0,.6,1)',
+              opacity: show ? 1 : 0,
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" fill="#90caf9" />
+              <path d="M12 6v6l4 2" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+          <Typography
+            variant="body2"
+            color="error"
+            sx={{
+              fontWeight: 500,
+              fontSize: '0.75rem',
+              transition: 'opacity 0.4s cubic-bezier(.4,0,.6,1)',
+              opacity: show ? 1 : 0,
+            }}
+          >
+            Last update: Gagal mengambil data
+          </Typography>
+        </>
+      ) : (
+        lastUpdates.length > 0 && (
+          <Box key={lastUpdates[currentIndex].source_table + currentIndex} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <span
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                transition: 'opacity 0.4s cubic-bezier(.4,0,.6,1)',
+                opacity: show ? 1 : 0,
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" fill="#90caf9" />
+                <path d="M12 6v6l4 2" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                fontWeight: 500,
+                fontSize: '0.75rem',
+                whiteSpace: 'nowrap',
+                transition: 'opacity 0.4s cubic-bezier(.4,0,.6,1)',
+                opacity: show ? 1 : 0,
+              }}
+            >
+              {lastUpdates[currentIndex].source_table}: {lastUpdates[currentIndex].last_date}
+            </Typography>
+          </Box>
+        )
+      )}
     </Box>
   );
 }
 
-// Updated layout to account for fixed footer
 export default function DashboardLayoutBasic() {
   const router = useDemoRouter('/dashboard');
 
@@ -207,17 +322,49 @@ export default function DashboardLayoutBasic() {
         title: '',        
       }}
     >
+      <GlobalStyles
+        styles={{
+          // Override Toolpad sidebar active state dengan warna biru soft
+          '[data-toolpad-color-scheme] [role="menuitem"][aria-selected="true"]': {
+            backgroundColor: 'rgba(107, 163, 208, 0.12) !important',
+            color: '#6BA3D0 !important',
+            '& svg': {
+              color: '#6BA3D0 !important',
+            },
+            '&:hover': {
+              backgroundColor: 'rgba(107, 163, 208, 0.16) !important',
+            },
+          },
+          '[data-toolpad-color-scheme] [role="menuitem"]:hover': {
+            backgroundColor: 'rgba(107, 163, 208, 0.08) !important',
+          },
+          // Styling untuk icon di sidebar - multiple selectors untuk coverage lebih luas
+          '[data-toolpad-color-scheme] [role="menuitem"][aria-selected="true"] svg': {
+            color: '#6BA3D0 !important',
+          },
+          '[data-toolpad-color-scheme] [role="menuitem"][aria-selected="true"] .MuiSvgIcon-root': {
+            color: '#6BA3D0 !important',
+          },
+          // Styling untuk nested menu items
+          '[data-toolpad-color-scheme] [role="menuitem"][aria-selected="true"] [role="menuitem"][aria-selected="true"]': {
+            backgroundColor: 'rgba(107, 163, 208, 0.12) !important',
+            color: '#6BA3D0 !important',
+            '& svg': {
+              color: '#6BA3D0 !important',
+            },
+          },
+        }}
+      />
       <DashboardLayout
         slots={{
           branding: () => null,
         }}
       >
-        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingBottom: '64px' }}> {/* Add padding to avoid content overlap */}
+        <LastUpdateHeader />
+        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
           <Box sx={{ flex: 1 }}>
             <DemoPageContent pathname={router.pathname} />
           </Box>
-          {/* Last update logic moved to Footer component */}
-          <Footer />
         </Box>
       </DashboardLayout>
     </AppProvider>

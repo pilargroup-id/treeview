@@ -6,7 +6,8 @@ import {
   getDefaultLabels,
   COLOR_PALETTE_YEAR,
   COLOR_BUSINESS_UNIT_SPECIFIC,
-  COLOR_BUSINESS_UNIT_RANGE
+  COLOR_BUSINESS_UNIT_RANGE,
+  getYearColor
 } from './utils';
 
 export function generatePeriods({
@@ -85,8 +86,8 @@ function createYearFilterChart({
   const datasets = [];
   
   if (invoiceYears.length === 0 && years.length > 0) {
-    years.sort((a, b) => a - b).forEach((year, index) => {
-      const colorSet = COLOR_PALETTE_YEAR[index % COLOR_PALETTE_YEAR.length];
+    years.sort((a, b) => a - b).forEach((year) => {
+      const colorSet = getYearColor(year);
       if (dataType === 'penjualan' || dataType === 'both') {
         datasets.push({
           label: `${year} - Penjualan`,
@@ -119,14 +120,14 @@ function createYearFilterChart({
     datasets.push({
       label: 'No data',
       data: periods.map(() => null),
-      borderColor: 'rgba(0, 0, 0, 0.1)',
-      backgroundColor: 'rgba(0, 0, 0, 0.05)',
+      borderColor: 'rgba(229, 229, 229, 0.5)',
+      backgroundColor: 'rgba(245, 245, 245, 0.5)',
       pointRadius: 0,
       borderWidth: 0
     });
   } else {
-    invoiceYears.forEach((year, index) => {
-      const colorSet = COLOR_PALETTE_YEAR[index % COLOR_PALETTE_YEAR.length];
+    invoiceYears.forEach((year) => {
+      const colorSet = getYearColor(year);
       
       if (dataType === 'penjualan' || dataType === 'both') {
         const salesData = periods.map((monthLabel, monthIndex) => {
@@ -218,12 +219,34 @@ function createYearFilterChart({
         position: 'top',
         labels: {
           usePointStyle: true,
-          padding: 12,
-          font: { size: 12 },
-          color: '#424242'
+          padding: 16,
+          font: { 
+            size: 12,
+            family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+            weight: 500
+          },
+          color: '#212121'
         }
       },
       tooltip: {
+        backgroundColor: 'rgba(255, 255, 255, 0.98)',
+        titleColor: '#212121',
+        bodyColor: '#757575',
+        borderColor: '#E5E7EB',
+        borderWidth: 1,
+        padding: 12,
+        titleFont: {
+          size: 12,
+          weight: 600,
+          family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+        },
+        bodyFont: {
+          size: 12,
+          weight: 500,
+          family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+        },
+        boxPadding: 8,
+        usePointStyle: true,
         callbacks: {
           label: function(context) {
             let label = context.dataset.label || '';
@@ -246,17 +269,26 @@ function createYearFilterChart({
       x: {
         display: true,
         grid: {
-          color: '#fafafa'
+          color: '#F0F0F0',
+          lineWidth: 0.5,
+          drawBorder: false
         },
         title: {
           display: true,
           text: 'Bulan',
-          font: { size: 12, weight: 500 },
-          color: '#616161'
+          font: { 
+            size: 12, 
+            weight: 500,
+            family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+          },
+          color: '#757575'
         },
         ticks: {
-          font: { size: 11 },
-          color: '#757575'
+          font: { 
+            size: 11,
+            family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+          },
+          color: '#9E9E9E'
         }
       },
       y: {
@@ -264,17 +296,26 @@ function createYearFilterChart({
         display: dataType === 'penjualan' || dataType === 'quantity' || dataType === 'both',
         position: dataType === 'quantity' ? 'left' : 'left',
         grid: {
-          color: '#fafafa'
+          color: '#F0F0F0',
+          lineWidth: 0.5,
+          drawBorder: false
         },
         title: {
           display: true,
           text: dataType === 'quantity' ? 'Quantity (Unit)' : 'Penjualan (Rp)',
-          font: { size: 12, weight: 500 },
-          color: '#616161'
+          font: { 
+            size: 12, 
+            weight: 500,
+            family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+          },
+          color: '#757575'
         },
         ticks: {
-          font: { size: 11 },
-          color: '#757575',
+          font: { 
+            size: 11,
+            family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+          },
+          color: '#9E9E9E',
           callback: function(value) {
             if (dataType === 'quantity') {
               return value.toLocaleString();
@@ -290,16 +331,24 @@ function createYearFilterChart({
         title: {
           display: dataType === 'both',
           text: 'Quantity (Unit)',
-          font: { size: 12, weight: 500 },
-          color: '#616161'
+          font: { 
+            size: 12, 
+            weight: 500,
+            family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+          },
+          color: '#757575'
         },
         grid: { 
           drawOnChartArea: false,
-          color: '#fafafa'
+          color: '#F0F0F0',
+          lineWidth: 0.5
         },
         ticks: {
-          font: { size: 11 },
-          color: '#757575',
+          font: { 
+            size: 11,
+            family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+          },
+          color: '#9E9E9E',
           callback: function(value) {
             return value.toLocaleString();
           }
@@ -336,14 +385,14 @@ function createSpecificDateChart({
     datasets.push({
       label: 'No data',
       data: periods.map(() => null),
-      borderColor: 'rgba(0, 0, 0, 0.1)',
-      backgroundColor: 'rgba(0, 0, 0, 0.05)',
+      borderColor: 'rgba(229, 229, 229, 0.5)',
+      backgroundColor: 'rgba(245, 245, 245, 0.5)',
       pointRadius: 0,
       borderWidth: 0
     });
   } else {
-    displayYears.forEach((year, yearIndex) => {
-      const colorSet = COLOR_PALETTE_YEAR[yearIndex % COLOR_PALETTE_YEAR.length];
+    displayYears.forEach((year) => {
+      const colorSet = getYearColor(year);
       
       // Penjualan dataset
       if (dataType === 'penjualan' || dataType === 'both') {
@@ -597,9 +646,13 @@ function createSpecificDateChart({
         position: 'top',
         labels: {
           usePointStyle: true,
-          padding: 12,
-          font: { size: 12 },
-          color: '#424242'
+          padding: 16,
+          font: { 
+            size: 12,
+            family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+            weight: 500
+          },
+          color: '#212121'
         }
       },
       tooltip: {
@@ -626,17 +679,26 @@ function createSpecificDateChart({
       x: {
         display: true,
         grid: {
-          color: '#fafafa'
+          color: '#F0F0F0',
+          lineWidth: 0.5,
+          drawBorder: false
         },
         title: {
           display: true,
           text: 'Tanggal',
-          font: { size: 12, weight: 500 },
-          color: '#616161'
+          font: { 
+            size: 12, 
+            weight: 500,
+            family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+          },
+          color: '#757575'
         },
         ticks: {
-          font: { size: 11 },
-          color: '#757575',
+          font: { 
+            size: 11,
+            family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+          },
+          color: '#9E9E9E',
           maxRotation: 45,
           minRotation: 45
         }
@@ -646,17 +708,26 @@ function createSpecificDateChart({
         display: dataType === 'penjualan' || dataType === 'quantity' || dataType === 'both',
         position: 'left',
         grid: {
-          color: '#fafafa'
+          color: '#F0F0F0',
+          lineWidth: 0.5,
+          drawBorder: false
         },
         title: {
           display: true,
           text: dataType === 'quantity' ? 'Quantity (Unit)' : 'Penjualan (Rp)',
-          font: { size: 12, weight: 500 },
-          color: '#616161'
+          font: { 
+            size: 12, 
+            weight: 500,
+            family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+          },
+          color: '#757575'
         },
         ticks: {
-          font: { size: 11 },
-          color: '#757575',
+          font: { 
+            size: 11,
+            family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+          },
+          color: '#9E9E9E',
           callback: function(value) {
             if (dataType === 'quantity') {
               return value.toLocaleString();
@@ -673,16 +744,24 @@ function createSpecificDateChart({
         title: {
           display: dataType === 'both',
           text: 'Quantity (Unit)',
-          font: { size: 12, weight: 500 },
-          color: '#616161'
+          font: { 
+            size: 12, 
+            weight: 500,
+            family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+          },
+          color: '#757575'
         },
         grid: { 
           drawOnChartArea: false,
-          color: '#fafafa'
+          color: '#F0F0F0',
+          lineWidth: 0.5
         },
         ticks: {
-          font: { size: 11 },
-          color: '#757575',
+          font: { 
+            size: 11,
+            family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+          },
+          color: '#9E9E9E',
           callback: function(value) {
             return value.toLocaleString();
           }
@@ -712,8 +791,8 @@ function createRangeChart({
     datasets.push({
       label: 'No data',
       data: periods.map(() => null),
-      borderColor: 'rgba(0, 0, 0, 0.1)',
-      backgroundColor: 'rgba(0, 0, 0, 0.05)',
+      borderColor: 'rgba(229, 229, 229, 0.5)',
+      backgroundColor: 'rgba(245, 245, 245, 0.5)',
       pointRadius: 0,
       borderWidth: 0
     });
@@ -822,12 +901,34 @@ function createRangeChart({
         position: 'top',
         labels: {
           usePointStyle: true,
-          padding: 12,
-          font: { size: 12 },
-          color: '#424242'
+          padding: 16,
+          font: { 
+            size: 12,
+            family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+            weight: 500
+          },
+          color: '#212121'
         }
       },
       tooltip: {
+        backgroundColor: 'rgba(255, 255, 255, 0.98)',
+        titleColor: '#212121',
+        bodyColor: '#757575',
+        borderColor: '#E5E7EB',
+        borderWidth: 1,
+        padding: 12,
+        titleFont: {
+          size: 12,
+          weight: 600,
+          family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+        },
+        bodyFont: {
+          size: 12,
+          weight: 500,
+          family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+        },
+        boxPadding: 8,
+        usePointStyle: true,
         callbacks: {
           label: function(context) {
             let label = context.dataset.label || '';
@@ -850,7 +951,9 @@ function createRangeChart({
       x: {
         display: true,
         grid: {
-          color: '#fafafa'
+          color: '#F0F0F0',
+          lineWidth: 0.5,
+          drawBorder: false
         },
         title: {
           display: true,
@@ -868,17 +971,26 @@ function createRangeChart({
         display: dataType === 'penjualan' || dataType === 'quantity' || dataType === 'both',
         position: dataType === 'quantity' ? 'left' : 'left',
         grid: {
-          color: '#fafafa'
+          color: '#F0F0F0',
+          lineWidth: 0.5,
+          drawBorder: false
         },
         title: {
           display: true,
           text: dataType === 'quantity' ? 'Quantity (Unit)' : 'Penjualan (Rp)',
-          font: { size: 12, weight: 500 },
-          color: '#616161'
+          font: { 
+            size: 12, 
+            weight: 500,
+            family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+          },
+          color: '#757575'
         },
         ticks: {
-          font: { size: 11 },
-          color: '#757575',
+          font: { 
+            size: 11,
+            family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+          },
+          color: '#9E9E9E',
           callback: function(value) {
             if (dataType === 'quantity') {
               return value.toLocaleString();
@@ -894,16 +1006,24 @@ function createRangeChart({
         title: {
           display: dataType === 'both',
           text: 'Quantity (Unit)',
-          font: { size: 12, weight: 500 },
-          color: '#616161'
+          font: { 
+            size: 12, 
+            weight: 500,
+            family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+          },
+          color: '#757575'
         },
         grid: { 
           drawOnChartArea: false,
-          color: '#fafafa'
+          color: '#F0F0F0',
+          lineWidth: 0.5
         },
         ticks: {
-          font: { size: 11 },
-          color: '#757575',
+          font: { 
+            size: 11,
+            family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+          },
+          color: '#9E9E9E',
           callback: function(value) {
             return value.toLocaleString();
           }
