@@ -13,10 +13,10 @@ function DateFilterType({ value, onChange }) {
         id="date-filter-type-label"
         sx={{ 
           fontSize: '0.875rem',
-          color: '#64748B',
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          color: '#757575',
+          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
           '&.Mui-focused': {
-            color: '#3B82F6'
+            color: '#6BA3D0'
           }
         }}
       >
@@ -30,26 +30,73 @@ function DateFilterType({ value, onChange }) {
         displayEmpty={false}
         sx={{
           fontSize: '0.875rem',
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-          borderRadius: 1,
-          bgcolor: 'white',
+          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+          borderRadius: '12px',
+          bgcolor: '#FFFFFF',
           transition: 'all 0.2s ease',
           '& .MuiOutlinedInput-notchedOutline': {
-            borderColor: '#E2E8F0',
+            borderColor: (value === 'range' || value === 'specific') ? '#6BA3D0' : '#E5E5E5',
             borderWidth: '1px'
           },
           '&:hover .MuiOutlinedInput-notchedOutline': {
-            borderColor: '#CBD5E1'
+            borderColor: (value === 'range' || value === 'specific') ? '#6BA3D0' : '#E0E0E0'
           },
           '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-            borderColor: '#3B82F6',
+            borderColor: '#6BA3D0',
             borderWidth: '1px'
           }
         }}
       >
-        <MenuItem value="year" sx={{ fontSize: '0.875rem', fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>Per Tahun (Bulanan)</MenuItem>
-        <MenuItem value="range" sx={{ fontSize: '0.875rem', fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>Range Tanggal</MenuItem>
-        <MenuItem value="specific" sx={{ fontSize: '0.875rem', fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>Tanggal Tertentu (Max 30)</MenuItem>
+        <MenuItem 
+          value="year" 
+          sx={{ 
+            fontSize: '0.875rem', 
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+            '&.Mui-selected': {
+              bgcolor: 'rgba(107, 163, 208, 0.08)',
+              color: '#6BA3D0',
+              '&:hover': {
+                bgcolor: 'rgba(107, 163, 208, 0.12)'
+              }
+            }
+          }}
+        >
+          Per Tahun (Bulanan)
+        </MenuItem>
+        <MenuItem 
+          value="range" 
+          sx={{ 
+            fontSize: '0.875rem', 
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+            '&.Mui-selected': {
+              bgcolor: 'rgba(107, 163, 208, 0.08)',
+              color: '#6BA3D0',
+              fontWeight: 600,
+              '&:hover': {
+                bgcolor: 'rgba(107, 163, 208, 0.12)'
+              }
+            }
+          }}
+        >
+          Range Tanggal
+        </MenuItem>
+        <MenuItem 
+          value="specific" 
+          sx={{ 
+            fontSize: '0.875rem', 
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+            '&.Mui-selected': {
+              bgcolor: 'rgba(107, 163, 208, 0.08)',
+              color: '#6BA3D0',
+              fontWeight: 600,
+              '&:hover': {
+                bgcolor: 'rgba(107, 163, 208, 0.12)'
+              }
+            }
+          }}
+        >
+          Tanggal Tertentu (Max 30)
+        </MenuItem>
       </Select>
     </FormControl>
   );

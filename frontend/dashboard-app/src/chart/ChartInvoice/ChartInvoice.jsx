@@ -11,7 +11,7 @@ import {
   Legend,
   Filler
 } from 'chart.js';
-import { Line } from 'react-chartjs-2';
+import { Line, Bar } from 'react-chartjs-2';
 import { 
   Box, 
   Typography, 
@@ -557,16 +557,36 @@ function ChartInvoice() {
       minHeight: '100vh',
       display: 'flex',
       flexDirection: 'column',
-      bgcolor: 'white',
-      p: { xs: 2, sm: 3, md: 4 },
-      gap: { xs: 2.5, md: 3 }
+      // Background gradient subtle yang menarik dengan kontras baik
+      background: 'linear-gradient(135deg, #F5F7FA 0%, #F8F9FA 50%, #FAFBFC 100%)',
+      // Alternatif: Background solid yang lebih menarik
+      // bgcolor: '#F5F7FA',
+      p: { xs: 3, sm: 4, md: 5 },
+      gap: { xs: 3, md: 4 },
+      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+      position: 'relative',
+      // Subtle pattern overlay untuk depth
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(107, 163, 208, 0.03) 1px, transparent 0)',
+        backgroundSize: '24px 24px',
+        pointerEvents: 'none',
+        zIndex: 0
+      }
     }}>
       {/* Baris Atas: Filter Section, YearCards, dan Card Filter Tambahan */}
       <Box sx={{
         display: 'flex',
         flexDirection: { xs: 'column', lg: 'row' },
         gap: { xs: 2.5, md: 3 },
-        alignItems: 'stretch'
+        alignItems: 'stretch',
+        position: 'relative',
+        zIndex: 1
       }}>
         {/* Filter Section di Kiri */}
         <Box sx={{
@@ -619,22 +639,25 @@ function ChartInvoice() {
 
           {/* Filter Tambahan (Range, Specific, Compare Year)*/}
           <Card sx={{
-            bgcolor: 'white',
-            borderRadius: 2,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            border: '1px solid #e0e0e0',
-            p: { xs: 2, md: 2.5 },
+            bgcolor: '#FFFFFF',
+            borderRadius: '16px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)',
+            border: '1px solid #E5E7EB',
+            p: { xs: 3, md: 3.5 },
             display: 'flex',
             flexDirection: 'column',
-            gap: 2,
+            gap: 2.5,
             width: '100%',
             flex: 1,
             minHeight: 0,
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+            position: 'relative',
+            zIndex: 1,
             '&:hover': {
-              boxShadow: '0 4px 16px rgba(25, 118, 210, 0.15), 0 2px 8px rgba(0,0,0,0.1)',
-              borderColor: '#bdbdbd',
-              transform: 'translateY(-2px)'
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.06)',
+              borderColor: '#D1D5DB',
+              transform: 'translateY(-1px)'
             }
           }}>
             {dateFilterType === 'range' && (
@@ -644,6 +667,11 @@ function ChartInvoice() {
                 onRemoveRange={removeRangeDate}
                 availableYears={availableYears}
                 selectedYears={years}
+                businessUnits={businessUnits}
+                onBusinessUnitToggle={toggleBusinessUnit}
+                dataType={dataType}
+                onDataTypeChange={setDataType}
+                invoiceData={invoiceData}
               />
             )}
 
@@ -653,6 +681,11 @@ function ChartInvoice() {
                 onAddDate={addSpecificDate}
                 onRemoveDate={removeSpecificDate}
                 availableYears={availableYears}
+                businessUnits={businessUnits}
+                onBusinessUnitToggle={toggleBusinessUnit}
+                dataType={dataType}
+                onDataTypeChange={setDataType}
+                invoiceData={invoiceData}
               />
             )}
 
@@ -670,21 +703,23 @@ function ChartInvoice() {
 
       {/* Card Chart*/}
       <Card sx={{
-        bgcolor: 'white',
-        borderRadius: 2,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        border: '1px solid #e0e0e0',
-        p: { xs: 2.5, md: 3.5 },
+        bgcolor: '#FFFFFF',
+        borderRadius: '16px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)',
+        border: '1px solid #E5E7EB',
+        p: { xs: 3, md: 4 },
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
         minHeight: { xs: 350, md: 450 },
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         position: 'relative',
+        zIndex: 1,
+        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
         '&:hover': {
-          boxShadow: '0 8px 24px rgba(25, 118, 210, 0.15), 0 4px 12px rgba(0,0,0,0.1)',
-          borderColor: '#bdbdbd',
-          transform: 'translateY(-2px)'
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.06)',
+          borderColor: '#D1D5DB',
+          transform: 'translateY(-1px)'
         }
       }}>
         <Box sx={{
@@ -700,7 +735,8 @@ function ChartInvoice() {
             fontWeight: 600,
             color: '#212121',
             letterSpacing: '-0.01em',
-            lineHeight: 1.4
+            lineHeight: 1.4,
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
           }}>
             Grafik Penjualan & Quantity
           </Typography>
@@ -710,25 +746,24 @@ function ChartInvoice() {
             sx={{
               textTransform: 'none',
               fontSize: '0.875rem',
-              fontWeight: 600,
-              color: '#1976d2',
-              borderColor: '#1976d2',
-              borderWidth: 2,
-              borderRadius: 1.5,
+              fontWeight: 500,
+              color: '#6BA3D0',
+              borderColor: '#6BA3D0',
+              borderWidth: '1px',
+              borderRadius: '12px',
               minWidth: 'auto',
               px: 2.5,
               py: 0.75,
-              boxShadow: '0 2px 4px rgba(25, 118, 210, 0.2)',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: 'none',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
               '&:hover': {
-                borderColor: '#1565c0',
-                borderWidth: 2,
-                backgroundColor: 'rgba(25, 118, 210, 0.08)',
-                boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
-                transform: 'translateY(-2px) scale(1.05)'
+                borderColor: '#5A9FD0',
+                backgroundColor: 'rgba(107, 163, 208, 0.06)',
+                borderWidth: '1px'
               },
               '&:active': {
-                transform: 'translateY(0) scale(0.98)',
+                transform: 'scale(0.98)',
                 transition: 'all 0.1s ease'
               }
             }}
@@ -743,16 +778,29 @@ function ChartInvoice() {
           position: 'relative',
           minHeight: { xs: 280, md: 350 }
         }}>
-          <Line
-            ref={invoiceChartRef}
-            data={invoiceChartData}
-            options={invoiceChartOptions}
-            style={{
-              opacity: invoiceLoading ? 0.3 : 1,
-              transition: 'opacity 0.3s ease-in-out',
-              pointerEvents: invoiceLoading ? 'none' : 'auto'
-            }}
-          />
+          {dateFilterType === 'specific' ? (
+            <Bar
+              ref={invoiceChartRef}
+              data={invoiceChartData}
+              options={invoiceChartOptions}
+              style={{
+                opacity: invoiceLoading ? 0.3 : 1,
+                transition: 'opacity 0.3s ease-in-out',
+                pointerEvents: invoiceLoading ? 'none' : 'auto'
+              }}
+            />
+          ) : (
+            <Line
+              ref={invoiceChartRef}
+              data={invoiceChartData}
+              options={invoiceChartOptions}
+              style={{
+                opacity: invoiceLoading ? 0.3 : 1,
+                transition: 'opacity 0.3s ease-in-out',
+                pointerEvents: invoiceLoading ? 'none' : 'auto'
+              }}
+            />
+          )}
           {invoiceLoading && (
             <Fade in={invoiceLoading}>
               <Box sx={{
@@ -771,10 +819,10 @@ function ChartInvoice() {
                 backdropFilter: 'blur(4px)'
               }}>
                 <CircularProgress 
-                  size={56} 
-                  thickness={4}
+                  size={48} 
+                  thickness={3.5}
                   sx={{
-                    color: '#1976d2',
+                    color: '#6BA3D0',
                     mb: 2,
                     '& .MuiCircularProgress-circle': {
                       strokeLinecap: 'round',
@@ -782,20 +830,11 @@ function ChartInvoice() {
                   }}
                 />
                 <Typography sx={{
-                  fontSize: '0.9375rem',
+                  fontSize: '0.875rem',
                   fontWeight: 500,
-                  color: '#1976d2',
-                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-                  letterSpacing: '-0.01em',
-                  animation: 'pulse 1.5s ease-in-out infinite',
-                  '@keyframes pulse': {
-                    '0%, 100%': {
-                      opacity: 1
-                    },
-                    '50%': {
-                      opacity: 0.6
-                    }
-                  }
+                  color: '#757575',
+                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+                  letterSpacing: '-0.01em'
                 }}>
                   Memuat data...
                 </Typography>

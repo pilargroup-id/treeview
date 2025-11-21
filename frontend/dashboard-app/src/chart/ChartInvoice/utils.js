@@ -60,35 +60,53 @@ export function getAvailableYears() {
   return availableYears;
 }
 
-// Color palette - Warna terang dan bervariasi
+// Color palette - Setiap tahun memiliki warna yang berbeda dan cerah untuk mudah dibedakan
 export const COLOR_PALETTE_YEAR = [
-  { sales: 'rgb(66, 165, 245)', quantity: 'rgb(129, 212, 250)' },      // Biru terang
-  { sales: 'rgb(102, 187, 106)', quantity: 'rgb(165, 214, 167)' },    // Hijau terang
-  { sales: 'rgb(255, 152, 0)', quantity: 'rgb(255, 183, 77)' },       // Orange terang
-  { sales: 'rgb(156, 39, 176)', quantity: 'rgb(186, 104, 200)' },     // Ungu terang
-  { sales: 'rgb(236, 64, 122)', quantity: 'rgb(244, 143, 177)' },     // Pink terang
-  { sales: 'rgb(0, 188, 212)', quantity: 'rgb(77, 208, 225)' },       // Cyan terang
-  { sales: 'rgb(255, 87, 34)', quantity: 'rgb(255, 138, 101)' },      // Orange merah terang
-  { sales: 'rgb(121, 85, 72)', quantity: 'rgb(161, 136, 127)' }       // Coklat terang
+  { sales: 'rgb(33, 150, 243)', quantity: 'rgb(66, 165, 245)' },      // Biru cerah (tema utama)
+  { sales: 'rgb(244, 67, 54)', quantity: 'rgb(255, 82, 82)' },         // Merah cerah
+  { sales: 'rgb(255, 193, 7)', quantity: 'rgb(255, 213, 79)' },      // Kuning cerah
+  { sales: 'rgb(76, 175, 80)', quantity: 'rgb(129, 199, 132)' },     // Hijau cerah
+  { sales: 'rgb(158, 158, 158)', quantity: 'rgb(189, 189, 189)' },   // Abu-abu cerah
+  { sales: 'rgb(156, 39, 176)', quantity: 'rgb(186, 104, 200)' },    // Ungu cerah
+  { sales: 'rgb(255, 152, 0)', quantity: 'rgb(255, 183, 77)' },      // Oranye cerah
+  { sales: 'rgb(0, 188, 212)', quantity: 'rgb(38, 198, 218)' }       // Cyan cerah
 ];
+
+/**
+ * Get color for a specific year
+ * Memastikan setiap tahun selalu mendapatkan warna yang sama
+ * berdasarkan nilai tahunnya, dan tahun-tahun berurutan memiliki warna yang berbeda
+ */
+export function getYearColor(year) {
+  const yearNum = parseInt(year);
+  if (isNaN(yearNum)) return COLOR_PALETTE_YEAR[0];
+  
+  // Gunakan tahun relatif terhadap tahun dasar (2020) untuk konsistensi
+  // Ini memastikan tahun yang sama selalu dapat warna yang sama,
+  // dan tahun-tahun berurutan mendapatkan warna yang berbeda
+  const baseYear = 2020;
+  const yearOffset = yearNum - baseYear;
+  const colorIndex = Math.abs(yearOffset) % COLOR_PALETTE_YEAR.length;
+  return COLOR_PALETTE_YEAR[colorIndex];
+}
 
 export const COLOR_BUSINESS_UNIT_SPECIFIC = {
   'Gosave': { 
-    sales: 'rgba(66, 165, 245, 0.8)', 
-    salesBorder: 'rgb(66, 165, 245)',
-    quantity: 'rgba(129, 212, 250, 0.8)',
-    quantityBorder: 'rgb(129, 212, 250)'
+    sales: 'rgba(107, 163, 208, 0.8)', 
+    salesBorder: 'rgb(107, 163, 208)',
+    quantity: 'rgba(137, 183, 220, 0.8)',
+    quantityBorder: 'rgb(137, 183, 220)'
   },   
   'Goto': { 
-    sales: 'rgba(102, 187, 106, 0.8)', 
-    salesBorder: 'rgb(102, 187, 106)',
-    quantity: 'rgba(165, 214, 167, 0.8)',
-    quantityBorder: 'rgb(165, 214, 167)'
+    sales: 'rgba(107, 163, 208, 0.8)', 
+    salesBorder: 'rgb(107, 163, 208)',
+    quantity: 'rgba(137, 183, 220, 0.8)',
+    quantityBorder: 'rgb(137, 183, 220)'
   }  
 };
 
 export const COLOR_BUSINESS_UNIT_RANGE = {
-  'Gosave': { sales: 'rgb(66, 165, 245)', quantity: 'rgb(129, 212, 250)' },   // Biru terang
-  'Goto': { sales: 'rgb(102, 187, 106)', quantity: 'rgb(165, 214, 167)' }     // Hijau terang
+  'Gosave': { sales: 'rgb(107, 163, 208)', quantity: 'rgb(137, 183, 220)' },   // Biru soft
+  'Goto': { sales: 'rgb(107, 163, 208)', quantity: 'rgb(137, 183, 220)' }     // Biru soft
 };
 

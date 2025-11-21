@@ -31,8 +31,8 @@ function DataTypeFilter({ dataType, onChange }) {
         fontWeight: 500, 
         fontSize: '0.875rem', 
         whiteSpace: 'nowrap', 
-        color: '#475569',
-        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        color: '#757575',
+        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
         letterSpacing: '0.01em',
         lineHeight: 1.4
       }}>
@@ -48,22 +48,21 @@ function DataTypeFilter({ dataType, onChange }) {
             textTransform: 'none',
             fontSize: '0.875rem',
             fontWeight: isPenjualanSelected ? 600 : 500,
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            bgcolor: isPenjualanSelected ? '#3B82F6' : 'transparent',
-            color: isPenjualanSelected ? 'white' : '#475569',
-            border: isPenjualanSelected ? 'none' : '1px solid #E2E8F0',
-            borderRadius: 1,
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+            bgcolor: isPenjualanSelected ? '#6BA3D0' : 'transparent',
+            color: isPenjualanSelected ? 'white' : '#757575',
+            border: isPenjualanSelected ? 'none' : '1px solid #E5E5E5',
+            borderRadius: '12px',
             py: 0.875,
             boxShadow: 'none',
             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': {
-              bgcolor: isPenjualanSelected ? '#2563EB' : '#F1F5F9',
-              border: isPenjualanSelected ? 'none' : '1px solid #CBD5E1',
-              boxShadow: isPenjualanSelected ? '0 1px 2px rgba(59, 130, 246, 0.2)' : 'none',
-              transform: 'translateY(-1px)'
+              bgcolor: isPenjualanSelected ? '#5A9FD0' : '#FAFAFA',
+              border: isPenjualanSelected ? 'none' : '1px solid #E0E0E0',
+              boxShadow: 'none'
             },
             '&:active': {
-              transform: 'translateY(0)',
+              transform: 'scale(0.98)',
               transition: 'all 0.1s ease'
             }
           }}
@@ -80,21 +79,20 @@ function DataTypeFilter({ dataType, onChange }) {
             fontSize: '0.875rem',
             fontWeight: isQuantitySelected ? 600 : 500,
             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            bgcolor: isQuantitySelected ? '#3B82F6' : 'transparent',
-            color: isQuantitySelected ? 'white' : '#475569',
-            border: isQuantitySelected ? 'none' : '1px solid #E2E8F0',
-            borderRadius: 1,
+            bgcolor: isQuantitySelected ? '#6BA3D0' : 'transparent',
+            color: isQuantitySelected ? 'white' : '#757575',
+            border: isQuantitySelected ? 'none' : '1px solid #E5E5E5',
+            borderRadius: '12px',
             py: 0.875,
             boxShadow: 'none',
             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': {
-              bgcolor: isQuantitySelected ? '#2563EB' : '#F1F5F9',
-              border: isQuantitySelected ? 'none' : '1px solid #CBD5E1',
-              boxShadow: isQuantitySelected ? '0 1px 2px rgba(59, 130, 246, 0.2)' : 'none',
-              transform: 'translateY(-1px)'
+              bgcolor: isQuantitySelected ? '#5A9FD0' : '#FAFAFA',
+              border: isQuantitySelected ? 'none' : '1px solid #E0E0E0',
+              boxShadow: 'none'
             },
             '&:active': {
-              transform: 'translateY(0)',
+              transform: 'scale(0.98)',
               transition: 'all 0.1s ease'
             }
           }}
