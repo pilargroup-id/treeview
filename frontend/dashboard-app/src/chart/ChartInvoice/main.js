@@ -194,10 +194,6 @@ function addSpecificDate() {
         return;
     }
     
-    if (invoiceFilters.specificDates.length >= 30) {
-        alert('Maksimal 30 tanggal');
-        return;
-    }
     
     if (invoiceFilters.specificDates.includes(date)) {
         alert('Tanggal sudah dipilih');

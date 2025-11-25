@@ -78,6 +78,11 @@ h1 {
     border-color: #6D94C5;
 }
 
+.input-group-input[type="date"] {
+    min-width: 150px;
+    cursor: pointer;
+}
+
 .btn {
     display: flex;
     align-items: center;
@@ -553,11 +558,5 @@ tr:nth-child(even) {
 
 .btn-primary:hover {
     background: #218838;
-}
-
-#invoice_loading {
-    display: none;
-    color: #007bff;
-    margin-left: 10px;
 }
 

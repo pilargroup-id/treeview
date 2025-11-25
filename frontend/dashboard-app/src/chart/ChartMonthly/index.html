@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+
+        <!-- Section 1: Revenue Trend -->
+        <div class="card">
+            <div class="control-bar">
+                <div class="control-actions">
+                    <div class="bu-filter-container">
+                        <label class="input-group-label">Business Unit:</label>
+                        <div class="bu-filter-cards">
+                            <div class="bu-filter-card" id="bu_gosave" onclick="toggleBusinessUnit('Gosave')">
+                                <div class="bu-checkbox">
+                                    <div class="bu-checkbox-inner"></div>
+                                </div>
+                                <span>Gosave</span>
+                            </div>
+                            <div class="bu-filter-card" id="bu_goto" onclick="toggleBusinessUnit('Goto')">
+                                <div class="bu-checkbox">
+                                    <div class="bu-checkbox-inner"></div>
+                                </div>
+                                <span>Goto</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label class="input-group-label">Account:</label>
+                        <input type="text" id="account_header" value="4000.01.00" class="input-group-input">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label class="input-group-label">Tanggal Mulai:</label>
+                        <input type="date" id="start_date" value="2024-01-01" class="input-group-input">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label class="input-group-label">Tanggal Akhir:</label>
+                        <input type="date" id="end_date" value="2025-12-31" class="input-group-input">
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="loadRevenue()" id="load_revenue_btn">
+                        <span>🔄</span>
+                        Load Data
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <div class="legend-toggles">
+                    <div class="legend-item" id="legend_credit" onclick="toggleLegendCredit()">
+                        <div class="legend-indicator legend-indicator-credit"></div>
+                        <span class="legend-label">Credit</span>
+                    </div>
+                    <div class="legend-item" id="legend_debit" onclick="toggleLegendDebit()">
+                        <div class="legend-indicator legend-indicator-debit"></div>
+                        <span class="legend-label">Debit</span>
+                    </div>
+                    <div class="legend-item" id="legend_total" onclick="toggleLegendTotal()">
+                        <div class="legend-indicator legend-indicator-total"></div>
+                        <span class="legend-label">Total (Credit - Debit)</span>
+                    </div>
+                </div>
+                
+                <div class="chart-area">
+                    <div class="loading-overlay" id="loading_overlay" style="display: none;">
+                        <div class="spinner"></div>
+                    </div>
+                    <canvas id="revenue_chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>

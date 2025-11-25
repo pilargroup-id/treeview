@@ -394,9 +394,46 @@ function createSpecificDateChart({
     displayYears.forEach((year) => {
       const colorSet = getYearColor(year);
       
+      // Filter periods yang sesuai dengan tahun ini
+      const periodsForThisYear = periods.filter(periodLabel => {
+        const periodParts = periodLabel.split(' ');
+        if (periodParts.length === 3) {
+          const yearFromLabel = parseInt(periodParts[2]);
+          return yearFromLabel === year;
+        } else if (periodParts.length === 2) {
+          // Jika tidak ada tahun di label, cek apakah ada di specificDates untuk tahun ini
+          const day = parseInt(periodParts[0]);
+          const monthName = periodParts[1];
+          const monthIndex = MONTH_NAMES_ID.indexOf(monthName);
+          if (monthIndex === -1) return false;
+          const month = String(monthIndex + 1).padStart(2, '0');
+          const dayStr = String(day).padStart(2, '0');
+          const monthDay = `${month}-${dayStr}`;
+          
+          // Cek apakah tanggal ini ada di specificDates untuk tahun ini
+          return specificDates.some(date => {
+            if (typeof date === 'string') {
+              return date === monthDay;
+            }
+            return date.year === year && date.monthDay === monthDay;
+          });
+        }
+        return false;
+      });
+      
+      // Jika tidak ada periode untuk tahun ini, skip
+      if (periodsForThisYear.length === 0) {
+        return;
+      }
+      
       // Penjualan dataset
       if (dataType === 'penjualan' || dataType === 'both') {
+        // Map data hanya untuk periods yang sesuai dengan tahun ini
         const salesData = periods.map((periodLabel, periodIndex) => {
+          // Jika period ini tidak untuk tahun ini, return null
+          if (!periodsForThisYear.includes(periodLabel)) {
+            return null;
+          }
 
           let targetYear, targetMonthDay;
           
@@ -407,7 +444,7 @@ function createSpecificDateChart({
             const yearFromLabel = parseInt(periodParts[2]);
             
             const monthIndex = MONTH_NAMES_ID.indexOf(monthName);
-            if (monthIndex === -1) return 0;
+            if (monthIndex === -1) return null;
             const month = String(monthIndex + 1).padStart(2, '0');
             const dayStr = String(day).padStart(2, '0');
             
@@ -418,18 +455,18 @@ function createSpecificDateChart({
             const monthName = periodParts[1];
             
             const monthIndex = MONTH_NAMES_ID.indexOf(monthName);
-            if (monthIndex === -1) return 0;
+            if (monthIndex === -1) return null;
             const month = String(monthIndex + 1).padStart(2, '0');
             const dayStr = String(day).padStart(2, '0');
             
             targetYear = year;
             targetMonthDay = `${month}-${dayStr}`;
           } else {
-            return 0;
+            return null;
           }
           
           if (targetYear !== year) {
-            return 0;
+            return null;
           }
           
           const fullDate = `${targetYear}-${targetMonthDay}`;
@@ -470,7 +507,7 @@ function createSpecificDateChart({
             console.log(`[Sales] Period ${periodIndex}: "${periodLabel}" -> Date: ${fullDate}, No records found`);
           }
           
-          return 0;
+          return null;
         });
         
         datasets.push({
@@ -489,7 +526,13 @@ function createSpecificDateChart({
       
       // Quantity dataset
       if (dataType === 'quantity' || dataType === 'both') {
+        // Map data hanya untuk periods yang sesuai dengan tahun ini
         const quantityData = periods.map((periodLabel, periodIndex) => {
+          // Jika period ini tidak untuk tahun ini, return null
+          if (!periodsForThisYear.includes(periodLabel)) {
+            return null;
+          }
+          
           let targetYear, targetMonthDay;
           
           const periodParts = periodLabel.split(' ');
@@ -499,7 +542,7 @@ function createSpecificDateChart({
             const yearFromLabel = parseInt(periodParts[2]);
             
             const monthIndex = MONTH_NAMES_ID.indexOf(monthName);
-            if (monthIndex === -1) return 0;
+            if (monthIndex === -1) return null;
             const month = String(monthIndex + 1).padStart(2, '0');
             const dayStr = String(day).padStart(2, '0');
             
@@ -510,18 +553,18 @@ function createSpecificDateChart({
             const monthName = periodParts[1];
             
             const monthIndex = MONTH_NAMES_ID.indexOf(monthName);
-            if (monthIndex === -1) return 0;
+            if (monthIndex === -1) return null;
             const month = String(monthIndex + 1).padStart(2, '0');
             const dayStr = String(day).padStart(2, '0');
             
             targetYear = year;
             targetMonthDay = `${month}-${dayStr}`;
           } else {
-            return 0;
+            return null;
           }
           
           if (targetYear !== year) {
-            return 0;
+            return null;
           }
           
           const fullDate = `${targetYear}-${targetMonthDay}`;
@@ -562,7 +605,7 @@ function createSpecificDateChart({
             console.log(`[Quantity] Period ${periodIndex}: "${periodLabel}" -> Date: ${fullDate}, No records found`);
           }
           
-          return 0;
+          return null;
         });
         
         datasets.push({

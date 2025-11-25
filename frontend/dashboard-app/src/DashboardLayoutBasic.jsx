@@ -10,8 +10,8 @@ import LayersIcon from '@mui/icons-material/Layers';
 import { AppProvider } from '@toolpad/core/AppProvider';
 import { DashboardLayout } from '@toolpad/core/DashboardLayout';
 import { useDemoRouter } from '@toolpad/core/internal';
-import ChartBulanan from './chart/ChartBulanan';
 import ChartInvoice from './chart/ChartInvoice';
+import ChartMonthly from './chart/ChartMonthly';
 
 const NAVIGATION = [
   { kind: 'header', title: 'Main items' },
@@ -20,8 +20,8 @@ const NAVIGATION = [
     title: 'Dashboard',
     icon: <DashboardIcon />,
     children: [
-      { segment: 'Revenue', title: 'Revenue', icon: <BarChartIcon /> },
-      { segment: 'RevenueInvoice', title: 'RevenueInvoice', icon: <BarChartIcon /> },
+      { segment: 'RevenueTrend', title: 'Revenue Trend', icon: <BarChartIcon /> },
+      { segment: 'RevenueInvoice', title: 'Revenue Invoice', icon: <BarChartIcon /> },
     ],
   },
   { segment: 'orders', title: 'Orders', icon: <ShoppingCartIcon /> },
@@ -132,10 +132,17 @@ function DemoPageContent({ pathname }) {
     );
   }
 
-  if (pathname.includes('Revenue')) {
+  if (pathname.includes('RevenueTrend')) {
     return (
-      <Box sx={{ p: 3 }}>
-        <ChartBulanan />
+      <Box sx={{ 
+        width: '100%',
+        height: '100%',
+        overflow: 'auto',
+        position: 'relative',
+        padding: 0,
+        margin: 0
+      }}>
+        <ChartMonthly />
       </Box>
     );
   }
