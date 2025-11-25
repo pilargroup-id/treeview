@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Box, Typography, Button, Chip, Paper, Portal, Backdrop, Fade, Select, MenuItem, Card, IconButton } from "@mui/material";
+import { Box, Typography, Button, Chip, Paper, Portal, Backdrop, Fade, Select, MenuItem, Card, IconButton, Checkbox, FormControlLabel } from "@mui/material";
 import EventAvailableRoundedIcon from '@mui/icons-material/EventAvailableRounded';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import DoneAllIcon from '@mui/icons-material/DoneAll';
 import { DateRangePicker } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
+import { useAlert } from '../../hooks/useAlert';
+import AlertModal from '../AlertModal';
 
 const TWIN_DATE_PRESETS = [
   { monthDay: '01-01', label: '1 Januari' },
@@ -46,6 +49,7 @@ export const SingleDatePickerWithYear = ({
   onDataTypeChange,
   invoiceData = []
 }) => {
+  const { alertState, showWarning, showError, closeAlert } = useAlert();
   // Generate tahun 
   const years = React.useMemo(() => {
     return availableYears.length > 0 
@@ -65,9 +69,7 @@ export const SingleDatePickerWithYear = ({
     const [showPicker, setShowPicker] = useState(false);
   
   const anchorRef = useRef(null);
-  const pickerRef = useRef(null);
-  
-  const MAX_SPECIFIC_DATES = 30; 
+  const pickerRef = useRef(null); 
 
   useEffect(() => {
     if (years.length > 0) {
@@ -109,7 +111,7 @@ export const SingleDatePickerWithYear = ({
     try {
       if (!selectionDate.startDate) {
         console.log('No startDate selected');
-        alert('Pilih tanggal terlebih dahulu');
+        showWarning('Pilih tanggal terlebih dahulu');
         return;
       }
       
@@ -118,7 +120,7 @@ export const SingleDatePickerWithYear = ({
       
       if (availableYears.length > 0 && !availableYears.includes(year)) {
         console.log('Year not in availableYears');
-        alert(`Tahun ${year} tidak tersedia. Silakan pilih tanggal dari tahun yang tersedia.`);
+        showWarning(`Tahun ${year} tidak tersedia. Silakan pilih tanggal dari tahun yang tersedia.`);
         return;
       }
       
@@ -133,7 +135,7 @@ export const SingleDatePickerWithYear = ({
       if (testDate.getMonth() !== (parseInt(month) - 1) || 
           testDate.getDate() !== parseInt(day)) {
         console.log('Invalid date');
-        alert('Tanggal tidak valid');
+        showWarning('Tanggal tidak valid');
         return;
       }
       
@@ -149,16 +151,10 @@ export const SingleDatePickerWithYear = ({
       
       if (dateExists) {
         console.log('Date already exists');
-        alert(`Tanggal ${day}/${month}/${year} sudah dipilih`);
+        showWarning(`Tanggal ${day}/${month}/${year} sudah dipilih`);
         return;
       }
       
-      // Cek maksimal tanggal
-      if (specificDates.length >= MAX_SPECIFIC_DATES) {
-        console.log('Max dates reached');
-        alert(`Maksimal ${MAX_SPECIFIC_DATES} tanggal yang bisa dipilih untuk menghindari error`);
-        return;
-      }
       
       console.log('Calling onAddDate with:', dateWithYear);
       try {
@@ -174,11 +170,11 @@ export const SingleDatePickerWithYear = ({
         setShowPicker(false);
       } catch (addError) {
         console.error('Error adding date:', addError);
-        alert('Error menambahkan tanggal: ' + (addError.message || 'Unknown error'));
+        showError('Error menambahkan tanggal: ' + (addError.message || 'Unknown error'));
       }
     } catch (error) {
       console.error('Unexpected error in handleAddDate:', error);
-      alert('Terjadi error: ' + (error.message || 'Unknown error'));
+      showError('Terjadi error: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -188,6 +184,28 @@ export const SingleDatePickerWithYear = ({
   }, [selectionDate.startDate, years]);
 
   const [presetYearOverride, setPresetYearOverride] = useState(presetYear);
+  
+  // State untuk multi-select tahun pada preset tanggal kembar
+  const [selectedYearsForTwinPreset, setSelectedYearsForTwinPreset] = useState([]);
+  const [selectedMonthsForTwinPreset, setSelectedMonthsForTwinPreset] = useState([]);
+  const [selectedMonthsForSingleYear, setSelectedMonthsForSingleYear] = useState([]);
+  const [showMultiYearPreset, setShowMultiYearPreset] = useState(false);
+  
+  // Mapping bulan untuk preset
+  const MONTH_OPTIONS = [
+    { value: 1, label: 'Januari', monthDay: '01-01' },
+    { value: 2, label: 'Februari', monthDay: '02-02' },
+    { value: 3, label: 'Maret', monthDay: '03-03' },
+    { value: 4, label: 'April', monthDay: '04-04' },
+    { value: 5, label: 'Mei', monthDay: '05-05' },
+    { value: 6, label: 'Juni', monthDay: '06-06' },
+    { value: 7, label: 'Juli', monthDay: '07-07' },
+    { value: 8, label: 'Agustus', monthDay: '08-08' },
+    { value: 9, label: 'September', monthDay: '09-09' },
+    { value: 10, label: 'Oktober', monthDay: '10-10' },
+    { value: 11, label: 'November', monthDay: '11-11' },
+    { value: 12, label: 'Desember', monthDay: '12-12' },
+  ];
 
   useEffect(() => {
     const validYear = availableYears.length > 0
@@ -208,31 +226,73 @@ export const SingleDatePickerWithYear = ({
   };
 
   const remainingTwinDates = React.useMemo(() => {
+    // Jika ada bulan yang dipilih, hanya hitung bulan yang dipilih
+    if (selectedMonthsForSingleYear.length > 0) {
+      return MONTH_OPTIONS
+        .filter(monthOption => selectedMonthsForSingleYear.includes(monthOption.value))
+        .filter(monthOption => 
+          !specificDates.some(date => getIsSameDate(date, activePresetYear, monthOption.monthDay))
+        );
+    }
+    // Jika tidak ada bulan yang dipilih, hitung semua
     return TWIN_DATE_PRESETS.filter(preset => 
       !specificDates.some(date => getIsSameDate(date, activePresetYear, preset.monthDay))
     );
-  }, [specificDates, activePresetYear]);
+  }, [specificDates, activePresetYear, selectedMonthsForSingleYear]);
+
+  // Hitung jumlah tanggal kembar yang akan ditambahkan untuk multi-tahun preset
+  const remainingTwinDatesMultiYear = React.useMemo(() => {
+    let count = 0;
+    selectedYearsForTwinPreset.forEach(year => {
+      selectedMonthsForTwinPreset.forEach(monthValue => {
+        const monthOption = MONTH_OPTIONS.find(m => m.value === monthValue);
+        if (monthOption) {
+          const exists = specificDates.some(date => getIsSameDate(date, year, monthOption.monthDay));
+          if (!exists) {
+            count++;
+          }
+        }
+      });
+    });
+    return count;
+  }, [specificDates, selectedYearsForTwinPreset, selectedMonthsForTwinPreset]);
 
   const handleAddTwinDatesPreset = () => {
     try {
       const year = activePresetYear;
 
       if (availableYears.length > 0 && !availableYears.includes(year)) {
-        alert(`Tahun ${year} tidak tersedia. Pilih tahun yang ada di daftar terlebih dahulu.`);
+        showWarning(`Tahun ${year} tidak tersedia. Pilih tahun yang ada di daftar terlebih dahulu.`);
         return;
       }
 
-      const datesToAdd = TWIN_DATE_PRESETS
-        .filter(preset => !specificDates.some(date => getIsSameDate(date, year, preset.monthDay)))
-        .map(preset => ({ year, monthDay: preset.monthDay }));
+      // Jika ada bulan yang dipilih, hanya tambahkan bulan yang dipilih
+      let datesToAdd = [];
+      if (selectedMonthsForSingleYear.length > 0) {
+        // Sort bulan yang dipilih untuk memastikan urutan benar
+        const sortedMonths = [...selectedMonthsForSingleYear].sort((a, b) => a - b);
+        sortedMonths.forEach(monthValue => {
+          const monthOption = MONTH_OPTIONS.find(m => m.value === monthValue);
+          if (monthOption) {
+            const exists = specificDates.some(date => getIsSameDate(date, year, monthOption.monthDay));
+            if (!exists) {
+              datesToAdd.push({ year, monthDay: monthOption.monthDay });
+            }
+          }
+        });
+      } else {
+        // Jika tidak ada bulan yang dipilih, tambahkan semua
+        datesToAdd = TWIN_DATE_PRESETS
+          .filter(preset => !specificDates.some(date => getIsSameDate(date, year, preset.monthDay)))
+          .map(preset => ({ year, monthDay: preset.monthDay }));
+      }
 
       if (datesToAdd.length === 0) {
-        alert(`Semua tanggal kembar untuk tahun ${year} sudah ditambahkan.`);
-        return;
-      }
-
-      if (specificDates.length + datesToAdd.length > MAX_SPECIFIC_DATES) {
-        alert(`Preset membutuhkan ${datesToAdd.length} slot, sedangkan sisa slot hanya ${MAX_SPECIFIC_DATES - specificDates.length}. Hapus beberapa tanggal terlebih dahulu.`);
+        if (selectedMonthsForSingleYear.length > 0) {
+          showWarning(`Semua tanggal kembar untuk bulan yang dipilih pada tahun ${year} sudah ditambahkan.`);
+        } else {
+          showWarning(`Semua tanggal kembar untuk tahun ${year} sudah ditambahkan.`);
+        }
         return;
       }
 
@@ -240,7 +300,110 @@ export const SingleDatePickerWithYear = ({
       setShowPicker(false);
     } catch (error) {
       console.error('Unexpected error in handleAddTwinDatesPreset:', error);
-      alert('Terjadi error saat menambahkan preset tanggal kembar.');
+      showError('Terjadi error saat menambahkan preset tanggal kembar.');
+    }
+  };
+
+  // Fungsi untuk menambahkan preset tanggal kembar dengan multi-select tahun
+  const handleAddTwinDatesPresetMultiYear = () => {
+    try {
+      if (selectedYearsForTwinPreset.length === 0) {
+        showWarning('Pilih minimal satu tahun terlebih dahulu.');
+        return;
+      }
+
+      if (selectedMonthsForTwinPreset.length === 0) {
+        showWarning('Pilih minimal satu bulan terlebih dahulu.');
+        return;
+      }
+
+      // Validasi tahun yang dipilih
+      const invalidYears = selectedYearsForTwinPreset.filter(year => 
+        availableYears.length > 0 && !availableYears.includes(year)
+      );
+
+      if (invalidYears.length > 0) {
+        showWarning(`Tahun ${invalidYears.join(', ')} tidak tersedia. Pilih tahun yang ada di daftar.`);
+        return;
+      }
+
+      // Generate tanggal kembar hanya untuk bulan yang dipilih
+      const datesToAdd = [];
+      selectedYearsForTwinPreset.forEach(year => {
+        selectedMonthsForTwinPreset.forEach(monthValue => {
+          // Cari preset yang sesuai dengan bulan yang dipilih
+          const monthOption = MONTH_OPTIONS.find(m => m.value === monthValue);
+          if (monthOption) {
+            // Cek apakah tanggal ini sudah ada
+            const exists = specificDates.some(date => getIsSameDate(date, year, monthOption.monthDay));
+            if (!exists) {
+              datesToAdd.push({ year, monthDay: monthOption.monthDay });
+            }
+          }
+        });
+      });
+
+      if (datesToAdd.length === 0) {
+        showWarning('Semua tanggal kembar untuk tahun dan bulan yang dipilih sudah ditambahkan.');
+        return;
+      }
+
+      datesToAdd.forEach(date => onAddDate(date));
+      setShowMultiYearPreset(false);
+      setSelectedYearsForTwinPreset([]);
+      setSelectedMonthsForTwinPreset([]);
+      setShowPicker(false);
+    } catch (error) {
+      console.error('Unexpected error in handleAddTwinDatesPresetMultiYear:', error);
+      showError('Terjadi error saat menambahkan preset tanggal kembar multi-tahun.');
+    }
+  };
+
+  // Toggle tahun untuk multi-select preset
+  const toggleYearForTwinPreset = (year) => {
+    setSelectedYearsForTwinPreset(prev => {
+      if (prev.includes(year)) {
+        return prev.filter(y => y !== year);
+      } else {
+        return [...prev, year].sort((a, b) => a - b);
+      }
+    });
+  };
+
+  // Toggle bulan untuk multi-select preset
+  const toggleMonthForTwinPreset = (monthValue) => {
+    setSelectedMonthsForTwinPreset(prev => {
+      if (prev.includes(monthValue)) {
+        return prev.filter(m => m !== monthValue);
+      } else {
+        return [...prev, monthValue].sort((a, b) => a - b);
+      }
+    });
+  };
+
+  // Toggle bulan untuk single year preset
+  const toggleMonthForSingleYear = (monthValue) => {
+    setSelectedMonthsForSingleYear(prev => {
+      if (prev.includes(monthValue)) {
+        return prev.filter(m => m !== monthValue);
+      } else {
+        return [...prev, monthValue].sort((a, b) => a - b);
+      }
+    });
+  };
+
+  // Toggle semua bulan untuk single year preset
+  const toggleAllMonthsForSingleYear = () => {
+    const allMonthValues = MONTH_OPTIONS.map(m => m.value).sort((a, b) => a - b);
+    const allSelected = allMonthValues.length === selectedMonthsForSingleYear.length && 
+                       allMonthValues.every(month => selectedMonthsForSingleYear.includes(month));
+    
+    if (allSelected) {
+      // Jika semua sudah dipilih, hapus semua
+      setSelectedMonthsForSingleYear([]);
+    } else {
+      // Jika belum semua dipilih, pilih semua
+      setSelectedMonthsForSingleYear([...allMonthValues]);
     }
   };
 
@@ -463,7 +626,6 @@ export const SingleDatePickerWithYear = ({
           variant="outlined" 
           size="small" 
           onClick={() => setShowPicker(!showPicker)}
-          disabled={specificDates.length >= MAX_SPECIFIC_DATES}
           startIcon={
             <EventAvailableRoundedIcon 
               sx={{ 
@@ -543,6 +705,7 @@ export const SingleDatePickerWithYear = ({
                   width: { xs: '95%', sm: '90%', md: '800px', lg: '950px' },
                   maxWidth: '950px',
                   maxHeight: '90vh',
+                  height: 'auto',
                   display: 'flex',
                   flexDirection: 'column',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -557,32 +720,46 @@ export const SingleDatePickerWithYear = ({
                     borderRadius: 3,
                     width: '100%',
                     maxWidth: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
                   },
                   '& .rdr-DateRange': {
                     borderRadius: 3,
                     width: '100%',
                     maxWidth: '100%',
+                    height: '100%',
                     display: 'flex !important',
                     flexDirection: 'row !important',
+                    flex: '1 1 auto !important',
                   },
                   '& .rdr-CalendarWrapper': {
                     display: 'flex !important',
                     flexDirection: 'row !important',
                     width: '100% !important',
+                    height: '100% !important',
+                    flex: '1 1 auto !important',
                   },
                   '& .rdr-Calendar': {
                     borderRadius: 3,
                     width: '100% !important',
                     maxWidth: '100% !important',
+                    height: '100% !important',
                     fontSize: '0.875rem !important',
                     minHeight: 'auto !important',
                     flex: '1 1 100% !important',
+                    display: 'flex !important',
+                    flexDirection: 'column !important',
                   },
                   '& .rdr-Month': {
                     width: '100% !important',
                     maxWidth: '100% !important',
                     padding: '0.75rem !important',
                     minHeight: 'auto !important',
+                    height: '100% !important',
+                    display: 'flex !important',
+                    flexDirection: 'column !important',
+                    flex: '1 1 auto !important',
                   },
                   '& .rdr-Day': {
                     fontSize: '0.875rem !important',
@@ -706,7 +883,7 @@ export const SingleDatePickerWithYear = ({
                     minHeight: 0,
                   }}>
                     <Box sx={{
-                      width: { xs: '100%', md: 280 },
+                      width: { xs: '100%', md: 380 },
                       flexShrink: 0,
                       borderRight: { md: '1px solid #E2E8F0' },
                       borderBottom: { xs: '1px solid #E2E8F0', md: 'none' },
@@ -716,7 +893,8 @@ export const SingleDatePickerWithYear = ({
                       flexDirection: 'column',
                       gap: 1.25,
                       overflowY: 'auto',
-                      maxHeight: { md: '100%' },
+                      maxHeight: { md: 'calc(90vh - 180px)' },
+                      minHeight: 0,
                     }}>
                       <Box sx={{
                         display: 'flex',
@@ -737,143 +915,366 @@ export const SingleDatePickerWithYear = ({
                           Preset Tanggal Kembar
                         </Typography>
                       </Box>
-                      
+
+                      {/* Toggle untuk preset multi-tahun */}
                       <Box sx={{
                         display: 'flex',
-                        alignItems: 'center',
-                        gap: 1
+                        gap: 1,
+                        mb: 1
                       }}>
-                        <Select
+                        <Button
+                          variant={!showMultiYearPreset ? "contained" : "outlined"}
                           size="small"
-                          value={activePresetYear}
-                          onChange={(e) => setPresetYearOverride(Number(e.target.value))}
+                          onClick={() => {
+                            setShowMultiYearPreset(false);
+                            setSelectedYearsForTwinPreset([]);
+                            setSelectedMonthsForTwinPreset([]);
+                            setSelectedMonthsForSingleYear([]);
+                          }}
                           sx={{
                             flex: 1,
-                            fontSize: '0.8125rem',
+                            textTransform: 'none',
+                            fontSize: '0.75rem',
                             fontWeight: 500,
-                            bgcolor: '#FFFFFF',
-                            border: '1px solid #E2E8F0',
-                            borderRadius: 1.5,
-                            '& .MuiSelect-select': {
-                              py: 0.875,
-                              px: 1.5,
-                            },
+                            py: 0.5,
+                            borderRadius: 1,
+                            bgcolor: !showMultiYearPreset ? '#6BA3D0' : 'transparent',
+                            color: !showMultiYearPreset ? '#FFFFFF' : '#475569',
+                            borderColor: !showMultiYearPreset ? '#6BA3D0' : '#E2E8F0',
                             '&:hover': {
-                              borderColor: '#6BA3D0',
-                            },
-                            '& .MuiOutlinedInput-notchedOutline': {
-                              borderColor: '#E2E8F0',
-                            },
-                            '&:hover .MuiOutlinedInput-notchedOutline': {
-                              borderColor: '#6BA3D0',
-                            },
-                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                              borderColor: '#6BA3D0',
+                              bgcolor: !showMultiYearPreset ? '#5A9FD0' : 'rgba(107, 163, 208, 0.08)',
+                              borderColor: '#6BA3D0'
                             }
                           }}
                         >
-                          {(availableYears.length > 0 ? years : years).map(yearOption => (
-                            <MenuItem key={yearOption} value={yearOption}>
-                              Tahun {yearOption}
-                            </MenuItem>
-                          ))}
-                        </Select>
+                          Satu Tahun
+                        </Button>
+                        <Button
+                          variant={showMultiYearPreset ? "contained" : "outlined"}
+                          size="small"
+                          onClick={() => {
+                            setShowMultiYearPreset(true);
+                            if (selectedYearsForTwinPreset.length === 0 && years.length > 0) {
+                              setSelectedYearsForTwinPreset([years[0]]);
+                            }
+                            // Reset bulan saat beralih ke multi-tahun
+                            if (selectedMonthsForTwinPreset.length === 0) {
+                              setSelectedMonthsForTwinPreset([]);
+                            }
+                          }}
+                          sx={{
+                            flex: 1,
+                            textTransform: 'none',
+                            fontSize: '0.75rem',
+                            fontWeight: 500,
+                            py: 0.5,
+                            borderRadius: 1,
+                            bgcolor: showMultiYearPreset ? '#6BA3D0' : 'transparent',
+                            color: showMultiYearPreset ? '#FFFFFF' : '#475569',
+                            borderColor: showMultiYearPreset ? '#6BA3D0' : '#E2E8F0',
+                            '&:hover': {
+                              bgcolor: showMultiYearPreset ? '#5A9FD0' : 'rgba(107, 163, 208, 0.08)',
+                              borderColor: '#6BA3D0'
+                            }
+                          }}
+                        >
+                          Multi Tahun
+                        </Button>
                       </Box>
+                      
+                      {!showMultiYearPreset ? (
+                        <Box sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1
+                        }}>
+                          <Select
+                            size="small"
+                            value={activePresetYear}
+                            onChange={(e) => setPresetYearOverride(Number(e.target.value))}
+                            sx={{
+                              flex: 1,
+                              fontSize: '0.8125rem',
+                              fontWeight: 500,
+                              bgcolor: '#FFFFFF',
+                              border: '1px solid #E2E8F0',
+                              borderRadius: 1.5,
+                              '& .MuiSelect-select': {
+                                py: 0.875,
+                                px: 1.5,
+                              },
+                              '&:hover': {
+                                borderColor: '#6BA3D0',
+                              },
+                              '& .MuiOutlinedInput-notchedOutline': {
+                                borderColor: '#E2E8F0',
+                              },
+                              '&:hover .MuiOutlinedInput-notchedOutline': {
+                                borderColor: '#6BA3D0',
+                              },
+                              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                borderColor: '#6BA3D0',
+                              }
+                            }}
+                          >
+                            {(availableYears.length > 0 ? years : years).map(yearOption => (
+                              <MenuItem key={yearOption} value={yearOption}>
+                                Tahun {yearOption}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </Box>
+                      ) : null}
 
-                      <Box sx={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: 0.75,
-                        mb: 1,
-                      }}>
-                        {TWIN_DATE_PRESETS.map((preset) => {
-                          const isSelected = specificDates.some(date => 
-                            getIsSameDate(date, activePresetYear, preset.monthDay)
-                          );
-                          return (
-                            <Chip
-                              key={preset.monthDay}
-                              label={preset.label}
+                      {/* Pilih Bulan untuk Satu Tahun Preset */}
+                      {!showMultiYearPreset && (
+                        <Box sx={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 1,
+                          mt: 1,
+                          flexShrink: 0
+                        }}>
+                          <Box sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            mb: 0.5,
+                          }}>
+                            <Typography sx={{
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              color: '#475569',
+                              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                            }}>
+                              Pilih Bulan:
+                            </Typography>
+                            <IconButton
                               size="small"
-                              onClick={() => {
-                                if (!isSelected && specificDates.length < MAX_SPECIFIC_DATES) {
-                                  onAddDate({ year: activePresetYear, monthDay: preset.monthDay });
-                                }
-                              }}
-                              disabled={isSelected || specificDates.length >= MAX_SPECIFIC_DATES}
+                              onClick={toggleAllMonthsForSingleYear}
                               sx={{
-                                fontSize: '0.6875rem',
-                                fontWeight: 500,
-                                height: '32px',
-                                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-                                bgcolor: isSelected ? '#6BA3D0' : '#FFFFFF',
-                                color: isSelected ? '#FFFFFF' : '#475569',
-                                border: isSelected ? 'none' : '1px solid #E2E8F0',
-                                borderRadius: 1.25,
-                                cursor: isSelected ? 'default' : 'pointer',
+                                width: '24px',
+                                height: '24px',
+                                p: 0.5,
+                                color: selectedMonthsForSingleYear.length === MONTH_OPTIONS.length ? '#6BA3D0' : '#94A3B8',
                                 transition: 'all 0.2s ease',
                                 '&:hover': {
-                                  bgcolor: isSelected ? '#6BA3D0' : '#F8FAFC',
-                                  borderColor: isSelected ? 'none' : '#6BA3D0',
-                                  transform: isSelected ? 'none' : 'translateY(-1px)',
+                                  color: '#6BA3D0',
+                                  bgcolor: 'rgba(107, 163, 208, 0.08)',
+                                  transform: 'scale(1.1)'
                                 },
-                                '&:disabled': {
-                                  bgcolor: isSelected ? '#6BA3D0' : '#F8FAFC',
-                                  color: isSelected ? '#FFFFFF' : '#94A3B8',
-                                  borderColor: isSelected ? 'none' : '#E2E8F0',
-                                  opacity: isSelected ? 1 : 0.6,
+                                '&:active': {
+                                  transform: 'scale(0.95)'
                                 }
                               }}
-                            />
-                          );
-                        })}
-                      </Box>
+                              title={selectedMonthsForSingleYear.length === MONTH_OPTIONS.length ? 'Hapus Semua' : 'Pilih Semua'}
+                            >
+                              <DoneAllIcon sx={{ fontSize: '1rem' }} />
+                            </IconButton>
+                          </Box>
+                          <Box sx={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(3, 1fr)',
+                            gap: 0.75,
+                          }}>
+                            {MONTH_OPTIONS.map(monthOption => {
+                              const isSelected = selectedMonthsForSingleYear.includes(monthOption.value);
+                              
+                              return (
+                                <Chip
+                                  key={monthOption.value}
+                                  label={monthOption.label}
+                                  size="small"
+                                  onClick={() => toggleMonthForSingleYear(monthOption.value)}
+                                  sx={{
+                                    fontSize: '0.6875rem',
+                                    fontWeight: 500,
+                                    height: '32px',
+                                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                                    bgcolor: isSelected ? '#6BA3D0' : '#FFFFFF',
+                                    color: isSelected ? '#FFFFFF' : '#475569',
+                                    border: isSelected ? 'none' : '1px solid #E2E8F0',
+                                    borderRadius: 1.25,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    '&:hover': {
+                                      bgcolor: isSelected ? '#5A9FD0' : '#F8FAFC',
+                                      borderColor: isSelected ? 'none' : '#6BA3D0',
+                                      transform: 'translateY(-1px)',
+                                    }
+                                  }}
+                                />
+                              );
+                            })}
+                          </Box>
+                        </Box>
+                      )}
 
-                      <Button
-                        variant="contained"
-                        size="medium"
-                        onClick={handleAddTwinDatesPreset}
-                        disabled={specificDates.length >= MAX_SPECIFIC_DATES || remainingTwinDates.length === 0}
-                        startIcon={<CalendarTodayIcon sx={{ fontSize: '1rem' }} />}
-                        sx={{
-                          alignSelf: 'stretch',
-                          bgcolor: '#6BA3D0',
-                          textTransform: 'none',
-                          fontSize: '0.8125rem',
-                          fontWeight: 600,
-                          py: 1,
-                          borderRadius: 1.5,
-                          boxShadow: 'none',
-                          mt: 0.5,
-                          '&:hover': {
-                            bgcolor: '#5A9FD0',
-                            boxShadow: '0 2px 8px rgba(107, 163, 208, 0.3)',
-                          },
-                          '&:disabled': {
-                            bgcolor: '#E2E8F0',
-                            color: '#94A3B8',
-                            boxShadow: 'none'
-                          }
-                        }}
-                      >
-                        Tambah Semua ({remainingTwinDates.length}/12)
-                      </Button>
+                      {showMultiYearPreset && (
+                        <Box sx={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 1,
+                          flexShrink: 0
+                        }}>
+                          <Typography sx={{
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            color: '#475569',
+                            mb: 0.5,
+                            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                          }}>
+                            Pilih Tahun (Multi-Select):
+                          </Typography>
+                          <Box sx={{
+                            display: 'flex',
+                            flexWrap: 'nowrap',
+                            gap: 0.5,
+                            overflowX: 'auto',
+                            overflowY: 'hidden',
+                            pb: 0.5,
+                            '&::-webkit-scrollbar': {
+                              height: '6px',
+                            },
+                            '&::-webkit-scrollbar-track': {
+                              background: '#F1F5F9',
+                              borderRadius: '3px',
+                            },
+                            '&::-webkit-scrollbar-thumb': {
+                              background: '#CBD5E1',
+                              borderRadius: '3px',
+                              '&:hover': {
+                                background: '#94A3B8',
+                              },
+                            },
+                          }}>
+                            {(availableYears.length > 0 ? years : years).map(yearOption => (
+                              <FormControlLabel
+                                key={yearOption}
+                                control={
+                                  <Checkbox
+                                    checked={selectedYearsForTwinPreset.includes(yearOption)}
+                                    onChange={() => toggleYearForTwinPreset(yearOption)}
+                                    size="small"
+                                    sx={{
+                                      color: '#6BA3D0',
+                                      '&.Mui-checked': {
+                                        color: '#6BA3D0',
+                                      },
+                                      '& .MuiSvgIcon-root': {
+                                        fontSize: '1rem'
+                                      },
+                                      py: 0.25,
+                                    }}
+                                  />
+                                }
+                                label={
+                                  <Typography sx={{
+                                    fontSize: '0.75rem',
+                                    fontWeight: 500,
+                                    color: '#475569',
+                                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                                    whiteSpace: 'nowrap',
+                                  }}>
+                                    {yearOption}
+                                  </Typography>
+                                }
+                                sx={{
+                                  m: 0,
+                                  mr: 0.75,
+                                  py: 0.25,
+                                  flexShrink: 0,
+                                  '&:hover': {
+                                    bgcolor: 'rgba(107, 163, 208, 0.04)',
+                                    borderRadius: 0.5
+                                  }
+                                }}
+                              />
+                            ))}
+                          </Box>
+                        </Box>
+                      )}
+
+                      {/* Pilih Bulan untuk Multi-Tahun Preset */}
+                      {showMultiYearPreset && (
+                        <Box sx={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 1,
+                          mt: 1,
+                          flexShrink: 0
+                        }}>
+                          <Typography sx={{
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            color: '#475569',
+                            mb: 0.5,
+                            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                          }}>
+                            Pilih Bulan:
+                          </Typography>
+                          <Box sx={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(3, 1fr)',
+                            gap: 0.75,
+                          }}>
+                            {MONTH_OPTIONS.map(monthOption => {
+                              const isSelected = selectedMonthsForTwinPreset.includes(monthOption.value);
+                              
+                              return (
+                                <Chip
+                                  key={monthOption.value}
+                                  label={monthOption.label}
+                                  size="small"
+                                  onClick={() => toggleMonthForTwinPreset(monthOption.value)}
+                                  sx={{
+                                    fontSize: '0.6875rem',
+                                    fontWeight: 500,
+                                    height: '32px',
+                                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                                    bgcolor: isSelected ? '#6BA3D0' : '#FFFFFF',
+                                    color: isSelected ? '#FFFFFF' : '#475569',
+                                    border: isSelected ? 'none' : '1px solid #E2E8F0',
+                                    borderRadius: 1.25,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    '&:hover': {
+                                      bgcolor: isSelected ? '#5A9FD0' : '#F8FAFC',
+                                      borderColor: isSelected ? 'none' : '#6BA3D0',
+                                      transform: 'translateY(-1px)',
+                                    }
+                                  }}
+                                />
+                              );
+                            })}
+                          </Box>
+                        </Box>
+                      )}
                     </Box>
                     <Box sx={{ 
                       flex: 1,
-                      p: 1.25,
+                      p: 0,
+                      m: 0,
                       display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      alignItems: 'stretch',
+                      justifyContent: 'stretch',
                       minHeight: 0,
                       overflow: 'hidden',
+                      width: '100%',
+                      height: '100%',
                     }}>
                       <Box sx={{ 
                         width: '100%', 
+                        height: '100%',
                         maxWidth: '100%',
+                        maxHeight: '100%',
                         display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        alignItems: 'stretch',
+                        justifyContent: 'stretch',
+                        flex: 1,
+                        m: 0,
+                        p: 0,
+                        overflow: 'hidden',
                       }}>
                         <DateRangePicker
                           ranges={[selectionDate]}
@@ -902,7 +1303,8 @@ export const SingleDatePickerWithYear = ({
                     py: 1.75,
                     borderTop: '1px solid #E2E8F0',
                     bgcolor: '#FAFBFC',
-                    justifyContent: 'flex-end'
+                    justifyContent: 'flex-end',
+                    flexShrink: 0
                   }}>
                     <Button 
                       variant="outlined" 
@@ -938,45 +1340,131 @@ export const SingleDatePickerWithYear = ({
                     >
                       Batal
                     </Button>
-                    <Button 
-                      variant="contained" 
-                      size="medium" 
-                      onClick={handleAddDate}
-                      disabled={!selectionDate.startDate || specificDates.length >= MAX_SPECIFIC_DATES}
-                      sx={{
-                        bgcolor: '#6BA3D0',
-                        color: 'white',
-                        textTransform: 'none',
-                        fontSize: '0.8125rem',
-                        fontWeight: 600,
-                        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-                        borderRadius: 1.5,
-                        px: 2.5,
-                        py: 0.75,
-                        minWidth: '130px',
-                        height: '38px',
-                        boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)',
-                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                        '&:hover': {
-                          bgcolor: '#5A9FD0',
-                          boxShadow: '0 4px 8px rgba(107, 163, 208, 0.3)',
-                          transform: 'translateY(-1px)'
-                        },
-                        '&:active': {
-                          transform: 'translateY(0)',
-                          boxShadow: '0 2px 4px rgba(107, 163, 208, 0.25)'
-                        },
-                        '&:disabled': {
-                          bgcolor: '#E2E8F0',
-                          color: '#94A3B8',
-                          boxShadow: 'none',
-                          transform: 'none',
-                          cursor: 'not-allowed'
-                        }
-                      }}
-                    >
-                      Tambah Tanggal
-                    </Button>
+                    {!showMultiYearPreset ? (
+                      <>
+                        {selectedMonthsForSingleYear.length > 0 ? (
+                          <Button 
+                            variant="contained" 
+                            size="medium" 
+                            onClick={handleAddTwinDatesPreset}
+                            disabled={remainingTwinDates.length === 0}
+                            sx={{
+                              bgcolor: '#6BA3D0',
+                              color: 'white',
+                              textTransform: 'none',
+                              fontSize: '0.8125rem',
+                              fontWeight: 600,
+                              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                              borderRadius: 1.5,
+                              px: 2.5,
+                              py: 0.75,
+                              minWidth: '130px',
+                              height: '38px',
+                              boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)',
+                              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                              '&:hover': {
+                                bgcolor: '#5A9FD0',
+                                boxShadow: '0 4px 8px rgba(107, 163, 208, 0.3)',
+                                transform: 'translateY(-1px)'
+                              },
+                              '&:active': {
+                                transform: 'translateY(0)',
+                                boxShadow: '0 2px 4px rgba(107, 163, 208, 0.25)'
+                              },
+                              '&:disabled': {
+                                bgcolor: '#E2E8F0',
+                                color: '#94A3B8',
+                                boxShadow: 'none',
+                                transform: 'none',
+                                cursor: 'not-allowed'
+                              }
+                            }}
+                          >
+                            Tambah ({remainingTwinDates.length} tanggal)
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="contained" 
+                            size="medium" 
+                            onClick={handleAddDate}
+                            disabled={!selectionDate.startDate}
+                            sx={{
+                              bgcolor: '#6BA3D0',
+                              color: 'white',
+                              textTransform: 'none',
+                              fontSize: '0.8125rem',
+                              fontWeight: 600,
+                              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                              borderRadius: 1.5,
+                              px: 2.5,
+                              py: 0.75,
+                              minWidth: '130px',
+                              height: '38px',
+                              boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)',
+                              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                              '&:hover': {
+                                bgcolor: '#5A9FD0',
+                                boxShadow: '0 4px 8px rgba(107, 163, 208, 0.3)',
+                                transform: 'translateY(-1px)'
+                              },
+                              '&:active': {
+                                transform: 'translateY(0)',
+                                boxShadow: '0 2px 4px rgba(107, 163, 208, 0.25)'
+                              },
+                              '&:disabled': {
+                                bgcolor: '#E2E8F0',
+                                color: '#94A3B8',
+                                boxShadow: 'none',
+                                transform: 'none',
+                                cursor: 'not-allowed'
+                              }
+                            }}
+                          >
+                            Tambah Tanggal
+                          </Button>
+                        )}
+                      </>
+                    ) : (
+                      <Button 
+                        variant="contained" 
+                        size="medium" 
+                        onClick={handleAddTwinDatesPresetMultiYear}
+                        disabled={selectedYearsForTwinPreset.length === 0 || selectedMonthsForTwinPreset.length === 0}
+                        sx={{
+                          bgcolor: '#6BA3D0',
+                          color: 'white',
+                          textTransform: 'none',
+                          fontSize: '0.8125rem',
+                          fontWeight: 600,
+                          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                          borderRadius: 1.5,
+                          px: 2.5,
+                          py: 0.75,
+                          minWidth: '130px',
+                          height: '38px',
+                          boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)',
+                          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                          '&:hover': {
+                            bgcolor: '#5A9FD0',
+                            boxShadow: '0 4px 8px rgba(107, 163, 208, 0.3)',
+                            transform: 'translateY(-1px)'
+                          },
+                          '&:active': {
+                            transform: 'translateY(0)',
+                            boxShadow: '0 2px 4px rgba(107, 163, 208, 0.25)'
+                          },
+                          '&:disabled': {
+                            bgcolor: '#E2E8F0',
+                            color: '#94A3B8',
+                            boxShadow: 'none',
+                            transform: 'none',
+                            cursor: 'not-allowed'
+                          }
+                        }}
+                      >
+                        Tambah ({remainingTwinDatesMultiYear} tanggal)
+                      </Button>
+                    )}
                   </Box>
                 </Box>
               </Paper>
@@ -1022,7 +1510,7 @@ export const SingleDatePickerWithYear = ({
             lineHeight: 1.5,
             whiteSpace: 'nowrap'
           }}>
-            {specificDates.length}/30
+            {specificDates.length} tanggal dipilih
           </Typography>
         </Box>
       </Box>
@@ -1080,6 +1568,15 @@ export const SingleDatePickerWithYear = ({
           })}
         </Box>
       )}
+
+      {/* Alert Modal */}
+      <AlertModal
+        open={alertState.open}
+        onClose={closeAlert}
+        title={alertState.title}
+        message={alertState.message}
+        severity={alertState.severity}
+      />
     </Box>
   );
 };

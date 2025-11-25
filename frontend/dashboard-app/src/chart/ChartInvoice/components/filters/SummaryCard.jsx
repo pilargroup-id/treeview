@@ -25,7 +25,7 @@ function SummaryCard({ businessUnits, selectedYears, dateFilterType, invoiceData
     return 'Belum dimuat';
   };
 
-  // Filter business unit 
+  // Filter BU
   const getBusinessUnitText = () => {
     if (businessUnits && businessUnits.length > 0) {
       return businessUnits.join(', ');

@@ -187,35 +187,57 @@ export async function loadInvoiceSales({
   specificDates,
   availableYears = null,
   setInvoiceData,
-  setInvoiceLoading
+  setInvoiceLoading,
+  showAlert = null
 }) {
   // Validasi
   if (businessUnits.length === 0) {
-    alert('Pilih minimal 1 Business Unit');
+    if (showAlert) {
+      showAlert('Pilih minimal 1 Business Unit', { severity: 'warning' });
+    } else {
+      window.alert('Pilih minimal 1 Business Unit');
+    }
     return;
   }
   
   if (dateFilterType === 'year' && years.length === 0) {
-    alert('Pilih minimal 1 tahun');
+    if (showAlert) {
+      showAlert('Pilih minimal 1 tahun', { severity: 'warning' });
+    } else {
+      window.alert('Pilih minimal 1 tahun');
+    }
     return;
   }
   
   if (dateFilterType === 'range') {
     if (!rangeDates || rangeDates.length === 0) {
-      alert('Tambahkan minimal 1 range tanggal');
+      if (showAlert) {
+        showAlert('Tambahkan minimal 1 range tanggal', { severity: 'warning' });
+      } else {
+        window.alert('Tambahkan minimal 1 range tanggal');
+      }
       return;
     }
     
     const MAX_RANGE_DATES = 20;
     if (rangeDates.length > MAX_RANGE_DATES) {
-      alert(`Maksimal ${MAX_RANGE_DATES} range yang bisa dipilih untuk menghindari error. Saat ini ada ${rangeDates.length} range.`);
+      const msg = `Maksimal ${MAX_RANGE_DATES} range yang bisa dipilih untuk menghindari error. Saat ini ada ${rangeDates.length} range.`;
+      if (showAlert) {
+        showAlert(msg, { severity: 'warning' });
+      } else {
+        window.alert(msg);
+      }
       return;
     }
   }
   
   if (dateFilterType === 'specific') {
     if (specificDates.length === 0) {
-      alert('Tambahkan minimal 1 tanggal');
+      if (showAlert) {
+        showAlert('Tambahkan minimal 1 tanggal', { severity: 'warning' });
+      } else {
+        window.alert('Tambahkan minimal 1 tanggal');
+      }
       return;
     }
     
@@ -229,7 +251,12 @@ export async function loadInvoiceSales({
     const MAX_API_DATES = 30;
     
     if (specificDates.length > MAX_API_DATES) {
-      alert(`Total tanggal yang akan dikirim (${specificDates.length}) melebihi batas API (${MAX_API_DATES}).`);
+      const msg = `Total tanggal yang akan dikirim (${specificDates.length}) melebihi batas API (${MAX_API_DATES}).`;
+      if (showAlert) {
+        showAlert(msg, { severity: 'warning' });
+      } else {
+        window.alert(msg);
+      }
       return;
     }
   }
@@ -286,10 +313,20 @@ export async function loadInvoiceSales({
       if (errors.length > 0) {
         console.warn('Some ranges failed to load:', errors);
         if (allData.length === 0) {
-          alert('Gagal memuat data untuk semua range. ' + errors.join('; '));
+          const msg = 'Gagal memuat data untuk semua range. ' + errors.join('; ');
+          if (showAlert) {
+            showAlert(msg, { severity: 'error' });
+          } else {
+            window.alert(msg);
+          }
           return;
         } else {
-          alert('Beberapa range gagal dimuat: ' + errors.join('; '));
+          const msg = 'Beberapa range gagal dimuat: ' + errors.join('; ');
+          if (showAlert) {
+            showAlert(msg, { severity: 'warning' });
+          } else {
+            window.alert(msg);
+          }
         }
       }
       
@@ -319,7 +356,12 @@ export async function loadInvoiceSales({
         });
       } catch (buildError) {
         console.error('Error building API params:', buildError);
-        alert(buildError.message || 'Format tanggal tidak valid. Pastikan format tanggal benar (MM-DD).');
+        const msg = buildError.message || 'Format tanggal tidak valid. Pastikan format tanggal benar (MM-DD).';
+        if (showAlert) {
+          showAlert(msg, { severity: 'error' });
+        } else {
+          window.alert(msg);
+        }
         return;
       }
       
@@ -329,7 +371,12 @@ export async function loadInvoiceSales({
       
       if (url.length > 2000) {
         console.error('URL terlalu panjang:', url.length);
-        alert(`URL request terlalu panjang (${url.length} karakter). Kurangi jumlah tanggal yang dipilih.`);
+        const msg = `URL request terlalu panjang (${url.length} karakter). Kurangi jumlah tanggal yang dipilih.`;
+        if (showAlert) {
+          showAlert(msg, { severity: 'warning' });
+        } else {
+          window.alert(msg);
+        }
         return;
       }
       
@@ -339,9 +386,19 @@ export async function loadInvoiceSales({
       } catch (fetchError) {
         console.error('Fetch error:', fetchError);
         if (fetchError.message && fetchError.message.includes('Failed to fetch')) {
-          alert('Gagal menghubungi server. Periksa koneksi internet atau coba kurangi jumlah tanggal yang dipilih.');
+          const msg = 'Gagal menghubungi server. Periksa koneksi internet atau coba kurangi jumlah tanggal yang dipilih.';
+          if (showAlert) {
+            showAlert(msg, { severity: 'error' });
+          } else {
+            window.alert(msg);
+          }
         } else {
-          alert('Error: ' + (fetchError.message || 'Unknown error'));
+          const msg = 'Error: ' + (fetchError.message || 'Unknown error');
+          if (showAlert) {
+            showAlert(msg, { severity: 'error' });
+          } else {
+            window.alert(msg);
+          }
         }
         return;
       }
@@ -372,7 +429,12 @@ export async function loadInvoiceSales({
           console.error('Error reading error response:', textError);
         }
         
-        alert(`Error dari server (${response.status}): ${errorMessage}`);
+        const msg = `Error dari server (${response.status}): ${errorMessage}`;
+        if (showAlert) {
+          showAlert(msg, { severity: 'error' });
+        } else {
+          window.alert(msg);
+        }
         return;
       }
       
@@ -382,7 +444,12 @@ export async function loadInvoiceSales({
         result = JSON.parse(responseText);
       } catch (jsonError) {
         console.error('Error parsing JSON response:', jsonError);
-        alert('Error memproses response dari server. Response mungkin tidak valid.');
+        const msg = 'Error memproses response dari server. Response mungkin tidak valid.';
+        if (showAlert) {
+          showAlert(msg, { severity: 'error' });
+        } else {
+          window.alert(msg);
+        }
         return;
       }
       
@@ -401,18 +468,33 @@ export async function loadInvoiceSales({
           setInvoiceData(result.data);
         } else {
           console.error('Data dari API bukan array:', result.data);
-          alert('Format data tidak valid dari server. Data yang diterima: ' + (typeof result.data));
+          const msg = 'Format data tidak valid dari server. Data yang diterima: ' + (typeof result.data);
+          if (showAlert) {
+            showAlert(msg, { severity: 'error' });
+          } else {
+            window.alert(msg);
+          }
         }
       } else {
         const errorMessage = result.message || result.error || 'Unknown error';
         console.error('API returned error:', result);
-        alert('Error dari server: ' + errorMessage);
+        const msg = 'Error dari server: ' + errorMessage;
+        if (showAlert) {
+          showAlert(msg, { severity: 'error' });
+        } else {
+          window.alert(msg);
+        }
       }
     }
     
   } catch (error) {
     console.error('Error:', error);
-    alert('Failed to load data: ' + (error.message || 'Unknown error'));
+    const msg = 'Failed to load data: ' + (error.message || 'Unknown error');
+    if (showAlert) {
+      showAlert(msg, { severity: 'error' });
+    } else {
+      window.alert(msg);
+    }
   } finally {
     setInvoiceLoading(false);
   }
@@ -431,7 +513,8 @@ export async function refreshData({
   setInvoiceData,
   setInvoiceLoading,
   setYearSummary,
-  setYearSummaryLoading
+  setYearSummaryLoading,
+  showAlert = null
 }) {
   try {
     setInvoiceLoading(true);
@@ -455,7 +538,8 @@ export async function refreshData({
             specificDates,
             availableYears,
             setInvoiceData,
-            setInvoiceLoading
+            setInvoiceLoading,
+            showAlert
           });
         } catch (error) {
           console.error('Error loading invoice data on refresh:', error);

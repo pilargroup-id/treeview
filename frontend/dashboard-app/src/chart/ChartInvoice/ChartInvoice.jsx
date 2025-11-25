@@ -26,6 +26,8 @@ import YearCards from './components/filters/YearCards';
 import RangeDateFilter from './components/filters/RangeDateFilter';
 import SpecificDateFilter from './components/filters/SpecificDateFilter';
 import SummaryCard from './components/filters/SummaryCard';
+import AlertModal from './components/AlertModal';
+import { useAlert } from './hooks/useAlert';
 import { formatCurrency, formatShortNumber, getAvailableYears } from './utils';
 import { loadYearSummary, loadInvoiceSales, refreshData } from './apiService';
 import { generateChartConfig } from './chartConfig';
@@ -57,6 +59,7 @@ function ChartInvoice() {
   const [showDetail, setShowDetail] = useState(false);
   const invoiceChartRef = useRef(null);
   const showDetailRef = useRef(showDetail);
+  const { alertState, showAlert, showError, showWarning, closeAlert } = useAlert();
   
   useEffect(() => {
     showDetailRef.current = showDetail;
@@ -85,7 +88,6 @@ function ChartInvoice() {
           const meta = chart.getDatasetMeta(datasetIndex);
           if (!meta || !meta.data) return;
           
-          // Cek apakah dataset visible 
           if (meta.hidden || !chart.isDatasetVisible(datasetIndex)) return;
           
           meta.data.forEach((point, index) => {
@@ -288,7 +290,8 @@ function ChartInvoice() {
       setInvoiceData,
       setInvoiceLoading,
       setYearSummary,
-      setYearSummaryLoading
+      setYearSummaryLoading,
+      showAlert
     });
   };
 
@@ -333,7 +336,7 @@ function ChartInvoice() {
         const parts = dateObj.split('-');
         if (parts.length !== 2) {
           console.error('Invalid dateObj format:', dateObj);
-          alert('Format tanggal tidak valid');
+          showWarning('Format tanggal tidak valid');
           return;
         }
         const currentYear = new Date().getFullYear();
@@ -342,14 +345,14 @@ function ChartInvoice() {
         dateWithYear = dateObj;
       } else {
         console.error('Invalid dateObj:', dateObj);
-        alert('Format tanggal tidak valid');
+        showWarning('Format tanggal tidak valid');
         return;
       }
       
       const parts = dateWithYear.monthDay.split('-');
       if (parts.length !== 2) {
         console.error('Invalid monthDay format:', dateWithYear.monthDay);
-        alert('Format tanggal tidak valid. Gunakan format MM-DD (contoh: 12-25)');
+        showWarning('Format tanggal tidak valid. Gunakan format MM-DD (contoh: 12-25)');
         return;
       }
       
@@ -358,20 +361,13 @@ function ChartInvoice() {
       
       if (isNaN(month) || month < 1 || month > 12) {
         console.error('Invalid month:', month);
-        alert('Bulan tidak valid');
+        showWarning('Bulan tidak valid');
         return;
       }
       
       if (isNaN(day) || day < 1 || day > 31) {
         console.error('Invalid day:', day);
-        alert('Hari tidak valid');
-        return;
-      }
-      
-      // Validasi jumlah tanggal
-      const MAX_SPECIFIC_DATES = 30;
-      if (specificDates.length >= MAX_SPECIFIC_DATES) {
-        alert(`Maksimal ${MAX_SPECIFIC_DATES} tanggal yang bisa dipilih untuk menghindari error`);
+        showWarning('Hari tidak valid');
         return;
       }
       
@@ -384,13 +380,13 @@ function ChartInvoice() {
       });
       
       if (dateExists) {
-        alert(`Tanggal ${day}/${month}/${dateWithYear.year} sudah dipilih`);
+        showWarning(`Tanggal ${day}/${month}/${dateWithYear.year} sudah dipilih`);
         return;
       }
       
       const testDate = dayjs(`${dateWithYear.year}-${dateWithYear.monthDay}`);
       if (!testDate.isValid() || testDate.month() !== (month - 1) || testDate.date() !== day) {
-        alert(`Tanggal ${day}/${month}/${dateWithYear.year} tidak valid. Silakan pilih tanggal yang valid.`);
+        showWarning(`Tanggal ${day}/${month}/${dateWithYear.year} tidak valid. Silakan pilih tanggal yang valid.`);
         return;
       }
       
@@ -418,7 +414,7 @@ function ChartInvoice() {
       });
     } catch (error) {
       console.error('Unexpected error in addSpecificDate:', error);
-      alert('Terjadi error: ' + (error.message || 'Unknown error'));
+      showError('Terjadi error: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -443,7 +439,7 @@ function ChartInvoice() {
       // Validasi input
       if (!range || !range.start || !range.end || !range.year) {
         console.error('Invalid range:', range);
-        alert('Format range tidak valid. Pastikan tahun sudah dipilih dari card tahun.');
+        showWarning('Format range tidak valid. Pastikan tahun sudah dipilih dari card tahun.');
         return;
       }
       
@@ -458,13 +454,13 @@ function ChartInvoice() {
       };
       
       if (!isValidMonthDay(range.start) || !isValidMonthDay(range.end)) {
-        alert('Format tanggal tidak valid. Gunakan format MM-DD (contoh: 12-25)');
+        showWarning('Format tanggal tidak valid. Gunakan format MM-DD (contoh: 12-25)');
         return;
       }
       
       const MAX_RANGE_DATES = 1;
       if (rangeDates.length >= MAX_RANGE_DATES) {
-        alert(`Maksimal ${MAX_RANGE_DATES} range yang bisa dipilih. Hapus range yang ada terlebih dahulu.`);
+        showWarning(`Maksimal ${MAX_RANGE_DATES} range yang bisa dipilih. Hapus range yang ada terlebih dahulu.`);
         return;
       }
       
@@ -473,7 +469,7 @@ function ChartInvoice() {
       );
       
       if (rangeExists) {
-        alert(`Range tanggal ini untuk tahun ${range.year} sudah dipilih`);
+        showWarning(`Range tanggal ini untuk tahun ${range.year} sudah dipilih`);
         return;
       }
       
@@ -481,12 +477,12 @@ function ChartInvoice() {
       const testEndDate = dayjs(`${range.year}-${range.end}`);
       
       if (!testStartDate.isValid() || !testEndDate.isValid()) {
-        alert('Tanggal tidak valid. Silakan pilih tanggal yang valid.');
+        showWarning('Tanggal tidak valid. Silakan pilih tanggal yang valid.');
         return;
       }
       
       if (testEndDate.isBefore(testStartDate)) {
-        alert('Tanggal akhir harus lebih besar atau sama dengan tanggal mulai');
+        showWarning('Tanggal akhir harus lebih besar atau sama dengan tanggal mulai');
         return;
       }
       
@@ -512,7 +508,7 @@ function ChartInvoice() {
       });
     } catch (error) {
       console.error('Unexpected error in addRangeDate:', error);
-      alert('Terjadi error: ' + (error.message || 'Unknown error'));
+      showError('Terjadi error: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -531,7 +527,8 @@ function ChartInvoice() {
       specificDates,
       availableYears,
       setInvoiceData,
-      setInvoiceLoading
+      setInvoiceLoading,
+      showAlert
     });
   };
 
@@ -557,9 +554,7 @@ function ChartInvoice() {
       height: '100%',
       display: 'flex',
       flexDirection: 'column',
-      // Background gradient subtle yang menarik dengan kontras baik
       background: 'linear-gradient(135deg, #F5F7FA 0%, #F8F9FA 50%, #FAFBFC 100%)',
-      // Alternatif: Background solid yang lebih menarik
       // bgcolor: '#F5F7FA',
       pt: { xs: 3, sm: 4, md: 5 },
       px: { xs: 3, sm: 4, md: 5 },
@@ -846,6 +841,15 @@ function ChartInvoice() {
           )}
         </Box>
       </Card>
+
+      {/* Alert Modal */}
+      <AlertModal
+        open={alertState.open}
+        onClose={closeAlert}
+        title={alertState.title}
+        message={alertState.message}
+        severity={alertState.severity}
+      />
     </Box>
   );
 }

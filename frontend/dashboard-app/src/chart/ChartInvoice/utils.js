@@ -102,6 +102,6 @@ export const COLOR_BUSINESS_UNIT_SPECIFIC = {
 
 export const COLOR_BUSINESS_UNIT_RANGE = {
   'Gosave': { sales: 'rgb(107, 163, 208)', quantity: 'rgb(137, 183, 220)' },   // Biru soft
-  'Goto': { sales: 'rgb(107, 163, 208)', quantity: 'rgb(137, 183, 220)' }     // Biru soft
+  'Goto': { sales: 'rgb(244, 67, 54)', quantity: 'rgb(255, 82, 82)' }          // Merah cerah
 };
 

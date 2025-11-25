@@ -1,36 +1,29 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Box, Typography, Button, Chip, Paper, Portal, Backdrop, Fade, Card } from "@mui/material";
+import { Box, Typography, Button, Chip, Paper, Portal, Backdrop, Fade } from "@mui/material";
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
-import BusinessIcon from '@mui/icons-material/Business';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import { DateRangePicker } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
-import { useAlert } from '../../hooks/useAlert';
-import AlertModal from '../AlertModal';
 
-const formatDateDisplay = (monthDay, year) => {
-  const [month, day] = monthDay.split('-');
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  const dateStr = `${parseInt(day)} ${monthNames[parseInt(month) - 1]}`;
-  return year ? `${dateStr} ${year}` : dateStr;
+const monthNames = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+];
+
+const formatMonthDisplay = (month, year) => {
+  const monthIndex = parseInt(month) - 1;
+  const monthName = monthNames[monthIndex] || month;
+  return year ? `${monthName} ${year}` : monthName;
 };
 
-export const DateRangePickerWithPresets = ({ 
-  rangeDates = [],
+export const MonthRangePicker = ({ 
+  rangeMonths = [],
   onAddRange,
   onRemoveRange,
   availableYears = [],
-  selectedYears = [],
-  businessUnits = [],
-  onBusinessUnitToggle,
-  dataType = 'both',
-  onDataTypeChange,
-  invoiceData = []
+  monthlyData = [],
+  onError = null
 }) => {
-  const { alertState, showWarning, showError, closeAlert } = useAlert();
   const [selectionRange, setSelectionRange] = useState({
     startDate: new Date(),
     endDate: new Date(),
@@ -42,17 +35,17 @@ export const DateRangePickerWithPresets = ({
   const anchorRef = useRef(null);
   const pickerRef = useRef(null);
   
-  const MAX_RANGE_DATES = 1; 
+  const MAX_RANGE_MONTHS = 1; 
 
   useEffect(() => {
-    if (rangeDates.length > 0) {
+    if (rangeMonths.length > 0) {
       setSelectionRange({
         startDate: new Date(),
         endDate: new Date(),
         key: 'selection',
       });
     }
-  }, [rangeDates]);
+  }, [rangeMonths]);
 
   const handleSelect = (ranges) => {
     setSelectionRange(ranges.selection);
@@ -62,66 +55,72 @@ export const DateRangePickerWithPresets = ({
     try {
       // Validasi input
       if (!selectionRange.startDate || !selectionRange.endDate) {
-        showWarning('Pilih tanggal mulai dan akhir terlebih dahulu');
+        const errorMsg = 'Pilih bulan mulai dan akhir terlebih dahulu';
+        if (onError) onError(errorMsg);
+        else alert(errorMsg);
         return;
       }
       
-      const year = selectionRange.startDate.getFullYear();
+      const startYear = selectionRange.startDate.getFullYear();
+      const endYear = selectionRange.endDate.getFullYear();
       
       const startMonth = String(selectionRange.startDate.getMonth() + 1).padStart(2, '0');
-      const startDay = String(selectionRange.startDate.getDate()).padStart(2, '0');
       const endMonth = String(selectionRange.endDate.getMonth() + 1).padStart(2, '0');
-      const endDay = String(selectionRange.endDate.getDate()).padStart(2, '0');
       
-      const startMonthDay = `${startMonth}-${startDay}`;
-      const endMonthDay = `${endMonth}-${endDay}`;
-      
-      // Validasi tanggal
-      const testStartDate = new Date(year, parseInt(startMonth) - 1, parseInt(startDay));
-      const testEndDate = new Date(year, parseInt(endMonth) - 1, parseInt(endDay));
-      
-      // Validasi tanggal mulai valid
-      if (testStartDate.getMonth() !== (parseInt(startMonth) - 1) || 
-          testStartDate.getDate() !== parseInt(startDay)) {
-        showWarning('Tanggal mulai tidak valid');
+      // Validasi tahun harus sama
+      if (startYear !== endYear) {
+        const errorMsg = 'Bulan mulai dan akhir harus dalam tahun yang sama';
+        if (onError) onError(errorMsg);
+        else alert(errorMsg);
         return;
       }
       
-      if (testEndDate.getMonth() !== (parseInt(endMonth) - 1) || 
-          testEndDate.getDate() !== parseInt(endDay)) {
-        showWarning('Tanggal akhir tidak valid');
+      // Validasi bulan akhir harus >= bulan mulai
+      if (parseInt(endMonth) < parseInt(startMonth)) {
+        const errorMsg = 'Bulan akhir harus >= bulan mulai';
+        if (onError) onError(errorMsg);
+        else alert(errorMsg);
         return;
       }
       
-      if (testEndDate < testStartDate) {
-        showWarning('Tanggal akhir harus >= tanggal mulai');
+      // Validasi range maksimal 12 bulan
+      const diffInMonths = parseInt(endMonth) - parseInt(startMonth) + 1;
+      if (diffInMonths > 12) {
+        const errorMsg = 'Range bulan maksimal 12 bulan';
+        if (onError) onError(errorMsg);
+        else alert(errorMsg);
         return;
       }
       
-      const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
-      const diffInDays = Math.floor((testEndDate - testStartDate) / MILLISECONDS_PER_DAY) + 1;
-      if (diffInDays > 31) {
-        showWarning('Range tanggal maksimal 31 hari');
+      // Validasi minimal 1 bulan
+      if (diffInMonths < 1) {
+        const errorMsg = 'Range bulan minimal 1 bulan';
+        if (onError) onError(errorMsg);
+        else alert(errorMsg);
         return;
       }
       
-      const rangeExists = rangeDates.some(range => 
-        range.start === startMonthDay && range.end === endMonthDay && range.year === year
+      const rangeExists = rangeMonths.some(range => 
+        range.start === startMonth && range.end === endMonth && range.year === startYear
       );
       
       if (rangeExists) {
-        showWarning('Range dengan tanggal ini sudah ada');
+        const errorMsg = 'Range dengan bulan ini sudah ada';
+        if (onError) onError(errorMsg);
+        else alert(errorMsg);
         return;
       }
       
       // Cek maksimal 
-      if (MAX_RANGE_DATES === 1 && rangeDates.length >= 1) {
-        showWarning(`Maksimal ${MAX_RANGE_DATES} range yang bisa dipilih. Hapus range yang ada terlebih dahulu.`);
+      if (MAX_RANGE_MONTHS === 1 && rangeMonths.length >= 1) {
+        const errorMsg = `Maksimal ${MAX_RANGE_MONTHS} range yang bisa dipilih. Hapus range yang ada terlebih dahulu.`;
+        if (onError) onError(errorMsg);
+        else alert(errorMsg);
         return;
       }
       
       try {
-        onAddRange({ start: startMonthDay, end: endMonthDay, year });
+        onAddRange({ start: startMonth, end: endMonth, year: startYear });
         
         setSelectionRange({
           startDate: new Date(),
@@ -132,11 +131,15 @@ export const DateRangePickerWithPresets = ({
         setShowPicker(false);
       } catch (addError) {
         console.error('Error adding range:', addError);
-        showError('Error menambahkan range: ' + (addError.message || 'Unknown error'));
+        const errorMsg = 'Error menambahkan range: ' + (addError.message || 'Unknown error');
+        if (onError) onError(errorMsg);
+        else alert(errorMsg);
       }
     } catch (error) {
       console.error('Unexpected error in handleAddRange:', error);
-      showError('Terjadi error: ' + (error.message || 'Unknown error'));
+      const errorMsg = 'Terjadi error: ' + (error.message || 'Unknown error');
+      if (onError) onError(errorMsg);
+      else alert(errorMsg);
     }
   };
 
@@ -306,7 +309,7 @@ export const DateRangePickerWithPresets = ({
           letterSpacing: '-0.01em',
           lineHeight: 1.3
         }}>
-          Range Tanggal (Bulan & Hari) - Max 1 Range, 31 Hari
+          Range Bulan - Max 1 Range, 12 Bulan
         </Typography>
       </Box>
 
@@ -316,7 +319,7 @@ export const DateRangePickerWithPresets = ({
           variant="outlined" 
           size="small" 
           onClick={() => setShowPicker(!showPicker)}
-          disabled={rangeDates.length >= MAX_RANGE_DATES}
+          disabled={rangeMonths.length >= MAX_RANGE_MONTHS}
           startIcon={
             <CalendarMonthRoundedIcon 
               sx={{ 
@@ -359,7 +362,7 @@ export const DateRangePickerWithPresets = ({
             }
           }}
         >
-          {showPicker ? 'Tutup Kalender' : 'Pilih Range Tanggal'}
+          {showPicker ? 'Tutup Kalender' : 'Pilih Range Bulan'}
         </Button>
 
         {/* Backdrop Overlay dengan Portal */}
@@ -401,7 +404,6 @@ export const DateRangePickerWithPresets = ({
                   '& *': {
                     boxSizing: 'border-box',
                   },
-                  // Sembunyikan preset ranges
                   '& .rdr-DefinedRangesWrapper': {
                     display: 'none !important',
                   },
@@ -512,7 +514,7 @@ export const DateRangePickerWithPresets = ({
                     fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
                     letterSpacing: '-0.01em'
                   }}>
-                    Pilih Range Tanggal
+                    Pilih Range Bulan
                   </Typography>
                   <Button
                     onClick={() => {
@@ -608,7 +610,7 @@ export const DateRangePickerWithPresets = ({
                       variant="contained" 
                       size="medium" 
                       onClick={handleAddRange}
-                      disabled={rangeDates.length >= MAX_RANGE_DATES}
+                      disabled={rangeMonths.length >= MAX_RANGE_MONTHS}
                       sx={{
                         bgcolor: '#6BA3D0',
                         color: 'white',
@@ -660,290 +662,12 @@ export const DateRangePickerWithPresets = ({
         fontStyle: 'italic'
       }}>
         {showPicker 
-          ? '* Pilih range tanggal menggunakan kalender, lalu klik "Tambah Range". Tahun akan diambil dari tanggal yang dipilih.'
-          : '* Klik tombol "Pilih Range Tanggal" untuk memilih range tanggal.'}
+          ? '* Pilih range bulan menggunakan kalender (pilih tanggal di bulan yang diinginkan). Bulan dan tahun akan diambil dari tanggal yang dipilih. Lalu klik "Tambah Range".'
+          : '* Klik tombol "Pilih Range Bulan" untuk memilih range bulan. Pilih tanggal di bulan yang diinginkan untuk menentukan bulan.'}
       </Typography>
 
-      {/* Preview Card - Ringkasan Data */}
-      <Box sx={{ 
-        mt: 1.5,
-        pt: 1.5,
-        borderTop: '1px solid #F1F5F9'
-      }}>
-        <Typography sx={{ 
-          fontSize: '0.875rem', 
-          fontWeight: 600, 
-          color: '#0F172A',
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-          letterSpacing: '-0.01em',
-          lineHeight: 1.3,
-          mb: 1
-        }}>
-          Ringkasan Data
-        </Typography>
-        
-        <Box sx={{ 
-          display: 'grid',
-          gridTemplateColumns: { 
-            xs: 'repeat(2, 1fr)', 
-            sm: 'repeat(2, 1fr)', 
-            md: 'repeat(4, 1fr)' 
-          },
-          gap: { xs: 1, md: 1.25 }
-        }}>
-          {/* Business Unit */}
-          <Card sx={{ 
-            bgcolor: '#FAFAFA', 
-            borderRadius: '12px', 
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-            border: '1px solid #E5E7EB',
-            p: { xs: 1.5, md: 2 },
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1,
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-            '&:hover': {
-              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
-              borderColor: '#D1D5DB',
-              bgcolor: '#FFFFFF',
-              transform: 'translateY(-1px)'
-            }
-          }}>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between'
-            }}>
-              <Typography sx={{ 
-                fontSize: '0.6875rem', 
-                color: '#757575',
-                fontWeight: 500,
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                lineHeight: 1.2,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5
-              }}>
-                <Box sx={{ 
-                  color: '#9E9E9E',
-                  display: 'flex',
-                  alignItems: 'center',
-                  fontSize: '0.875rem'
-                }}>
-                  <BusinessIcon />
-                </Box>
-                BUSINESS UNIT
-              </Typography>
-            </Box>
-            <Typography sx={{ 
-              fontSize: { xs: '0.875rem', md: '0.9375rem' }, 
-              fontWeight: 600, 
-              color: '#212121',
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-              lineHeight: 1.4,
-              wordBreak: 'break-word'
-            }}>
-              {businessUnits && businessUnits.length > 0 ? businessUnits.join(', ') : 'Belum dipilih'}
-            </Typography>
-          </Card>
-
-          {/* Range Tanggal */}
-          <Card sx={{ 
-            bgcolor: '#FAFAFA', 
-            borderRadius: '12px', 
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-            border: '1px solid #E5E7EB',
-            p: { xs: 1.5, md: 2 },
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1,
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-            '&:hover': {
-              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
-              borderColor: '#D1D5DB',
-              bgcolor: '#FFFFFF',
-              transform: 'translateY(-1px)'
-            }
-          }}>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-            }}>
-              <Typography sx={{ 
-                fontSize: '0.6875rem', 
-                color: '#757575',
-                fontWeight: 500,
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                lineHeight: 1.2,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5
-              }}>
-                <Box sx={{ 
-                  color: '#9E9E9E',
-                  display: 'flex',
-                  alignItems: 'center',
-                  fontSize: '0.875rem'
-                }}>
-                  <CalendarMonthIcon />
-                </Box>
-                RANGE TANGGAL
-              </Typography>
-            </Box>
-            <Typography sx={{ 
-              fontSize: { xs: '0.875rem', md: '0.9375rem' }, 
-              fontWeight: 600, 
-              color: '#212121',
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-              lineHeight: 1.4,
-              wordBreak: 'break-word'
-            }}>
-              {rangeDates && rangeDates.length > 0 
-                ? rangeDates.map(range => `${formatDateDisplay(range.start, range.year)} - ${formatDateDisplay(range.end, range.year)}`).join(', ')
-                : 'Belum dipilih'}
-            </Typography>
-          </Card>
-
-          {/* Status Data */}
-          <Card sx={{ 
-            bgcolor: '#FAFAFA', 
-            borderRadius: '12px', 
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-            border: '1px solid #E5E7EB',
-            p: { xs: 1.5, md: 2 },
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1,
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-            '&:hover': {
-              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
-              borderColor: '#D1D5DB',
-              bgcolor: '#FFFFFF',
-              transform: 'translateY(-1px)'
-            }
-          }}>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-            }}>
-              <Typography sx={{ 
-                fontSize: '0.6875rem', 
-                color: '#757575',
-                fontWeight: 500,
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                lineHeight: 1.2,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5
-              }}>
-                <Box sx={{ 
-                  color: '#9E9E9E',
-                  display: 'flex',
-                  alignItems: 'center',
-                  fontSize: '0.875rem'
-                }}>
-                  <CheckCircleIcon />
-                </Box>
-                STATUS DATA
-              </Typography>
-            </Box>
-            <Typography sx={{ 
-              fontSize: { xs: '0.875rem', md: '0.9375rem' }, 
-              fontWeight: 600, 
-              color: '#212121',
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-              lineHeight: 1.4,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.75
-            }}>
-              <Box
-                sx={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  backgroundColor: invoiceData && invoiceData.length > 0 ? '#6BA3D0' : '#BDBDBD',
-                  flexShrink: 0
-                }}
-              />
-              {invoiceData && invoiceData.length > 0 ? 'Dimuat' : 'Belum dimuat'}
-            </Typography>
-          </Card>
-
-          {/* Tipe Filter */}
-          <Card sx={{ 
-            bgcolor: '#FAFAFA', 
-            borderRadius: '12px', 
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-            border: '1px solid #E5E7EB',
-            p: { xs: 1.5, md: 2 },
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1,
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-            '&:hover': {
-              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
-              borderColor: '#D1D5DB',
-              bgcolor: '#FFFFFF',
-              transform: 'translateY(-1px)'
-            }
-          }}>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-            }}>
-              <Typography sx={{ 
-                fontSize: '0.6875rem', 
-                color: '#757575',
-                fontWeight: 500,
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                lineHeight: 1.2,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5
-              }}>
-                <Box sx={{ 
-                  color: '#9E9E9E',
-                  display: 'flex',
-                  alignItems: 'center',
-                  fontSize: '0.875rem'
-                }}>
-                  <FilterListIcon />
-                </Box>
-                TIPE FILTER
-              </Typography>
-            </Box>
-            <Typography sx={{ 
-              fontSize: { xs: '0.875rem', md: '0.9375rem' }, 
-              fontWeight: 600, 
-              color: '#212121',
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-              lineHeight: 1.4,
-              wordBreak: 'break-word'
-            }}>
-              Range Tanggal (Bulan & Hari)
-            </Typography>
-          </Card>
-        </Box>
-      </Box>
-
       {/* Daftar Range yang Sudah Ditambahkan */}
-      {rangeDates.length > 0 && (
+      {rangeMonths.length > 0 && (
         <Box sx={{ 
           display: 'flex', 
           flexWrap: 'wrap', 
@@ -952,10 +676,10 @@ export const DateRangePickerWithPresets = ({
           pt: 1.5,
           borderTop: '1px solid #F1F5F9'
         }}>
-          {rangeDates.map((range, index) => (
+          {rangeMonths.map((range, index) => (
             <Chip
               key={`${range.start}_${range.end}_${range.year}_${index}`}
-              label={`${formatDateDisplay(range.start, range.year)} - ${formatDateDisplay(range.end, range.year)}`}
+              label={`${formatMonthDisplay(range.start, range.year)} - ${formatMonthDisplay(range.end, range.year)}`}
               onDelete={() => onRemoveRange(range)}
               size="small"
               variant="outlined"
@@ -983,17 +707,9 @@ export const DateRangePickerWithPresets = ({
           ))}
         </Box>
       )}
-
-      {/* Alert Modal */}
-      <AlertModal
-        open={alertState.open}
-        onClose={closeAlert}
-        title={alertState.title}
-        message={alertState.message}
-        severity={alertState.severity}
-      />
     </Box>
   );
 };
 
-export default DateRangePickerWithPresets;
+export default MonthRangePicker;
+
