@@ -1,44 +1,17 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Box, Typography, Button, Chip, Paper, Portal, Backdrop, Fade, Select, MenuItem, Card, IconButton, Checkbox, FormControlLabel } from "@mui/material";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { Box, Typography, Button, Chip, Paper, Portal, Backdrop, Fade, Card, IconButton } from "@mui/material";
 import EventAvailableRoundedIcon from '@mui/icons-material/EventAvailableRounded';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import DoneAllIcon from '@mui/icons-material/DoneAll';
-import { DateRangePicker } from 'react-date-range';
-import 'react-date-range/dist/styles.css';
-import 'react-date-range/dist/theme/default.css';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { useAlert } from '../../hooks/useAlert';
 import AlertModal from '../AlertModal';
+import { formatDateDisplay, MONTH_OPTIONS } from './constants';
+import { TglKembarTahun, useTglKembarTahun } from './TglKembarTahun';
+import { TglKembarMultiTahun, useTglKembarMultiTahun } from './TglKembarMultiTahun';
+import { DatePickerManual } from './DatePickerManual';
 
-const TWIN_DATE_PRESETS = [
-  { monthDay: '01-01', label: '1 Januari' },
-  { monthDay: '02-02', label: '2 Februari' },
-  { monthDay: '03-03', label: '3 Maret' },
-  { monthDay: '04-04', label: '4 April' },
-  { monthDay: '05-05', label: '5 Mei' },
-  { monthDay: '06-06', label: '6 Juni' },
-  { monthDay: '07-07', label: '7 Juli' },
-  { monthDay: '08-08', label: '8 Agustus' },
-  { monthDay: '09-09', label: '9 September' },
-  { monthDay: '10-10', label: '10 Oktober' },
-  { monthDay: '11-11', label: '11 November' },
-  { monthDay: '12-12', label: '12 Desember' },
-];
-
-const formatDateDisplay = (dateObj) => {
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  if (typeof dateObj === 'string') {
-    const [month, day] = dateObj.split('-');
-    return `${parseInt(day)} ${monthNames[parseInt(month) - 1]}`;
-  }
-  // Jika object, ambil monthDay dan year
-  const { monthDay, year } = dateObj;
-  if (!monthDay || !year) return '';
-  const [month, day] = monthDay.split('-');
-  return `${parseInt(day)} ${monthNames[parseInt(month) - 1]} ${year}`;
-};
-
-export const SingleDatePickerWithYear = ({ 
+export const SingleDatePickerWithYear = ({  
   specificDates = [],
   onAddDate,
   onRemoveDate,
@@ -50,314 +23,42 @@ export const SingleDatePickerWithYear = ({
   invoiceData = []
 }) => {
   const { alertState, showWarning, showError, closeAlert } = useAlert();
+  
   // Generate tahun 
-  const years = React.useMemo(() => {
+  const years = useMemo(() => {
     return availableYears.length > 0 
       ? [...availableYears].sort((a, b) => b - a) 
       : [2025, 2024, 2023, 2022, 2021].sort((a, b) => b - a);
   }, [availableYears]);
   
-  const [selectionDate, setSelectionDate] = useState(() => {
-    const defaultYear = years.length > 0 ? years[0] : new Date().getFullYear();
-    return {
-      startDate: new Date(defaultYear, 0, 1),
-      endDate: new Date(defaultYear, 0, 1),
-      key: 'selection',
-    };
+  const [selectionDate, setSelectionDate] = useState({
+    startDate: null,
+    endDate: null,
+    key: 'selection',
   });
   
-    const [showPicker, setShowPicker] = useState(false);
-  
+  const [showPicker, setShowPicker] = useState(false);
   const anchorRef = useRef(null);
-  const pickerRef = useRef(null); 
+  const pickerRef = useRef(null);
 
-  useEffect(() => {
-    if (years.length > 0) {
-      const defaultYear = years[0];
-      // Hanya update
-      const currentYear = selectionDate.startDate?.getFullYear();
-      if (!currentYear || !availableYears.includes(currentYear)) {
-        setSelectionDate({
-          startDate: new Date(defaultYear, 0, 1),
-          endDate: new Date(defaultYear, 0, 1),
-          key: 'selection',
-        });
-      }
-    }
-  }, [availableYears, years]);
+  // State untuk preset tahun
+  const presetYear = useMemo(() => {
+    return selectionDate.startDate?.getFullYear() || null;
+  }, [selectionDate.startDate]);
 
-  const handleSelect = (ranges) => {
-    console.log('handleSelect called with ranges:', ranges);
-    const selection = ranges.selection;
-    if (selection.startDate) {
-      console.log('Setting selectionDate to:', selection.startDate);
-      setSelectionDate({
-        startDate: selection.startDate,
-        endDate: selection.startDate, 
-        key: 'selection',
-      });
-    } else {
-      console.log('No startDate in selection');
-    }
-  };
-
-  // Add Date
-  const handleAddDate = () => {
-    console.log('handleAddDate called');
-    console.log('selectionDate:', selectionDate);
-    console.log('availableYears:', availableYears);
-    console.log('specificDates:', specificDates);
-    
-    try {
-      if (!selectionDate.startDate) {
-        console.log('No startDate selected');
-        showWarning('Pilih tanggal terlebih dahulu');
-        return;
-      }
-      
-      const year = selectionDate.startDate.getFullYear();
-      console.log('Selected year:', year);
-      
-      if (availableYears.length > 0 && !availableYears.includes(year)) {
-        console.log('Year not in availableYears');
-        showWarning(`Tahun ${year} tidak tersedia. Silakan pilih tanggal dari tahun yang tersedia.`);
-        return;
-      }
-      
-      const month = String(selectionDate.startDate.getMonth() + 1).padStart(2, '0');
-      const day = String(selectionDate.startDate.getDate()).padStart(2, '0');
-      
-      const monthDay = `${month}-${day}`;
-      console.log('Formatted monthDay:', monthDay);
-      
-      const testDate = new Date(year, parseInt(month) - 1, parseInt(day));
-      
-      if (testDate.getMonth() !== (parseInt(month) - 1) || 
-          testDate.getDate() !== parseInt(day)) {
-        console.log('Invalid date');
-        showWarning('Tanggal tidak valid');
-        return;
-      }
-      
-      const dateWithYear = { year, monthDay };
-      console.log('dateWithYear to add:', dateWithYear);
-      
-      const dateExists = specificDates.some(date => {
-        if (typeof date === 'string') {
-          return date === monthDay;
-        }
-        return date.year === year && date.monthDay === monthDay;
-      });
-      
-      if (dateExists) {
-        console.log('Date already exists');
-        showWarning(`Tanggal ${day}/${month}/${year} sudah dipilih`);
-        return;
-      }
-      
-      
-      console.log('Calling onAddDate with:', dateWithYear);
-      try {
-        onAddDate(dateWithYear);
-        console.log('onAddDate called successfully');
-        
-        setSelectionDate({
-          startDate: new Date(),
-          endDate: new Date(),
-          key: 'selection',
-        });
-        
-        setShowPicker(false);
-      } catch (addError) {
-        console.error('Error adding date:', addError);
-        showError('Error menambahkan tanggal: ' + (addError.message || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Unexpected error in handleAddDate:', error);
-      showError('Terjadi error: ' + (error.message || 'Unknown error'));
-    }
-  };
-
-  const presetYear = React.useMemo(() => {
-    const fallbackYear = years.length > 0 ? years[0] : new Date().getFullYear();
-    return selectionDate.startDate?.getFullYear() || fallbackYear;
-  }, [selectionDate.startDate, years]);
-
-  const [presetYearOverride, setPresetYearOverride] = useState(presetYear);
+  const [presetYearOverride, setPresetYearOverride] = useState(null);
   
   // State untuk multi-select tahun pada preset tanggal kembar
   const [selectedYearsForTwinPreset, setSelectedYearsForTwinPreset] = useState([]);
   const [selectedMonthsForTwinPreset, setSelectedMonthsForTwinPreset] = useState([]);
   const [selectedMonthsForSingleYear, setSelectedMonthsForSingleYear] = useState([]);
   const [showMultiYearPreset, setShowMultiYearPreset] = useState(false);
+  const [showManualMode, setShowManualMode] = useState(true);
   
-  // Mapping bulan untuk preset
-  const MONTH_OPTIONS = [
-    { value: 1, label: 'Januari', monthDay: '01-01' },
-    { value: 2, label: 'Februari', monthDay: '02-02' },
-    { value: 3, label: 'Maret', monthDay: '03-03' },
-    { value: 4, label: 'April', monthDay: '04-04' },
-    { value: 5, label: 'Mei', monthDay: '05-05' },
-    { value: 6, label: 'Juni', monthDay: '06-06' },
-    { value: 7, label: 'Juli', monthDay: '07-07' },
-    { value: 8, label: 'Agustus', monthDay: '08-08' },
-    { value: 9, label: 'September', monthDay: '09-09' },
-    { value: 10, label: 'Oktober', monthDay: '10-10' },
-    { value: 11, label: 'November', monthDay: '11-11' },
-    { value: 12, label: 'Desember', monthDay: '12-12' },
-  ];
-
-  useEffect(() => {
-    const validYear = availableYears.length > 0
-      ? availableYears.includes(presetYearOverride) ? presetYearOverride : presetYear
-      : presetYear;
-    if (validYear !== presetYearOverride) {
-      setPresetYearOverride(validYear);
-    }
-  }, [presetYear, availableYears]);
+  // State untuk preview dates di mode manual
+  const [manualPreviewDates, setManualPreviewDates] = useState([]);
 
   const activePresetYear = presetYearOverride || presetYear;
-
-  const getIsSameDate = (date, year, monthDay) => {
-    if (typeof date === 'string') {
-      return date === monthDay;
-    }
-    return date.year === year && date.monthDay === monthDay;
-  };
-
-  const remainingTwinDates = React.useMemo(() => {
-    // Jika ada bulan yang dipilih, hanya hitung bulan yang dipilih
-    if (selectedMonthsForSingleYear.length > 0) {
-      return MONTH_OPTIONS
-        .filter(monthOption => selectedMonthsForSingleYear.includes(monthOption.value))
-        .filter(monthOption => 
-          !specificDates.some(date => getIsSameDate(date, activePresetYear, monthOption.monthDay))
-        );
-    }
-    // Jika tidak ada bulan yang dipilih, hitung semua
-    return TWIN_DATE_PRESETS.filter(preset => 
-      !specificDates.some(date => getIsSameDate(date, activePresetYear, preset.monthDay))
-    );
-  }, [specificDates, activePresetYear, selectedMonthsForSingleYear]);
-
-  // Hitung jumlah tanggal kembar yang akan ditambahkan untuk multi-tahun preset
-  const remainingTwinDatesMultiYear = React.useMemo(() => {
-    let count = 0;
-    selectedYearsForTwinPreset.forEach(year => {
-      selectedMonthsForTwinPreset.forEach(monthValue => {
-        const monthOption = MONTH_OPTIONS.find(m => m.value === monthValue);
-        if (monthOption) {
-          const exists = specificDates.some(date => getIsSameDate(date, year, monthOption.monthDay));
-          if (!exists) {
-            count++;
-          }
-        }
-      });
-    });
-    return count;
-  }, [specificDates, selectedYearsForTwinPreset, selectedMonthsForTwinPreset]);
-
-  const handleAddTwinDatesPreset = () => {
-    try {
-      const year = activePresetYear;
-
-      if (availableYears.length > 0 && !availableYears.includes(year)) {
-        showWarning(`Tahun ${year} tidak tersedia. Pilih tahun yang ada di daftar terlebih dahulu.`);
-        return;
-      }
-
-      // Jika ada bulan yang dipilih, hanya tambahkan bulan yang dipilih
-      let datesToAdd = [];
-      if (selectedMonthsForSingleYear.length > 0) {
-        // Sort bulan yang dipilih untuk memastikan urutan benar
-        const sortedMonths = [...selectedMonthsForSingleYear].sort((a, b) => a - b);
-        sortedMonths.forEach(monthValue => {
-          const monthOption = MONTH_OPTIONS.find(m => m.value === monthValue);
-          if (monthOption) {
-            const exists = specificDates.some(date => getIsSameDate(date, year, monthOption.monthDay));
-            if (!exists) {
-              datesToAdd.push({ year, monthDay: monthOption.monthDay });
-            }
-          }
-        });
-      } else {
-        // Jika tidak ada bulan yang dipilih, tambahkan semua
-        datesToAdd = TWIN_DATE_PRESETS
-          .filter(preset => !specificDates.some(date => getIsSameDate(date, year, preset.monthDay)))
-          .map(preset => ({ year, monthDay: preset.monthDay }));
-      }
-
-      if (datesToAdd.length === 0) {
-        if (selectedMonthsForSingleYear.length > 0) {
-          showWarning(`Semua tanggal kembar untuk bulan yang dipilih pada tahun ${year} sudah ditambahkan.`);
-        } else {
-          showWarning(`Semua tanggal kembar untuk tahun ${year} sudah ditambahkan.`);
-        }
-        return;
-      }
-
-      datesToAdd.forEach(date => onAddDate(date));
-      setShowPicker(false);
-    } catch (error) {
-      console.error('Unexpected error in handleAddTwinDatesPreset:', error);
-      showError('Terjadi error saat menambahkan preset tanggal kembar.');
-    }
-  };
-
-  // Fungsi untuk menambahkan preset tanggal kembar dengan multi-select tahun
-  const handleAddTwinDatesPresetMultiYear = () => {
-    try {
-      if (selectedYearsForTwinPreset.length === 0) {
-        showWarning('Pilih minimal satu tahun terlebih dahulu.');
-        return;
-      }
-
-      if (selectedMonthsForTwinPreset.length === 0) {
-        showWarning('Pilih minimal satu bulan terlebih dahulu.');
-        return;
-      }
-
-      // Validasi tahun yang dipilih
-      const invalidYears = selectedYearsForTwinPreset.filter(year => 
-        availableYears.length > 0 && !availableYears.includes(year)
-      );
-
-      if (invalidYears.length > 0) {
-        showWarning(`Tahun ${invalidYears.join(', ')} tidak tersedia. Pilih tahun yang ada di daftar.`);
-        return;
-      }
-
-      // Generate tanggal kembar hanya untuk bulan yang dipilih
-      const datesToAdd = [];
-      selectedYearsForTwinPreset.forEach(year => {
-        selectedMonthsForTwinPreset.forEach(monthValue => {
-          // Cari preset yang sesuai dengan bulan yang dipilih
-          const monthOption = MONTH_OPTIONS.find(m => m.value === monthValue);
-          if (monthOption) {
-            // Cek apakah tanggal ini sudah ada
-            const exists = specificDates.some(date => getIsSameDate(date, year, monthOption.monthDay));
-            if (!exists) {
-              datesToAdd.push({ year, monthDay: monthOption.monthDay });
-            }
-          }
-        });
-      });
-
-      if (datesToAdd.length === 0) {
-        showWarning('Semua tanggal kembar untuk tahun dan bulan yang dipilih sudah ditambahkan.');
-        return;
-      }
-
-      datesToAdd.forEach(date => onAddDate(date));
-      setShowMultiYearPreset(false);
-      setSelectedYearsForTwinPreset([]);
-      setSelectedMonthsForTwinPreset([]);
-      setShowPicker(false);
-    } catch (error) {
-      console.error('Unexpected error in handleAddTwinDatesPresetMultiYear:', error);
-      showError('Terjadi error saat menambahkan preset tanggal kembar multi-tahun.');
-    }
-  };
 
   // Toggle tahun untuk multi-select preset
   const toggleYearForTwinPreset = (year) => {
@@ -399,25 +100,332 @@ export const SingleDatePickerWithYear = ({
                        allMonthValues.every(month => selectedMonthsForSingleYear.includes(month));
     
     if (allSelected) {
-      // Jika semua sudah dipilih, hapus semua
       setSelectedMonthsForSingleYear([]);
     } else {
-      // Jika belum semua dipilih, pilih semua
       setSelectedMonthsForSingleYear([...allMonthValues]);
     }
   };
 
-  const getMinDate = () => {
-    if (availableYears.length === 0) return new Date();
-    const minYear = Math.min(...availableYears);
-    return new Date(minYear, 0, 1);
+  // Add Date to Preview (Manual Mode)
+  const handleAddToPreview = () => {
+    try {
+      if (!selectionDate.startDate) {
+        showWarning('Pilih tanggal terlebih dahulu');
+        return;
+      }
+      
+      const year = selectionDate.startDate.getFullYear();
+      
+      if (availableYears.length > 0 && !availableYears.includes(year)) {
+        showWarning(`Tahun ${year} tidak tersedia. Silakan pilih tanggal dari tahun yang tersedia.`);
+        return;
+      }
+      
+      const month = String(selectionDate.startDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectionDate.startDate.getDate()).padStart(2, '0');
+      
+      const monthDay = `${month}-${day}`;
+      
+      const testDate = new Date(year, parseInt(month) - 1, parseInt(day));
+      
+      if (testDate.getMonth() !== (parseInt(month) - 1) || 
+          testDate.getDate() !== parseInt(day)) {
+        showWarning('Tanggal tidak valid');
+        return;
+      }
+      
+      const dateWithYear = { year, monthDay };
+      
+      // Cek apakah sudah ada di preview
+      const existsInPreview = manualPreviewDates.some(date => 
+        date.year === year && date.monthDay === monthDay
+      );
+      
+      if (existsInPreview) {
+        showWarning(`Tanggal ${day}/${month}/${year} sudah ada di preview`);
+        return;
+      }
+      
+      // Cek apakah sudah ada di specificDates
+      const dateExists = specificDates.some(date => {
+        if (typeof date === 'string') {
+          return date === monthDay;
+        }
+        return date.year === year && date.monthDay === monthDay;
+      });
+      
+      if (dateExists) {
+        showWarning(`Tanggal ${day}/${month}/${year} sudah dipilih`);
+        return;
+      }
+      
+      // Tambahkan ke preview
+      setManualPreviewDates(prev => {
+        const newDates = [...prev, dateWithYear];
+        // Sort by year then monthDay
+        return newDates.sort((a, b) => {
+          if (a.year !== b.year) return b.year - a.year;
+          return a.monthDay.localeCompare(b.monthDay);
+        });
+      });
+      
+      // Reset selection
+      setSelectionDate({
+        startDate: null,
+        endDate: null,
+        key: 'selection',
+      });
+    } catch (error) {
+      console.error('Unexpected error in handleAddToPreview:', error);
+      showError('Terjadi error: ' + (error.message || 'Unknown error'));
+    }
   };
 
-  const getMaxDate = () => {
-    if (availableYears.length === 0) return new Date();
-    const maxYear = Math.max(...availableYears);
-    return new Date(maxYear, 11, 31);
+  // Add All Preview Dates to Dashboard
+  const handleAddAllPreviewDates = () => {
+    if (manualPreviewDates.length === 0) {
+      showWarning('Tidak ada tanggal di preview untuk ditambahkan');
+      return;
+    }
+    
+    try {
+      manualPreviewDates.forEach(date => {
+        // Cek apakah sudah ada di specificDates
+        const dateExists = specificDates.some(existingDate => {
+          if (typeof existingDate === 'string') {
+            return existingDate === date.monthDay;
+          }
+          return existingDate.year === date.year && existingDate.monthDay === date.monthDay;
+        });
+        
+        if (!dateExists) {
+          onAddDate(date);
+        }
+      });
+      
+      // Clear preview
+      setManualPreviewDates([]);
+      setShowPicker(false);
+    } catch (error) {
+      console.error('Error adding preview dates:', error);
+      showError('Error menambahkan tanggal: ' + (error.message || 'Unknown error'));
+    }
   };
+
+  // Remove date from preview
+  const handleRemoveFromPreview = (dateToRemove) => {
+    setManualPreviewDates(prev => 
+      prev.filter(date => 
+        !(date.year === dateToRemove.year && date.monthDay === dateToRemove.monthDay)
+      )
+    );
+  };
+
+  // Add Date (direct to dashboard - for non-manual mode)
+  const handleAddDate = () => {
+    try {
+      if (!selectionDate.startDate) {
+        showWarning('Pilih tanggal terlebih dahulu');
+        return;
+      }
+      
+      const year = selectionDate.startDate.getFullYear();
+      
+      if (availableYears.length > 0 && !availableYears.includes(year)) {
+        showWarning(`Tahun ${year} tidak tersedia. Silakan pilih tanggal dari tahun yang tersedia.`);
+        return;
+      }
+      
+      const month = String(selectionDate.startDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectionDate.startDate.getDate()).padStart(2, '0');
+      
+      const monthDay = `${month}-${day}`;
+      
+      const testDate = new Date(year, parseInt(month) - 1, parseInt(day));
+      
+      if (testDate.getMonth() !== (parseInt(month) - 1) || 
+          testDate.getDate() !== parseInt(day)) {
+        showWarning('Tanggal tidak valid');
+        return;
+      }
+      
+      const dateWithYear = { year, monthDay };
+      
+      const dateExists = specificDates.some(date => {
+        if (typeof date === 'string') {
+          return date === monthDay;
+        }
+        return date.year === year && date.monthDay === monthDay;
+      });
+      
+      if (dateExists) {
+        showWarning(`Tanggal ${day}/${month}/${year} sudah dipilih`);
+        return;
+      }
+      
+      try {
+        onAddDate(dateWithYear);
+        
+        setSelectionDate({
+          startDate: null,
+          endDate: null,
+          key: 'selection',
+        });
+        
+        setShowPicker(false);
+      } catch (addError) {
+        console.error('Error adding date:', addError);
+        showError('Error menambahkan tanggal: ' + (addError.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Unexpected error in handleAddDate:', error);
+      showError('Terjadi error: ' + (error.message || 'Unknown error'));
+    }
+  };
+
+  // Hitung data preview untuk middle section
+  const previewData = useMemo(() => {
+    const data = {
+      hasSelection: false,
+      selectedDate: null,
+      presetMode: null, // 'single' atau 'multi'
+      years: [],
+      months: [],
+      previewDates: []
+    };
+
+    // Cek apakah ada tanggal yang dipilih di kalender
+    if (selectionDate.startDate) {
+      const year = selectionDate.startDate.getFullYear();
+      const month = selectionDate.startDate.getMonth() + 1;
+      const day = selectionDate.startDate.getDate();
+      
+      data.hasSelection = true;
+      data.selectedDate = {
+        year,
+        month,
+        day,
+        monthName: MONTH_OPTIONS.find(m => m.value === month)?.label || '',
+        display: formatDateDisplay({
+          year,
+          monthDay: `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+        })
+      };
+    }
+
+    // Cek mode manual
+    if (showManualMode) {
+      data.presetMode = 'manual';
+      // Hanya tampilkan manual preview dates (yang belum ditambahkan ke dashboard)
+      manualPreviewDates.forEach(date => {
+        const monthOption = MONTH_OPTIONS.find(m => m.monthDay === date.monthDay);
+        if (monthOption) {
+          data.previewDates.push({
+            year: date.year,
+            monthDay: date.monthDay,
+            monthName: monthOption.label,
+            display: formatDateDisplay(date),
+            isPreview: true // Flag untuk membedakan preview dengan yang sudah ditambahkan
+          });
+        }
+      });
+      // Sort preview dates
+      data.previewDates.sort((a, b) => {
+        if (a.year !== b.year) {
+          if (a.year === null) return 1;
+          if (b.year === null) return -1;
+          return b.year - a.year;
+        }
+        return a.monthDay.localeCompare(b.monthDay);
+      });
+    }
+    // Cek preset mode
+    else if (showMultiYearPreset) {
+      if (selectedYearsForTwinPreset.length > 0 || selectedMonthsForTwinPreset.length > 0) {
+        data.presetMode = 'multi';
+        data.years = [...selectedYearsForTwinPreset].sort((a, b) => b - a);
+        data.months = [...selectedMonthsForTwinPreset]
+          .sort((a, b) => a - b)
+          .map(monthValue => MONTH_OPTIONS.find(m => m.value === monthValue))
+          .filter(Boolean);
+        
+        // Generate preview dates
+        data.years.forEach(year => {
+          data.months.forEach(monthOption => {
+            if (monthOption) {
+              data.previewDates.push({
+                year,
+                monthDay: monthOption.monthDay,
+                monthName: monthOption.label,
+                display: formatDateDisplay({ year, monthDay: monthOption.monthDay })
+              });
+            }
+          });
+        });
+        data.previewDates.sort((a, b) => {
+          if (a.year !== b.year) return b.year - a.year;
+          return a.monthDay.localeCompare(b.monthDay);
+        });
+      }
+    } else {
+      if (selectedMonthsForSingleYear.length > 0) {
+        data.presetMode = 'single';
+        data.years = [activePresetYear];
+        data.months = [...selectedMonthsForSingleYear]
+          .sort((a, b) => a - b)
+          .map(monthValue => MONTH_OPTIONS.find(m => m.value === monthValue))
+          .filter(Boolean);
+        
+        // Generate preview dates
+        data.months.forEach(monthOption => {
+          if (monthOption) {
+            data.previewDates.push({
+              year: activePresetYear,
+              monthDay: monthOption.monthDay,
+              monthName: monthOption.label,
+              display: formatDateDisplay({ year: activePresetYear, monthDay: monthOption.monthDay })
+            });
+          }
+        });
+      }
+    }
+
+    return data;
+  }, [
+    selectionDate.startDate,
+    showMultiYearPreset,
+    showManualMode,
+    selectedYearsForTwinPreset,
+    selectedMonthsForTwinPreset,
+    selectedMonthsForSingleYear,
+    activePresetYear,
+    specificDates,
+    manualPreviewDates
+  ]);
+
+  // Initialize hooks untuk mendapatkan fungsi dan nilai yang diperlukan
+  const tglKembarTahunHook = useTglKembarTahun({
+    activePresetYear,
+    availableYears,
+    specificDates,
+    selectedMonthsForSingleYear,
+    onAddDate,
+    setShowPicker,
+    showWarning
+  });
+
+  const tglKembarMultiTahunHook = useTglKembarMultiTahun({
+    availableYears,
+    specificDates,
+    selectedYearsForTwinPreset,
+    selectedMonthsForTwinPreset,
+    onAddDate,
+    setShowMultiYearPreset,
+    setSelectedYearsForTwinPreset,
+    setSelectedMonthsForTwinPreset,
+    setShowPicker,
+    showWarning
+  });
 
   useEffect(() => {
     if (!showPicker || !pickerRef.current) return;
@@ -429,102 +437,6 @@ export const SingleDatePickerWithYear = ({
       const definedRangesWrapper = picker.querySelector('.rdr-DefinedRangesWrapper');
       if (definedRangesWrapper) {
         definedRangesWrapper.style.setProperty('display', 'none', 'important');
-      }
-
-      const dateRange = picker.querySelector('.rdr-DateRange');
-      const calendarWrapper = picker.querySelector('.rdr-CalendarWrapper');
-      const calendars = picker.querySelectorAll('.rdr-Calendar');
-      const month = picker.querySelector('.rdr-Month');
-      const days = picker.querySelectorAll('.rdr-Day');
-      const dayNumbers = picker.querySelectorAll('.rdr-DayNumber');
-      const weekDays = picker.querySelectorAll('.rdr-WeekDay');
-      const dateDisplay = picker.querySelector('.rdr-DateDisplay');
-      const dateDisplayItems = picker.querySelectorAll('.rdr-DateDisplayItem');
-      const monthYearWrapper = picker.querySelector('.rdr-MonthAndYearWrapper');
-      const monthYearPickers = picker.querySelectorAll('.rdr-MonthAndYearPickers');
-      const daysContainer = picker.querySelector('.rdr-Days');
-      const weekDaysContainer = picker.querySelector('.rdr-WeekDays');
-      const dateDisplayWrapper = picker.querySelector('.rdr-DateDisplayWrapper');
-
-      if (dateRange) {
-        dateRange.style.setProperty('display', 'flex', 'important');
-        dateRange.style.setProperty('flex-direction', 'row', 'important');
-        dateRange.style.setProperty('width', '100%', 'important');
-      }
-      if (calendarWrapper) {
-        calendarWrapper.style.setProperty('display', 'flex', 'important');
-        calendarWrapper.style.setProperty('flex-direction', 'row', 'important');
-        calendarWrapper.style.setProperty('width', '100%', 'important');
-      }
-      if (calendars.length > 0) {
-        calendars.forEach(calendar => {
-          calendar.style.setProperty('font-size', '0.875rem', 'important');
-          calendar.style.setProperty('width', '100%', 'important');
-          calendar.style.setProperty('max-width', '100%', 'important');
-          calendar.style.setProperty('flex', '1 1 100%', 'important');
-        });
-      }
-      if (month) {
-        month.style.setProperty('padding', '0.75rem', 'important');
-        month.style.setProperty('width', '100%', 'important');
-      }
-      if (days.length > 0) {
-        days.forEach(day => {
-          day.style.setProperty('height', '36px', 'important');
-          day.style.setProperty('width', '36px', 'important');
-          day.style.setProperty('max-width', '36px', 'important');
-          day.style.setProperty('max-height', '36px', 'important');
-          day.style.setProperty('line-height', '36px', 'important');
-          day.style.setProperty('margin', '2px', 'important');
-          day.style.setProperty('font-size', '0.875rem', 'important');
-        });
-      }
-      if (dayNumbers.length > 0) {
-        dayNumbers.forEach(dayNum => {
-          dayNum.style.setProperty('font-size', '0.875rem', 'important');
-          dayNum.style.setProperty('padding', '0', 'important');
-          dayNum.style.setProperty('line-height', '36px', 'important');
-        });
-      }
-      if (weekDays.length > 0) {
-        weekDays.forEach(weekDay => {
-          weekDay.style.setProperty('font-size', '0.75rem', 'important');
-          weekDay.style.setProperty('padding', '0.5rem', 'important');
-          weekDay.style.setProperty('font-weight', '600', 'important');
-        });
-      }
-      if (dateDisplay) {
-        dateDisplay.style.setProperty('padding', '0.75rem', 'important');
-        dateDisplay.style.setProperty('font-size', '0.875rem', 'important');
-        dateDisplay.style.setProperty('min-height', 'auto', 'important');
-        dateDisplay.style.setProperty('max-height', 'none', 'important');
-      }
-      if (dateDisplayItems.length > 0) {
-        dateDisplayItems.forEach(item => {
-          item.style.setProperty('padding', '0.5rem 0.75rem', 'important');
-          item.style.setProperty('font-size', '0.875rem', 'important');
-          item.style.setProperty('line-height', '1.5', 'important');
-        });
-      }
-      if (monthYearWrapper) {
-        monthYearWrapper.style.setProperty('padding', '0.75rem', 'important');
-        monthYearWrapper.style.setProperty('min-height', 'auto', 'important');
-        monthYearWrapper.style.setProperty('max-height', 'none', 'important');
-      }
-      if (monthYearPickers.length > 0) {
-        monthYearPickers.forEach(pickerEl => {
-          pickerEl.style.setProperty('font-size', '1rem', 'important');
-          pickerEl.style.setProperty('font-weight', '600', 'important');
-        });
-      }
-      if (daysContainer) {
-        daysContainer.style.setProperty('padding', '0.5rem', 'important');
-      }
-      if (weekDaysContainer) {
-        weekDaysContainer.style.setProperty('padding', '0.5rem 0', 'important');
-      }
-      if (dateDisplayWrapper) {
-        dateDisplayWrapper.style.setProperty('padding', '0.75rem', 'important');
       }
     };
 
@@ -581,18 +493,15 @@ export const SingleDatePickerWithYear = ({
       {specificDates.length > 0 && (
         <IconButton
           onClick={() => {
-            // Hapus semua tanggal yang sudah dipilih
             specificDates.forEach(date => {
               onRemoveDate(date);
             });
-            // Reset selection date ke default
-            const defaultYear = years.length > 0 ? years[0] : new Date().getFullYear();
             setSelectionDate({
-              startDate: new Date(defaultYear, 0, 1),
-              endDate: new Date(defaultYear, 0, 1),
+              startDate: null,
+              endDate: null,
               key: 'selection',
             });
-            setPresetYearOverride(defaultYear);
+            setPresetYearOverride(null);
           }}
           sx={{
             position: 'absolute',
@@ -685,7 +594,7 @@ export const SingleDatePickerWithYear = ({
               }}
             />
             
-            {/* DatePicker Modal - Terpusat dan Besar */}
+            {/* DatePicker Modal */}
             <Fade in={showPicker} timeout={300}>
               <Paper
                 ref={pickerRef}
@@ -709,119 +618,9 @@ export const SingleDatePickerWithYear = ({
                   display: 'flex',
                   flexDirection: 'column',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  '& *': {
-                    boxSizing: 'border-box',
-                  },
-                  // Sembunyikan preset ranges
-                  '& .rdr-DefinedRangesWrapper': {
-                    display: 'none !important',
-                  },
-                  '& .rdr-DateRangePicker': {
-                    borderRadius: 3,
-                    width: '100%',
-                    maxWidth: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                  },
-                  '& .rdr-DateRange': {
-                    borderRadius: 3,
-                    width: '100%',
-                    maxWidth: '100%',
-                    height: '100%',
-                    display: 'flex !important',
-                    flexDirection: 'row !important',
-                    flex: '1 1 auto !important',
-                  },
-                  '& .rdr-CalendarWrapper': {
-                    display: 'flex !important',
-                    flexDirection: 'row !important',
-                    width: '100% !important',
-                    height: '100% !important',
-                    flex: '1 1 auto !important',
-                  },
-                  '& .rdr-Calendar': {
-                    borderRadius: 3,
-                    width: '100% !important',
-                    maxWidth: '100% !important',
-                    height: '100% !important',
-                    fontSize: '0.875rem !important',
-                    minHeight: 'auto !important',
-                    flex: '1 1 100% !important',
-                    display: 'flex !important',
-                    flexDirection: 'column !important',
-                  },
-                  '& .rdr-Month': {
-                    width: '100% !important',
-                    maxWidth: '100% !important',
-                    padding: '0.75rem !important',
-                    minHeight: 'auto !important',
-                    height: '100% !important',
-                    display: 'flex !important',
-                    flexDirection: 'column !important',
-                    flex: '1 1 auto !important',
-                  },
-                  '& .rdr-Day': {
-                    fontSize: '0.875rem !important',
-                    height: '36px !important',
-                    width: '36px !important',
-                    maxWidth: '36px !important',
-                    maxHeight: '36px !important',
-                    lineHeight: '36px !important',
-                    margin: '2px !important',
-                    padding: '0 !important',
-                  },
-                  '& .rdr-DayNumber': {
-                    fontSize: '0.875rem !important',
-                    padding: '0 !important',
-                    lineHeight: '36px !important',
-                  },
-                  '& .rdr-MonthAndYearWrapper': {
-                    paddingTop: '0.75rem !important',
-                    paddingBottom: '0.75rem !important',
-                    paddingLeft: '0.75rem !important',
-                    paddingRight: '0.75rem !important',
-                    minHeight: 'auto !important',
-                    maxHeight: 'none !important',
-                  },
-                  '& .rdr-MonthAndYearPickers': {
-                    fontSize: '1rem !important',
-                    fontWeight: '600 !important',
-                    padding: '0 !important',
-                  },
-                  '& .rdr-WeekDay': {
-                    fontSize: '0.75rem !important',
-                    fontWeight: '600 !important',
-                    padding: '0.5rem !important',
-                    height: 'auto !important',
-                    minHeight: 'auto !important',
-                  },
-                  '& .rdr-Days': {
-                    padding: '0.5rem !important',
-                    margin: '0 !important',
-                  },
-                  '& .rdr-DateDisplay': {
-                    padding: '0.75rem !important',
-                    fontSize: '0.875rem !important',
-                    minHeight: 'auto !important',
-                    maxHeight: 'none !important',
-                  },
-                  '& .rdr-DateDisplayItem': {
-                    padding: '0.5rem 0.75rem !important',
-                    fontSize: '0.875rem !important',
-                    lineHeight: '1.5 !important',
-                  },
-                  '& .rdr-WeekDays': {
-                    padding: '0.5rem 0 !important',
-                    margin: '0 !important',
-                  },
-                  '& .rdr-DateDisplayWrapper': {
-                    padding: '0.75rem !important',
-                    margin: '0 !important',
-                  }
                 }}
               >
-                {/* Header dengan judul dan tombol tutup */}
+                {/* Header */}
                 <Box sx={{
                   display: 'flex',
                   alignItems: 'center',
@@ -844,10 +643,14 @@ export const SingleDatePickerWithYear = ({
                     onClick={() => {
                       setShowPicker(false);
                       setSelectionDate({
-                        startDate: new Date(),
-                        endDate: new Date(),
+                        startDate: null,
+                        endDate: null,
                         key: 'selection',
                       });
+                      // Reset manual preview dates saat tutup
+                      if (showManualMode) {
+                        setManualPreviewDates([]);
+                      }
                     }}
                     sx={{
                       minWidth: 'auto',
@@ -880,10 +683,11 @@ export const SingleDatePickerWithYear = ({
                     flexDirection: { xs: 'column', md: 'row' },
                     gap: 0,
                     overflow: 'hidden',
-                    minHeight: 0,
+                    minHeight: { md: 'calc(90vh - 180px)' },
                   }}>
+                    {/* Left Section - Filter Controls */}
                     <Box sx={{
-                      width: { xs: '100%', md: 380 },
+                      width: { xs: '100%', md: 450 },
                       flexShrink: 0,
                       borderRight: { md: '1px solid #E2E8F0' },
                       borderBottom: { xs: '1px solid #E2E8F0', md: 'none' },
@@ -894,39 +698,49 @@ export const SingleDatePickerWithYear = ({
                       gap: 1.25,
                       overflowY: 'auto',
                       maxHeight: { md: 'calc(90vh - 180px)' },
-                      minHeight: 0,
+                      minHeight: { md: 'calc(90vh - 180px)' },
                     }}>
+                      {/* Toggle untuk preset multi-tahun dan manual */}
                       <Box sx={{
                         display: 'flex',
-                        alignItems: 'center',
-                        gap: 1
-                      }}>
-                        <CalendarTodayIcon sx={{ 
-                          fontSize: '1.125rem', 
-                          color: '#6BA3D0' 
-                        }} />
-                        <Typography sx={{
-                          fontSize: '0.9375rem',
-                          fontWeight: 600,
-                          color: '#0F172A',
-                          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-                          letterSpacing: '-0.01em'
-                        }}>
-                          Preset Tanggal Kembar
-                        </Typography>
-                      </Box>
-
-                      {/* Toggle untuk preset multi-tahun */}
-                      <Box sx={{
-                        display: 'flex',
-                        gap: 1,
+                        gap: 0.75,
                         mb: 1
                       }}>
                         <Button
-                          variant={!showMultiYearPreset ? "contained" : "outlined"}
+                          variant={showManualMode ? "contained" : "outlined"}
+                          size="small"
+                          onClick={() => {
+                            setShowManualMode(true);
+                            setShowMultiYearPreset(false);
+                            setSelectedYearsForTwinPreset([]);
+                            setSelectedMonthsForTwinPreset([]);
+                            setSelectedMonthsForSingleYear([]);
+                            // Jangan reset manualPreviewDates saat pindah ke manual mode
+                          }}
+                          sx={{
+                            flex: 1,
+                            textTransform: 'none',
+                            fontSize: '0.75rem',
+                            fontWeight: 500,
+                            py: 0.5,
+                            borderRadius: 1,
+                            bgcolor: showManualMode ? '#6BA3D0' : 'transparent',
+                            color: showManualMode ? '#FFFFFF' : '#475569',
+                            borderColor: showManualMode ? '#6BA3D0' : '#E2E8F0',
+                            '&:hover': {
+                              bgcolor: showManualMode ? '#5A9FD0' : 'rgba(107, 163, 208, 0.08)',
+                              borderColor: '#6BA3D0'
+                            }
+                          }}
+                        >
+                          Manual
+                        </Button>
+                        <Button
+                          variant={!showMultiYearPreset && !showManualMode ? "contained" : "outlined"}
                           size="small"
                           onClick={() => {
                             setShowMultiYearPreset(false);
+                            setShowManualMode(false);
                             setSelectedYearsForTwinPreset([]);
                             setSelectedMonthsForTwinPreset([]);
                             setSelectedMonthsForSingleYear([]);
@@ -938,11 +752,11 @@ export const SingleDatePickerWithYear = ({
                             fontWeight: 500,
                             py: 0.5,
                             borderRadius: 1,
-                            bgcolor: !showMultiYearPreset ? '#6BA3D0' : 'transparent',
-                            color: !showMultiYearPreset ? '#FFFFFF' : '#475569',
-                            borderColor: !showMultiYearPreset ? '#6BA3D0' : '#E2E8F0',
+                            bgcolor: !showMultiYearPreset && !showManualMode ? '#6BA3D0' : 'transparent',
+                            color: !showMultiYearPreset && !showManualMode ? '#FFFFFF' : '#475569',
+                            borderColor: !showMultiYearPreset && !showManualMode ? '#6BA3D0' : '#E2E8F0',
                             '&:hover': {
-                              bgcolor: !showMultiYearPreset ? '#5A9FD0' : 'rgba(107, 163, 208, 0.08)',
+                              bgcolor: !showMultiYearPreset && !showManualMode ? '#5A9FD0' : 'rgba(107, 163, 208, 0.08)',
                               borderColor: '#6BA3D0'
                             }
                           }}
@@ -950,17 +764,11 @@ export const SingleDatePickerWithYear = ({
                           Satu Tahun
                         </Button>
                         <Button
-                          variant={showMultiYearPreset ? "contained" : "outlined"}
+                          variant={showMultiYearPreset && !showManualMode ? "contained" : "outlined"}
                           size="small"
                           onClick={() => {
                             setShowMultiYearPreset(true);
-                            if (selectedYearsForTwinPreset.length === 0 && years.length > 0) {
-                              setSelectedYearsForTwinPreset([years[0]]);
-                            }
-                            // Reset bulan saat beralih ke multi-tahun
-                            if (selectedMonthsForTwinPreset.length === 0) {
-                              setSelectedMonthsForTwinPreset([]);
-                            }
+                            setShowManualMode(false);
                           }}
                           sx={{
                             flex: 1,
@@ -969,11 +777,11 @@ export const SingleDatePickerWithYear = ({
                             fontWeight: 500,
                             py: 0.5,
                             borderRadius: 1,
-                            bgcolor: showMultiYearPreset ? '#6BA3D0' : 'transparent',
-                            color: showMultiYearPreset ? '#FFFFFF' : '#475569',
-                            borderColor: showMultiYearPreset ? '#6BA3D0' : '#E2E8F0',
+                            bgcolor: showMultiYearPreset && !showManualMode ? '#6BA3D0' : 'transparent',
+                            color: showMultiYearPreset && !showManualMode ? '#FFFFFF' : '#475569',
+                            borderColor: showMultiYearPreset && !showManualMode ? '#6BA3D0' : '#E2E8F0',
                             '&:hover': {
-                              bgcolor: showMultiYearPreset ? '#5A9FD0' : 'rgba(107, 163, 208, 0.08)',
+                              bgcolor: showMultiYearPreset && !showManualMode ? '#5A9FD0' : 'rgba(107, 163, 208, 0.08)',
                               borderColor: '#6BA3D0'
                             }
                           }}
@@ -981,318 +789,540 @@ export const SingleDatePickerWithYear = ({
                           Multi Tahun
                         </Button>
                       </Box>
-                      
-                      {!showMultiYearPreset ? (
+
+                      {/* Render content berdasarkan mode */}
+                      {!showMultiYearPreset && !showManualMode && (
+                        <TglKembarTahun
+                          activePresetYear={activePresetYear}
+                          setPresetYearOverride={setPresetYearOverride}
+                          years={years}
+                          availableYears={availableYears}
+                          specificDates={specificDates}
+                          selectedMonthsForSingleYear={selectedMonthsForSingleYear}
+                          toggleMonthForSingleYear={toggleMonthForSingleYear}
+                          toggleAllMonthsForSingleYear={toggleAllMonthsForSingleYear}
+                          onAddDate={onAddDate}
+                          setShowPicker={setShowPicker}
+                          showWarning={showWarning}
+                        />
+                      )}
+                      {showMultiYearPreset && !showManualMode && (
+                        <TglKembarMultiTahun
+                          years={years}
+                          availableYears={availableYears}
+                          specificDates={specificDates}
+                          selectedYearsForTwinPreset={selectedYearsForTwinPreset}
+                          selectedMonthsForTwinPreset={selectedMonthsForTwinPreset}
+                          toggleYearForTwinPreset={toggleYearForTwinPreset}
+                          toggleMonthForTwinPreset={toggleMonthForTwinPreset}
+                          onAddDate={onAddDate}
+                          setShowMultiYearPreset={setShowMultiYearPreset}
+                          setSelectedYearsForTwinPreset={setSelectedYearsForTwinPreset}
+                          setSelectedMonthsForTwinPreset={setSelectedMonthsForTwinPreset}
+                          setShowPicker={setShowPicker}
+                          showWarning={showWarning}
+                        />
+                      )}
+                      {showManualMode && (
+                        <DatePickerManual
+                          availableYears={availableYears}
+                          years={years}
+                          selectionDate={selectionDate}
+                          setSelectionDate={setSelectionDate}
+                          onAddDate={onAddDate}
+                          showWarning={showWarning}
+                          onAddToPreview={handleAddToPreview}
+                        />
+                      )}
+                    </Box>
+                    
+                    {/* Middle Section - Preview Ringkasan */}
+                    {!showManualMode && (
+                      <Box sx={{
+                        flex: 1,
+                        borderBottom: { xs: '1px solid #E2E8F0', md: 'none' },
+                        bgcolor: '#FFFFFF',
+                        p: 2.25,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 1.5,
+                        overflowY: 'auto',
+                        maxHeight: { md: 'calc(90vh - 180px)' },
+                        minHeight: { md: 'calc(90vh - 180px)' },
+                      }}>
                         <Box sx={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 1
+                          gap: 0.75,
+                          mb: 0.5
                         }}>
-                          <Select
-                            size="small"
-                            value={activePresetYear}
-                            onChange={(e) => setPresetYearOverride(Number(e.target.value))}
-                            sx={{
-                              flex: 1,
-                              fontSize: '0.8125rem',
-                              fontWeight: 500,
-                              bgcolor: '#FFFFFF',
-                              border: '1px solid #E2E8F0',
-                              borderRadius: 1.5,
-                              '& .MuiSelect-select': {
-                                py: 0.875,
-                                px: 1.5,
-                              },
-                              '&:hover': {
-                                borderColor: '#6BA3D0',
-                              },
-                              '& .MuiOutlinedInput-notchedOutline': {
-                                borderColor: '#E2E8F0',
-                              },
-                              '&:hover .MuiOutlinedInput-notchedOutline': {
-                                borderColor: '#6BA3D0',
-                              },
-                              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                borderColor: '#6BA3D0',
-                              }
-                            }}
-                          >
-                            {(availableYears.length > 0 ? years : years).map(yearOption => (
-                              <MenuItem key={yearOption} value={yearOption}>
-                                Tahun {yearOption}
-                              </MenuItem>
-                            ))}
-                          </Select>
+                          <CheckCircleOutlineIcon sx={{ 
+                            fontSize: '1rem', 
+                            color: '#6BA3D0' 
+                          }} />
+                          <Typography sx={{
+                            fontSize: '0.8125rem',
+                            fontWeight: 600,
+                            color: '#0F172A',
+                            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                            letterSpacing: '-0.01em'
+                          }}>
+                            Preview Pilihan
+                          </Typography>
                         </Box>
-                      ) : null}
 
-                      {/* Pilih Bulan untuk Satu Tahun Preset */}
-                      {!showMultiYearPreset && (
+                        {/* Empty State */}
+                        {!previewData.hasSelection && 
+                         !previewData.presetMode && 
+                         previewData.previewDates.length === 0 ? (
+                          <Box sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            py: 4,
+                            px: 2,
+                            textAlign: 'center',
+                            minHeight: '200px'
+                          }}>
+                            <CalendarMonthIcon sx={{
+                              fontSize: '3rem',
+                              color: '#CBD5E1',
+                              mb: 1.5,
+                              opacity: 0.6
+                            }} />
+                            <Typography sx={{
+                              fontSize: '0.8125rem',
+                              color: '#94A3B8',
+                              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                              lineHeight: 1.6,
+                              maxWidth: '200px'
+                            }}>
+                              Pilih tahun dan bulan untuk menampilkan preview di sini.
+                            </Typography>
+                          </Box>
+                        ) : (
+                          <Box sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 1.5
+                          }}>
+                            {/* Preview Tanggal yang Dipilih di Kalender */}
+                            {previewData.selectedDate && previewData.presetMode !== 'manual' && (
+                              <Card sx={{
+                                p: 1.5,
+                                bgcolor: '#F8FAFC',
+                                border: '1px solid #E2E8F0',
+                                borderRadius: 1.5,
+                                boxShadow: 'none'
+                              }}>
+                                <Typography sx={{
+                                  fontSize: '0.6875rem',
+                                  fontWeight: 600,
+                                  color: '#64748B',
+                                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.5px',
+                                  mb: 0.75
+                                }}>
+                                  Tanggal Dipilih
+                                </Typography>
+                                <Box sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 0.75
+                                }}>
+                                  <Box sx={{
+                                    width: 6,
+                                    height: 6,
+                                    borderRadius: '50%',
+                                    bgcolor: '#6BA3D0',
+                                    flexShrink: 0
+                                  }} />
+                                  <Typography sx={{
+                                    fontSize: '0.8125rem',
+                                    fontWeight: 500,
+                                    color: '#0F172A',
+                                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                                  }}>
+                                    {previewData.selectedDate.display}
+                                  </Typography>
+                                </Box>
+                              </Card>
+                            )}
+
+                            {/* Preview Preset Tanggal Kembar */}
+                            {previewData.presetMode && previewData.presetMode !== 'manual' && previewData.previewDates.length > 0 && (
+                              <Card sx={{
+                                p: 1.5,
+                                bgcolor: '#F8FAFC',
+                                border: '1px solid #E2E8F0',
+                                borderRadius: 1.5,
+                                boxShadow: 'none'
+                              }}>
+                                <Box sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  mb: 1
+                                }}>
+                                  <Typography sx={{
+                                    fontSize: '0.6875rem',
+                                    fontWeight: 600,
+                                    color: '#64748B',
+                                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px'
+                                  }}>
+                                    Preset Tanggal Kembar
+                                  </Typography>
+                                  <Chip
+                                    label={`${previewData.previewDates.length}`}
+                                    size="small"
+                                    sx={{
+                                      height: '20px',
+                                      fontSize: '0.625rem',
+                                      fontWeight: 600,
+                                      bgcolor: '#6BA3D0',
+                                      color: '#FFFFFF',
+                                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                                    }}
+                                  />
+                                </Box>
+                                
+                                <Box sx={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 0.75,
+                                  maxHeight: '300px',
+                                  overflowY: 'auto',
+                                  pr: 0.5,
+                                  '&::-webkit-scrollbar': {
+                                    width: '4px',
+                                  },
+                                  '&::-webkit-scrollbar-track': {
+                                    background: '#F1F5F9',
+                                    borderRadius: '2px',
+                                  },
+                                  '&::-webkit-scrollbar-thumb': {
+                                    background: '#CBD5E1',
+                                    borderRadius: '2px',
+                                    '&:hover': {
+                                      background: '#94A3B8',
+                                    },
+                                  },
+                                }}>
+                                  {previewData.previewDates.map((date, idx) => (
+                                    <Box
+                                      key={`${date.year}-${date.monthDay}-${idx}`}
+                                      sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 0.75,
+                                        py: 0.5,
+                                        px: 0.75,
+                                        borderRadius: 1,
+                                        bgcolor: 'transparent',
+                                        transition: 'all 0.2s ease',
+                                        '&:hover': {
+                                          bgcolor: '#F1F5F9'
+                                        }
+                                      }}
+                                    >
+                                      <Box sx={{
+                                        width: 4,
+                                        height: 4,
+                                        borderRadius: '50%',
+                                        bgcolor: '#6BA3D0',
+                                        flexShrink: 0,
+                                        opacity: 0.6
+                                      }} />
+                                      <Typography sx={{
+                                        fontSize: '0.75rem',
+                                        fontWeight: 400,
+                                        color: '#475569',
+                                        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                                        lineHeight: 1.5
+                                      }}>
+                                        {date.display}
+                                      </Typography>
+                                    </Box>
+                                  ))}
+                                </Box>
+                              </Card>
+                            )}
+
+                            {/* Ringkasan Tahun & Bulan */}
+                            {previewData.presetMode && previewData.presetMode !== 'manual' && (previewData.years.length > 0 || previewData.months.length > 0) && (
+                              <Box sx={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 1
+                              }}>
+                                {previewData.years.length > 0 && (
+                                  <Card sx={{
+                                    p: 1.5,
+                                    bgcolor: '#F8FAFC',
+                                    border: '1px solid #E2E8F0',
+                                    borderRadius: 1.5,
+                                    boxShadow: 'none'
+                                  }}>
+                                    <Typography sx={{
+                                      fontSize: '0.6875rem',
+                                      fontWeight: 600,
+                                      color: '#64748B',
+                                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.5px',
+                                      mb: 0.75
+                                    }}>
+                                      Tahun
+                                    </Typography>
+                                    <Box sx={{
+                                      display: 'flex',
+                                      flexWrap: 'wrap',
+                                      gap: 0.5
+                                    }}>
+                                      {previewData.years.map(year => (
+                                        <Chip
+                                          key={year}
+                                          label={year}
+                                          size="small"
+                                          sx={{
+                                            height: '24px',
+                                            fontSize: '0.6875rem',
+                                            fontWeight: 500,
+                                            bgcolor: '#FFFFFF',
+                                            color: '#475569',
+                                            border: '1px solid #E2E8F0',
+                                            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                                          }}
+                                        />
+                                      ))}
+                                    </Box>
+                                  </Card>
+                                )}
+
+                                {previewData.months.length > 0 && (
+                                  <Card sx={{
+                                    p: 1.5,
+                                    bgcolor: '#F8FAFC',
+                                    border: '1px solid #E2E8F0',
+                                    borderRadius: 1.5,
+                                    boxShadow: 'none'
+                                  }}>
+                                    <Typography sx={{
+                                      fontSize: '0.6875rem',
+                                      fontWeight: 600,
+                                      color: '#64748B',
+                                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.5px',
+                                      mb: 0.75
+                                    }}>
+                                      Bulan
+                                    </Typography>
+                                    <Box sx={{
+                                      display: 'flex',
+                                      flexWrap: 'wrap',
+                                      gap: 0.5
+                                    }}>
+                                      {previewData.months.map(month => (
+                                        <Chip
+                                          key={month.value}
+                                          label={month.label}
+                                          size="small"
+                                          sx={{
+                                            height: '24px',
+                                            fontSize: '0.6875rem',
+                                            fontWeight: 500,
+                                            bgcolor: '#FFFFFF',
+                                            color: '#475569',
+                                            border: '1px solid #E2E8F0',
+                                            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                                          }}
+                                        />
+                                      ))}
+                                    </Box>
+                                  </Card>
+                                )}
+                              </Box>
+                            )}
+                          </Box>
+                        )}
+                      </Box>
+                    )}
+                    
+                    {/* Right Section - Preview Full untuk Manual */}
+                    {showManualMode && (
+                      <Box sx={{ 
+                        flex: 1,
+                        p: 2.25,
+                        m: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'stretch',
+                        justifyContent: 'flex-start',
+                        minHeight: { md: 'calc(90vh - 180px)' },
+                        overflow: 'hidden',
+                        bgcolor: '#FFFFFF',
+                        borderLeft: { md: '1px solid #E2E8F0' },
+                        borderTop: { xs: '1px solid #E2E8F0', md: 'none' },
+                      }}>
                         <Box sx={{
                           display: 'flex',
-                          flexDirection: 'column',
-                          gap: 1,
-                          mt: 1,
-                          flexShrink: 0
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          mb: 1.5
                         }}>
                           <Box sx={{
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'space-between',
-                            mb: 0.5,
+                            gap: 0.75
                           }}>
+                            <CheckCircleOutlineIcon sx={{ 
+                              fontSize: '1rem', 
+                              color: '#6BA3D0' 
+                            }} />
                             <Typography sx={{
-                              fontSize: '0.75rem',
+                              fontSize: '0.8125rem',
                               fontWeight: 600,
-                              color: '#475569',
-                              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                              color: '#0F172A',
+                              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                              letterSpacing: '-0.01em'
                             }}>
-                              Pilih Bulan:
+                              Preview Pilihan
                             </Typography>
-                            <IconButton
+                          </Box>
+                          {manualPreviewDates.length > 0 && (
+                            <Chip
+                              label={`${manualPreviewDates.length} di preview`}
                               size="small"
-                              onClick={toggleAllMonthsForSingleYear}
                               sx={{
-                                width: '24px',
-                                height: '24px',
-                                p: 0.5,
-                                color: selectedMonthsForSingleYear.length === MONTH_OPTIONS.length ? '#6BA3D0' : '#94A3B8',
-                                transition: 'all 0.2s ease',
-                                '&:hover': {
-                                  color: '#6BA3D0',
-                                  bgcolor: 'rgba(107, 163, 208, 0.08)',
-                                  transform: 'scale(1.1)'
-                                },
-                                '&:active': {
-                                  transform: 'scale(0.95)'
-                                }
+                                height: '22px',
+                                fontSize: '0.6875rem',
+                                fontWeight: 600,
+                                bgcolor: '#6BA3D0',
+                                color: '#FFFFFF',
+                                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
                               }}
-                              title={selectedMonthsForSingleYear.length === MONTH_OPTIONS.length ? 'Hapus Semua' : 'Pilih Semua'}
-                            >
-                              <DoneAllIcon sx={{ fontSize: '1rem' }} />
-                            </IconButton>
-                          </Box>
-                          <Box sx={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(3, 1fr)',
-                            gap: 0.75,
-                          }}>
-                            {MONTH_OPTIONS.map(monthOption => {
-                              const isSelected = selectedMonthsForSingleYear.includes(monthOption.value);
-                              
-                              return (
-                                <Chip
-                                  key={monthOption.value}
-                                  label={monthOption.label}
-                                  size="small"
-                                  onClick={() => toggleMonthForSingleYear(monthOption.value)}
-                                  sx={{
-                                    fontSize: '0.6875rem',
-                                    fontWeight: 500,
-                                    height: '32px',
-                                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-                                    bgcolor: isSelected ? '#6BA3D0' : '#FFFFFF',
-                                    color: isSelected ? '#FFFFFF' : '#475569',
-                                    border: isSelected ? 'none' : '1px solid #E2E8F0',
-                                    borderRadius: 1.25,
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s ease',
-                                    '&:hover': {
-                                      bgcolor: isSelected ? '#5A9FD0' : '#F8FAFC',
-                                      borderColor: isSelected ? 'none' : '#6BA3D0',
-                                      transform: 'translateY(-1px)',
-                                    }
-                                  }}
-                                />
-                              );
-                            })}
-                          </Box>
+                            />
+                          )}
                         </Box>
-                      )}
-
-                      {showMultiYearPreset && (
-                        <Box sx={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 1,
-                          flexShrink: 0
-                        }}>
-                          <Typography sx={{
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            color: '#475569',
-                            mb: 0.5,
-                            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
-                          }}>
-                            Pilih Tahun (Multi-Select):
-                          </Typography>
+                        
+                        {showManualMode && manualPreviewDates.length > 0 ? (
                           <Box sx={{
                             display: 'flex',
-                            flexWrap: 'nowrap',
-                            gap: 0.5,
-                            overflowX: 'auto',
-                            overflowY: 'hidden',
-                            pb: 0.5,
+                            flexDirection: 'column',
+                            gap: 0.75,
+                            maxHeight: 'calc(90vh - 250px)',
+                            overflowY: 'auto',
+                            pr: 0.5,
                             '&::-webkit-scrollbar': {
-                              height: '6px',
+                              width: '4px',
                             },
                             '&::-webkit-scrollbar-track': {
                               background: '#F1F5F9',
-                              borderRadius: '3px',
+                              borderRadius: '2px',
                             },
                             '&::-webkit-scrollbar-thumb': {
                               background: '#CBD5E1',
-                              borderRadius: '3px',
+                              borderRadius: '2px',
                               '&:hover': {
                                 background: '#94A3B8',
                               },
                             },
                           }}>
-                            {(availableYears.length > 0 ? years : years).map(yearOption => (
-                              <FormControlLabel
-                                key={yearOption}
-                                control={
-                                  <Checkbox
-                                    checked={selectedYearsForTwinPreset.includes(yearOption)}
-                                    onChange={() => toggleYearForTwinPreset(yearOption)}
-                                    size="small"
-                                    sx={{
-                                      color: '#6BA3D0',
-                                      '&.Mui-checked': {
-                                        color: '#6BA3D0',
-                                      },
-                                      '& .MuiSvgIcon-root': {
-                                        fontSize: '1rem'
-                                      },
-                                      py: 0.25,
-                                    }}
-                                  />
-                                }
-                                label={
-                                  <Typography sx={{
-                                    fontSize: '0.75rem',
-                                    fontWeight: 500,
-                                    color: '#475569',
-                                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-                                    whiteSpace: 'nowrap',
-                                  }}>
-                                    {yearOption}
-                                  </Typography>
-                                }
-                                sx={{
-                                  m: 0,
-                                  mr: 0.75,
-                                  py: 0.25,
-                                  flexShrink: 0,
-                                  '&:hover': {
-                                    bgcolor: 'rgba(107, 163, 208, 0.04)',
-                                    borderRadius: 0.5
-                                  }
-                                }}
-                              />
-                            ))}
-                          </Box>
-                        </Box>
-                      )}
-
-                      {/* Pilih Bulan untuk Multi-Tahun Preset */}
-                      {showMultiYearPreset && (
-                        <Box sx={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 1,
-                          mt: 1,
-                          flexShrink: 0
-                        }}>
-                          <Typography sx={{
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            color: '#475569',
-                            mb: 0.5,
-                            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
-                          }}>
-                            Pilih Bulan:
-                          </Typography>
-                          <Box sx={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(3, 1fr)',
-                            gap: 0.75,
-                          }}>
-                            {MONTH_OPTIONS.map(monthOption => {
-                              const isSelected = selectedMonthsForTwinPreset.includes(monthOption.value);
-                              
+                            {manualPreviewDates.map((date, idx) => {
+                              const monthOption = MONTH_OPTIONS.find(m => m.monthDay === date.monthDay);
+                              const displayText = formatDateDisplay(date);
                               return (
-                                <Chip
-                                  key={monthOption.value}
-                                  label={monthOption.label}
-                                  size="small"
-                                  onClick={() => toggleMonthForTwinPreset(monthOption.value)}
+                                <Box
+                                  key={`${date.year}-${date.monthDay}-${idx}`}
                                   sx={{
-                                    fontSize: '0.6875rem',
-                                    fontWeight: 500,
-                                    height: '32px',
-                                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-                                    bgcolor: isSelected ? '#6BA3D0' : '#FFFFFF',
-                                    color: isSelected ? '#FFFFFF' : '#475569',
-                                    border: isSelected ? 'none' : '1px solid #E2E8F0',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 0.75,
+                                    py: 0.875,
+                                    px: 1.25,
                                     borderRadius: 1.25,
-                                    cursor: 'pointer',
+                                    bgcolor: 'rgba(107, 163, 208, 0.08)',
+                                    border: '1px solid rgba(107, 163, 208, 0.2)',
                                     transition: 'all 0.2s ease',
                                     '&:hover': {
-                                      bgcolor: isSelected ? '#5A9FD0' : '#F8FAFC',
-                                      borderColor: isSelected ? 'none' : '#6BA3D0',
-                                      transform: 'translateY(-1px)',
+                                      bgcolor: 'rgba(107, 163, 208, 0.12)',
+                                      borderColor: '#6BA3D0',
+                                      transform: 'translateX(2px)'
                                     }
                                   }}
-                                />
+                                >
+                                  <Box sx={{
+                                    width: 6,
+                                    height: 6,
+                                    borderRadius: '50%',
+                                    bgcolor: '#6BA3D0',
+                                    flexShrink: 0,
+                                    opacity: 0.8
+                                  }} />
+                                  <Typography sx={{
+                                    fontSize: '0.8125rem',
+                                    fontWeight: 500,
+                                    color: '#0F172A',
+                                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                                    lineHeight: 1.5,
+                                    flex: 1
+                                  }}>
+                                    {displayText}
+                                  </Typography>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleRemoveFromPreview({ year: date.year, monthDay: date.monthDay })}
+                                    sx={{
+                                      width: '24px',
+                                      height: '24px',
+                                      p: 0.5,
+                                      color: '#6BA3D0',
+                                      '&:hover': {
+                                        bgcolor: 'rgba(107, 163, 208, 0.1)',
+                                        color: '#5A9FD0'
+                                      }
+                                    }}
+                                  >
+                                    <DeleteOutlineIcon sx={{ fontSize: '0.875rem' }} />
+                                  </IconButton>
+                                </Box>
                               );
                             })}
                           </Box>
-                        </Box>
-                      )}
-                    </Box>
-                    <Box sx={{ 
-                      flex: 1,
-                      p: 0,
-                      m: 0,
-                      display: 'flex',
-                      alignItems: 'stretch',
-                      justifyContent: 'stretch',
-                      minHeight: 0,
-                      overflow: 'hidden',
-                      width: '100%',
-                      height: '100%',
-                    }}>
-                      <Box sx={{ 
-                        width: '100%', 
-                        height: '100%',
-                        maxWidth: '100%',
-                        maxHeight: '100%',
-                        display: 'flex',
-                        alignItems: 'stretch',
-                        justifyContent: 'stretch',
-                        flex: 1,
-                        m: 0,
-                        p: 0,
-                        overflow: 'hidden',
-                      }}>
-                        <DateRangePicker
-                          ranges={[selectionDate]}
-                          onChange={handleSelect}
-                          minDate={getMinDate()}
-                          maxDate={getMaxDate()}
-                          months={1}
-                          direction="horizontal"
-                          showDateDisplay={true}
-                          showMonthAndYearPickers={true}
-                          moveRangeOnFirstSelection={false}
-                          retainEndDateOnFirstSelection={false}
-                          editableDateInputs={false}
-                          staticRanges={[]}
-                          inputRanges={[]}
-                        />
+                        ) : (
+                          <Box sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            py: 6,
+                            px: 2,
+                            textAlign: 'center'
+                          }}>
+                            <CalendarMonthIcon sx={{
+                              fontSize: '3.5rem',
+                              color: '#CBD5E1',
+                              mb: 1.5,
+                              opacity: 0.6
+                            }} />
+                            <Typography sx={{
+                              fontSize: '0.875rem',
+                              color: '#94A3B8',
+                              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                              lineHeight: 1.6,
+                              maxWidth: '250px'
+                            }}>
+                              Belum ada tanggal yang dipilih. Gunakan kalender di panel kiri untuk memilih tanggal.
+                            </Typography>
+                          </Box>
+                        )}
                       </Box>
-                    </Box>
+                    )}
                   </Box>
 
                   {/* Tombol Batal dan Tambah Tanggal */}
@@ -1312,10 +1342,14 @@ export const SingleDatePickerWithYear = ({
                       onClick={() => {
                         setShowPicker(false);
                         setSelectionDate({
-                          startDate: new Date(),
-                          endDate: new Date(),
+                          startDate: null,
+                          endDate: null,
                           key: 'selection',
                         });
+                        // Reset manual preview dates saat batal
+                        if (showManualMode) {
+                          setManualPreviewDates([]);
+                        }
                       }}
                       sx={{
                         borderColor: '#CBD5E1',
@@ -1340,14 +1374,54 @@ export const SingleDatePickerWithYear = ({
                     >
                       Batal
                     </Button>
-                    {!showMultiYearPreset ? (
+                    {showManualMode ? (
+                      <Button 
+                        variant="contained" 
+                        size="medium" 
+                        onClick={handleAddAllPreviewDates}
+                        disabled={manualPreviewDates.length === 0}
+                        sx={{
+                          bgcolor: '#6BA3D0',
+                          color: 'white',
+                          textTransform: 'none',
+                          fontSize: '0.8125rem',
+                          fontWeight: 600,
+                          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                          borderRadius: 1.5,
+                          px: 2.5,
+                          py: 0.75,
+                          minWidth: '160px',
+                          height: '38px',
+                          boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)',
+                          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                          '&:hover': {
+                            bgcolor: '#5A9FD0',
+                            boxShadow: '0 4px 8px rgba(107, 163, 208, 0.3)',
+                            transform: 'translateY(-1px)'
+                          },
+                          '&:active': {
+                            transform: 'translateY(0)',
+                            boxShadow: '0 2px 4px rgba(107, 163, 208, 0.25)'
+                          },
+                          '&:disabled': {
+                            bgcolor: '#E2E8F0',
+                            color: '#94A3B8',
+                            boxShadow: 'none',
+                            transform: 'none',
+                            cursor: 'not-allowed'
+                          }
+                        }}
+                      >
+                        Tambah Semua ({manualPreviewDates.length})
+                      </Button>
+                    ) : !showMultiYearPreset ? (
                       <>
                         {selectedMonthsForSingleYear.length > 0 ? (
                           <Button 
                             variant="contained" 
                             size="medium" 
-                            onClick={handleAddTwinDatesPreset}
-                            disabled={remainingTwinDates.length === 0}
+                            onClick={tglKembarTahunHook.handleAddTwinDatesPreset}
+                            disabled={tglKembarTahunHook.remainingTwinDates.length === 0}
                             sx={{
                               bgcolor: '#6BA3D0',
                               color: 'white',
@@ -1380,7 +1454,7 @@ export const SingleDatePickerWithYear = ({
                               }
                             }}
                           >
-                            Tambah ({remainingTwinDates.length} tanggal)
+                            Tambah ({tglKembarTahunHook.remainingTwinDates.length} tanggal)
                           </Button>
                         ) : (
                           <Button 
@@ -1428,7 +1502,7 @@ export const SingleDatePickerWithYear = ({
                       <Button 
                         variant="contained" 
                         size="medium" 
-                        onClick={handleAddTwinDatesPresetMultiYear}
+                        onClick={tglKembarMultiTahunHook.handleAddTwinDatesPresetMultiYear}
                         disabled={selectedYearsForTwinPreset.length === 0 || selectedMonthsForTwinPreset.length === 0}
                         sx={{
                           bgcolor: '#6BA3D0',
@@ -1462,7 +1536,7 @@ export const SingleDatePickerWithYear = ({
                           }
                         }}
                       >
-                        Tambah ({remainingTwinDatesMultiYear} tanggal)
+                        Tambah ({tglKembarMultiTahunHook.remainingTwinDatesMultiYear} tanggal)
                       </Button>
                     )}
                   </Box>
@@ -1582,4 +1656,3 @@ export const SingleDatePickerWithYear = ({
 };
 
 export default SingleDatePickerWithYear;
-
