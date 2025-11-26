@@ -136,13 +136,17 @@ export function buildApiParams({
 /**
  * Load year summary data 
  */
-export async function loadYearSummary(availableYears, setYearSummary, setYearSummaryLoading) {
+export async function loadYearSummary(availableYears, setYearSummary, setYearSummaryLoading, businessUnits = ['Gosave', 'Goto']) {
   try {
     setYearSummaryLoading(true);
     const params = new URLSearchParams();
-    // Load BU
-    params.append('business_units[]', 'Gosave');
-    params.append('business_units[]', 'Goto');
+    
+    // Gunakan businessUnits yang dipilih, atau default ke ['Gosave', 'Goto']
+    const unitsToLoad = businessUnits && businessUnits.length > 0 ? businessUnits : ['Gosave', 'Goto'];
+    unitsToLoad.forEach(unit => {
+      params.append('business_units[]', unit);
+    });
+    
     params.append('date_type', 'year');
     // Load All Years
     availableYears.forEach(year => {
@@ -520,7 +524,7 @@ export async function refreshData({
     setInvoiceLoading(true);
     setInvoiceData([]);
 
-    await loadYearSummary(availableYears, setYearSummary, setYearSummaryLoading);
+    await loadYearSummary(availableYears, setYearSummary, setYearSummaryLoading, businessUnits);
     
     if (businessUnits.length > 0) {
       const canLoadData = 
