@@ -247,6 +247,19 @@ function createYearFilterChart({
         },
         boxPadding: 8,
         usePointStyle: true,
+        itemSort: function(a, b) {
+          // Extract tahun dari label dataset (format: "YYYY - Penjualan" atau "YYYY - Quantity")
+          const getYear = (label) => {
+            const match = label.match(/^(\d{4})\s*-/);
+            return match ? parseInt(match[1], 10) : 0;
+          };
+          
+          const yearA = getYear(a.dataset.label || '');
+          const yearB = getYear(b.dataset.label || '');
+          
+          // Urutkan descending (tahun terbaru di atas)
+          return yearB - yearA;
+        },
         callbacks: {
           label: function(context) {
             let label = context.dataset.label || '';
@@ -700,6 +713,19 @@ function createSpecificDateChart({
       },
       tooltip: {
         enabled: true,
+        itemSort: function(a, b) {
+          // Extract tahun dari label dataset (format: "YYYY - Penjualan" atau "YYYY - Quantity")
+          const getYear = (label) => {
+            const match = label.match(/^(\d{4})\s*-/);
+            return match ? parseInt(match[1], 10) : 0;
+          };
+          
+          const yearA = getYear(a.dataset.label || '');
+          const yearB = getYear(b.dataset.label || '');
+          
+          // Urutkan descending (tahun terbaru di atas)
+          return yearB - yearA;
+        },
         callbacks: {
           label: function(context) {
             let label = context.dataset.label || '';
@@ -972,6 +998,33 @@ function createRangeChart({
         },
         boxPadding: 8,
         usePointStyle: true,
+        itemSort: function(a, b) {
+          // Extract tahun dari label dataset (format: "YYYY - Penjualan" atau "YYYY - Quantity")
+          // Untuk range chart, label format: "BusinessUnit - Penjualan" atau "BusinessUnit - Quantity"
+          // Jadi kita perlu handle kedua kasus
+          const getYear = (label) => {
+            // Coba extract tahun dari format "YYYY - ..."
+            const yearMatch = label.match(/^(\d{4})\s*-/);
+            if (yearMatch) {
+              return parseInt(yearMatch[1], 10);
+            }
+            // Jika tidak ada tahun, return 0 untuk tetap di bawah
+            return 0;
+          };
+          
+          const yearA = getYear(a.dataset.label || '');
+          const yearB = getYear(b.dataset.label || '');
+          
+          // Jika kedua item punya tahun, urutkan descending (tahun terbaru di atas)
+          if (yearA > 0 && yearB > 0) {
+            return yearB - yearA;
+          }
+          // Jika salah satu tidak punya tahun, yang punya tahun di atas
+          if (yearA > 0 && yearB === 0) return -1;
+          if (yearB > 0 && yearA === 0) return 1;
+          // Jika keduanya tidak punya tahun, urutkan berdasarkan label
+          return (a.dataset.label || '').localeCompare(b.dataset.label || '');
+        },
         callbacks: {
           label: function(context) {
             let label = context.dataset.label || '';

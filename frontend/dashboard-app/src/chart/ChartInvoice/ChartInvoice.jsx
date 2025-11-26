@@ -46,7 +46,7 @@ ChartJS.register(
 
 
 function ChartInvoice() {
-  const [businessUnits, setBusinessUnits] = useState([]);
+  const [businessUnits, setBusinessUnits] = useState(['Gosave', 'Goto']);
   const [dateFilterType, setDateFilterType] = useState('year');
   const [dataType, setDataType] = useState('both'); 
   const [years, setYears] = useState([]);
@@ -267,10 +267,10 @@ function ChartInvoice() {
 
   const availableYears = getAvailableYears();
 
-  // Load summary
+  // Load summary - reload saat businessUnits berubah
   useEffect(() => {
-    loadYearSummary(availableYears, setYearSummary, setYearSummaryLoading);
-  }, []);
+    loadYearSummary(availableYears, setYearSummary, setYearSummaryLoading, businessUnits);
+  }, [businessUnits]);
 
   useEffect(() => {
     if (dateFilterType !== 'year' && years.length > 1) {

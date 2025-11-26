@@ -6,6 +6,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { DateRangePicker } from 'react-date-range';
+import { enGB } from 'date-fns/locale';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import { useAlert } from '../../hooks/useAlert';
@@ -559,6 +560,7 @@ export const DateRangePickerWithPresets = ({
                     direction="horizontal"
                     showDateDisplay={true}
                     showMonthAndYearPickers={true}
+                    locale={enGB}
                   />
                   
                   {/* Tombol Batal dan Tambah Range */}
