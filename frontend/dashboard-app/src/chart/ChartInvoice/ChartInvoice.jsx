@@ -22,9 +22,9 @@ import {
 } from '@mui/material';
 import dayjs from 'dayjs';
 import FilterSection from './components/filters/FilterSection';
-import YearCards from './components/filters/YearCards';
-import RangeDateFilter from './components/filters/RangeDateFilter';
-import SpecificDateFilter from './components/filters/SpecificDateFilter';
+import YearCards from './components/filters/Tahun/YearCards';
+import RangeDateFilter from './components/filters/RangeTanggal/RangeDateFilter';
+import SpecificDateFilter from './components/filters/TanggalTertentu/SpecificDateFilter';
 import SummaryCard from './components/filters/SummaryCard';
 import AlertModal from './components/AlertModal';
 import { useAlert } from './hooks/useAlert';
