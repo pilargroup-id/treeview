@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Button } from "@mui/material";
 import AddIcon from '@mui/icons-material/Add';
-import { Calendar } from 'react-date-range';
+import { DateRange } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 
@@ -27,19 +27,27 @@ export const DatePickerManual = ({
     return new Date(maxYear, 11, 31);
   };
 
-  // Single Date Selection
-  const handleSelect = (date) => {
-    if (!date) return;
+  // Range Date Selection
+  const handleSelect = (ranges) => {
+    const range = ranges.selection;
     
-    // Validasi tahun
-    if (availableYears.length > 0 && !availableYears.includes(date.getFullYear())) {
-      showWarning(`Tahun ${date.getFullYear()} tidak tersedia. Pilih tahun yang ada di daftar terlebih dahulu.`);
+    if (!range.startDate || !range.endDate) return;
+    
+    // Validasi tahun untuk startDate
+    if (availableYears.length > 0 && !availableYears.includes(range.startDate.getFullYear())) {
+      showWarning(`Tahun ${range.startDate.getFullYear()} tidak tersedia. Pilih tahun yang ada di daftar terlebih dahulu.`);
+      return;
+    }
+    
+    // Validasi tahun untuk endDate
+    if (availableYears.length > 0 && !availableYears.includes(range.endDate.getFullYear())) {
+      showWarning(`Tahun ${range.endDate.getFullYear()} tidak tersedia. Pilih tahun yang ada di daftar terlebih dahulu.`);
       return;
     }
 
     setSelectionDate({
-      startDate: date,
-      endDate: date,
+      startDate: range.startDate,
+      endDate: range.endDate,
       key: 'selection',
     });
   };
@@ -131,7 +139,8 @@ export const DatePickerManual = ({
           color: '#6BA3D0',
         },
         // Single date selection - tidak ada range
-        '& .rdrDaySelected': {
+        // Range selection styles
+        '& .rdrDaySelected, & .rdrDayStartEdge, & .rdrDayEndEdge': {
           backgroundColor: '#6BA3D0 !important',
           color: '#FFFFFF !important',
           borderRadius: '4px !important',
@@ -143,16 +152,16 @@ export const DatePickerManual = ({
             backgroundColor: '#5A9FD0 !important',
           }
         },
-        // Pastikan tidak ada visual range
-        '& .rdrDayInRange, & .rdrDayStartEdge, & .rdrDayEndEdge': {
-          backgroundColor: 'transparent !important',
+        // Days in range
+        '& .rdrDayInRange': {
+          backgroundColor: 'rgba(107, 163, 208, 0.15) !important',
           color: '#475569 !important',
           '& .rdrDayNumber span': {
             color: '#475569 !important',
-            fontWeight: 400,
+            fontWeight: 500,
           },
           '&:hover': {
-            backgroundColor: '#F1F5F9 !important',
+            backgroundColor: 'rgba(107, 163, 208, 0.25) !important',
           }
         },
         '& .rdrDayDisabled': {
@@ -226,12 +235,14 @@ export const DatePickerManual = ({
           }
         },
       }}>
-        <Calendar
-          date={selectionDate?.startDate || new Date()}
+        <DateRange
+          ranges={[selectionDate]}
           onChange={handleSelect}
           minDate={getMinDate()}
           maxDate={getMaxDate()}
           color="#6BA3D0"
+          months={1}
+          direction="horizontal"
         />
       </Box>
       
@@ -247,7 +258,7 @@ export const DatePickerManual = ({
             variant="outlined"
             size="medium"
             onClick={onAddToPreview}
-            disabled={!selectionDate?.startDate}
+            disabled={!selectionDate?.startDate || !selectionDate?.endDate}
             startIcon={<AddIcon sx={{ fontSize: '1rem' }} />}
             sx={{
               borderColor: '#6BA3D0',

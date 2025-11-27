@@ -5,12 +5,12 @@ import BusinessIcon from '@mui/icons-material/Business';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import { DateRangePicker } from 'react-date-range';
+import { DateRange } from 'react-date-range';
 import { enGB } from 'date-fns/locale';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
-import { useAlert } from '../../hooks/useAlert';
-import AlertModal from '../AlertModal';
+import { useAlert } from '../../../hooks/useAlert';
+import AlertModal from '../../AlertModal';
 
 const formatDateDisplay = (monthDay, year) => {
   const [month, day] = monthDay.split('-');
@@ -39,11 +39,91 @@ export const DateRangePickerWithPresets = ({
   });
   
   const [showPicker, setShowPicker] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState(null);
   
   const anchorRef = useRef(null);
   const pickerRef = useRef(null);
   
-  const MAX_RANGE_DATES = 1; 
+  const MAX_RANGE_DATES = 1;
+
+  // Fungsi untuk mendapatkan tanggal berdasarkan preset
+  const getPresetDates = (preset) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let startDate = new Date(today);
+    let endDate = new Date(today);
+    
+    switch (preset) {
+      case 'today':
+        startDate = new Date(today);
+        endDate = new Date(today);
+        break;
+      case 'thisMonth':
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        endDate = new Date(today);
+        endDate.setDate(today.getDate() - 1);
+        break;
+      case 'last3Days':
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - 3);
+        endDate = new Date(today);
+        endDate.setDate(today.getDate() - 1);
+        break;
+      case 'last7Days':
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - 7);
+        endDate = new Date(today);
+        endDate.setDate(today.getDate() - 1);
+        break;
+      case 'last14Days':
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - 14);
+        endDate = new Date(today);
+        endDate.setDate(today.getDate() - 1);
+        break;
+      case 'last21Days':
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - 21);
+        endDate = new Date(today);
+        endDate.setDate(today.getDate() - 1);
+        break;
+      case 'last30Days':
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - 30);
+        endDate = new Date(today);
+        endDate.setDate(today.getDate() - 1);
+        break;
+      default:
+        return null;
+    }
+    
+    return { startDate, endDate };
+  };
+
+  // Handler untuk preset range
+  const handlePresetSelect = (preset) => {
+    const dates = getPresetDates(preset);
+    if (dates) {
+      setSelectedPreset(preset);
+      setSelectionRange({
+        startDate: dates.startDate,
+        endDate: dates.endDate,
+        key: 'selection',
+      });
+    }
+  };
+
+  // Daftar preset ranges
+  const presetRanges = [
+    { key: 'today', label: 'Today' },
+    { key: 'thisMonth', label: 'This Month' },
+    { key: 'last3Days', label: 'Last 3 Days' },
+    { key: 'last7Days', label: 'Last 7 Days' },
+    { key: 'last14Days', label: 'Last 14 Days' },
+    { key: 'last21Days', label: 'Last 21 Days' },
+    { key: 'last30Days', label: 'Last 30 Days' },
+  ]; 
 
   useEffect(() => {
     if (rangeDates.length > 0) {
@@ -523,6 +603,7 @@ export const DateRangePickerWithPresets = ({
                         endDate: new Date(),
                         key: 'selection',
                       });
+                      setSelectedPreset(null);
                     }}
                     sx={{
                       minWidth: 'auto',
@@ -544,24 +625,83 @@ export const DateRangePickerWithPresets = ({
                 <Box sx={{
                   p: 2,
                   bgcolor: 'white',
-                  borderRadius: 3,
-                  overflow: 'hidden',
-                  width: '100%',
-                  '& > div': {
-                    width: '100% !important',
-                  }
                 }}>
-                  <DateRangePicker
-                    ranges={[selectionRange]}
-                    onChange={handleSelect}
-                    minDate={getMinDate()}
-                    maxDate={getMaxDate()}
-                    months={2}
-                    direction="horizontal"
-                    showDateDisplay={true}
-                    showMonthAndYearPickers={true}
-                    locale={enGB}
-                  />
+                  <Box sx={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    width: '100%',
+                    bgcolor: 'white',
+                    borderRadius: 3,
+                    overflow: 'hidden',
+                  }}>
+                    {/* Panel Preset Ranges di Sisi Kiri */}
+                    <Box sx={{
+                      width: '200px',
+                      minWidth: '200px',
+                      borderRight: '1px solid #F1F5F9',
+                      bgcolor: '#FAFBFC',
+                      p: 2,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 0.5,
+                    }}>
+                      {presetRanges.map((preset) => (
+                        <Button
+                          key={preset.key}
+                          onClick={() => handlePresetSelect(preset.key)}
+                          sx={{
+                            justifyContent: 'flex-start',
+                            textTransform: 'none',
+                            fontSize: '0.875rem',
+                            fontWeight: selectedPreset === preset.key ? 600 : 400,
+                            color: selectedPreset === preset.key ? '#6BA3D0' : '#475569',
+                            bgcolor: selectedPreset === preset.key ? 'rgba(107, 163, 208, 0.08)' : 'transparent',
+                            borderRadius: 1.5,
+                            px: 1.5,
+                            py: 0.875,
+                            minHeight: '36px',
+                            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                            '&:hover': {
+                              bgcolor: selectedPreset === preset.key 
+                                ? 'rgba(107, 163, 208, 0.12)' 
+                                : 'rgba(107, 163, 208, 0.06)',
+                              color: '#6BA3D0',
+                            },
+                          }}
+                        >
+                          {preset.label}
+                        </Button>
+                      ))}
+                    </Box>
+
+                    {/* Kalender di Sisi Kanan */}
+                    <Box sx={{
+                      flex: 1,
+                      p: 2,
+                      bgcolor: 'white',
+                      borderRadius: 3,
+                      overflow: 'hidden',
+                      '& > div': {
+                        width: '100% !important',
+                      }
+                    }}>
+                      <DateRange
+                        ranges={[selectionRange]}
+                        onChange={(ranges) => {
+                          handleSelect(ranges);
+                          setSelectedPreset(null); // Reset preset saat user memilih manual
+                        }}
+                        minDate={getMinDate()}
+                        maxDate={getMaxDate()}
+                        months={2}
+                        direction="horizontal"
+                        showDateDisplay={true}
+                        showMonthAndYearPickers={true}
+                        locale={enGB}
+                      />
+                    </Box>
+                  </Box>
                   
                   {/* Tombol Batal dan Tambah Range */}
                   <Box sx={{ 
@@ -582,6 +722,7 @@ export const DateRangePickerWithPresets = ({
                           endDate: new Date(),
                           key: 'selection',
                         });
+                        setSelectedPreset(null);
                       }}
                       sx={{
                         borderColor: '#CBD5E1',
