@@ -66,7 +66,7 @@ class FinancialController extends Controller
         $validator = Validator::make($request->all(), [
             'business_units' => 'required|array|min:1',
             'business_units.*' => 'in:Gosave,Goto',
-            'date_type' => 'nullable|in:year,range,specific,compare_year',
+            'date_type' => 'nullable|in:year,range,specific,compare_year,multi_range',
             'years' => 'nullable|array',
             'years.*' => 'integer|min:2020|max:2030',
             'start_date' => 'nullable|date_format:Y-m-d',
@@ -98,6 +98,39 @@ class FinancialController extends Controller
                 'dates' => $request->input('compare_dates', []),
                 'years' => $request->input('compare_years', [])
             ];
+        } elseif ($dateType === 'multi_range') {
+            $ranges = $request->input('date_ranges', []);
+            
+            // Validate each range
+            $validRanges = [];
+            foreach ($ranges as $range) {
+                if (!empty($range['start']) && !empty($range['end'])) {
+                    $start = new \DateTime($range['start']);
+                    $end = new \DateTime($range['end']);
+                    $diff = $start->diff($end)->days;
+                    
+                    if ($diff > 31) {
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => 'Setiap range maksimal 31 hari'
+                        ], 422);
+                    }
+                    
+                    $validRanges[] = [
+                        'start' => $range['start'],
+                        'end' => $range['end']
+                    ];
+                }
+            }
+            
+            if (count($validRanges) > 5) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Maksimal 5 range tanggal'
+                ], 422);
+            }
+            
+            $dateParams = $validRanges;
         }
 
         $result = $this->financialRepo->getInvoiceSalesData(
