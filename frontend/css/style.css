@@ -201,3 +201,59 @@ tr:nth-child(even) {
     margin-left: 10px;
 }
 
+/* Multi Range Input Styles */
+.range-input-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 12px;
+    background: #f9f9f9;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+}
+
+.range-label {
+    font-weight: 600;
+    color: #555;
+    min-width: 70px;
+}
+
+.range-start, .range-end {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.btn-small:hover {
+    background: #218838;
+}
+
+.range-status {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.range-status.valid {
+    color: #28a745;
+}
+
+.range-status.invalid {
+    color: #dc3545;
+}
+
+.range-validated {
+    border-color: #28a745;
+    background: #f0fff4;
+}

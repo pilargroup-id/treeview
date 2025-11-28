@@ -63,6 +63,7 @@
                     <option value="range">Range Tanggal</option>
                     <option value="specific">Tanggal Tertentu (Max 30)</option>
                     <option value="compare_year">Compare by Year</option>
+                    <option value="multi_range">Multi Range Comparison (Max 5)</option>
                 </select>
             </div>
             
@@ -102,6 +103,26 @@
                         <!-- Will be populated by JS -->
                     </div>
                 </div>
+            </div>
+
+            <!-- Multi Range Comparison Filter (NEW) -->
+            <div class="form-group" id="multi_range_container" style="display:none;">
+                <label>Range Tanggal untuk Perbandingan (Max 5 Range, 31 Hari per Range):</label>
+                
+                <div id="range_inputs_container">
+                    <!-- Range 1 -->
+                    <div class="range-input-group" data-range-index="0">
+                        <span class="range-label">Range 1:</span>
+                        <input type="date" class="range-start" placeholder="Tanggal Mulai">
+                        <span>sampai</span>
+                        <input type="date" class="range-end" placeholder="Tanggal Akhir">
+                        <button class="btn-small" onclick="validateRange(0)">✓ Validasi</button>
+                        <span class="range-status"></span>
+                    </div>
+                </div>
+                
+                <button onclick="addRangeInput()" id="add_range_btn" style="margin-top:10px;">+ Tambah Range</button>
+                <div id="validated_ranges" class="tag-container" style="margin-top:15px;"></div>
             </div>
             
             

@@ -64,6 +64,11 @@ class FinancialRepository
         // Build date filter
         $dateFilter = $this->buildDateFilter($years, $dateType, $dateParams);
         
+        // Special handling for multi_range
+        if ($dateType === 'multi_range' && !empty($dateParams)) {
+            return $this->getMultiRangeComparison($businessUnits, $dateParams);
+        }
+
         // Determine grouping based on date type
         if ($dateType === 'year') {
             $dateGrouping = "FORMAT_DATE('%Y-%m', a.date) as period";
@@ -136,6 +141,87 @@ class FinancialRepository
     }
 
     /**
+     * Get multi-range comparison data
+     * Each range is treated as a separate group for comparison
+     */
+    private function getMultiRangeComparison($businessUnits, $ranges)
+    {
+        $businessUnitCondition = $this->buildBusinessUnitCondition($businessUnits);
+        
+        // Build CASE WHEN for range grouping
+        $rangeCases = [];
+        foreach ($ranges as $index => $range) {
+            $rangeLabel = "Range " . ($index + 1) . ": " . date('d M Y', strtotime($range['start'])) . " - " . date('d M Y', strtotime($range['end']));
+            $rangeCases[] = "WHEN DATE(t1.date) BETWEEN '{$range['start']}' AND '{$range['end']}' THEN '{$rangeLabel}'";
+        }
+        $rangeCaseStatement = implode(" ", $rangeCases);
+        
+        $query = "
+            WITH approved_invoices AS (
+                SELECT
+                    t1.internal_id,
+                    t1.invoice_number,
+                    t1.date,
+                    t1.total as sales_total,
+                    t1.department,
+                    CASE 
+                        WHEN t1.department IN ('Sales Offline', 'Sales B2B') THEN 'Gosave'
+                        ELSE 'Goto'
+                    END as business_unit,
+                    CASE
+                        {$rangeCaseStatement}
+                        ELSE NULL
+                    END as range_group
+                FROM
+                    `even-gearbox-255203.ds_netbackup.header_invoice` t1
+                WHERE
+                    t1.approval_status = 'Approved'
+                    AND {$businessUnitCondition}
+                    AND (
+                        " . implode(" OR ", array_map(function($r) {
+                            return "DATE(t1.date) BETWEEN '{$r['start']}' AND '{$r['end']}'";
+                        }, $ranges)) . "
+                    )
+            ),
+            invoice_quantity AS (
+                SELECT
+                    t2.invoice_number,
+                    SUM(t2.quantity) as total_quantity
+                FROM
+                    `even-gearbox-255203.ds_netbackup.detail_invoice` t2
+                WHERE
+                    t2.invoice_number IN (SELECT invoice_number FROM approved_invoices WHERE range_group IS NOT NULL)
+                GROUP BY
+                    t2.invoice_number
+            )
+            SELECT
+                a.range_group as period,
+                a.business_unit,
+                SUM(a.sales_total) as total_sales,
+                SUM(IFNULL(b.total_quantity, 0)) as total_quantity,
+                COUNT(a.invoice_number) as invoice_count
+            FROM
+                approved_invoices a
+            LEFT JOIN
+                invoice_quantity b
+            ON
+                a.invoice_number = b.invoice_number
+            WHERE
+                a.range_group IS NOT NULL
+            GROUP BY
+                a.range_group, a.business_unit
+            ORDER BY
+                a.range_group, a.business_unit
+        ";
+        
+        $cacheKey = "multi_range_comparison_" . md5(json_encode($businessUnits) . json_encode($ranges));
+        
+        return Cache::remember($cacheKey, 1800, function () use ($query) {
+            return $this->bigQueryService->runQuery($query);
+        });
+    }
+
+    /**
      * Helper: Build date filter based on selected filters
      */
     private function buildDateFilter($years, $dateType, $dateParams)
@@ -176,6 +262,18 @@ class FinancialRepository
         if ($dateType === 'specific' && !empty($dateParams)) {
             $dateList = "'" . implode("','", $dateParams) . "'";
             $filters[] = "DATE(t1.date) IN ({$dateList})";
+        }
+
+        if ($dateType === 'multi_range' && !empty($dateParams)) {
+            $rangeConditions = [];
+            foreach ($dateParams as $range) {
+                if (!empty($range['start']) && !empty($range['end'])) {
+                    $rangeConditions[] = "(DATE(t1.date) BETWEEN '{$range['start']}' AND '{$range['end']}')";
+                }
+            }
+            if (!empty($rangeConditions)) {
+                $filters[] = "(" . implode(" OR ", $rangeConditions) . ")";
+            }
         }
         
         if (empty($filters)) {
