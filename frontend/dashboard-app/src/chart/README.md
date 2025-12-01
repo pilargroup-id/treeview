@@ -50,9 +50,9 @@ chart/
 │   │   └── chartConfig.js
 │   ├── services/              # Service API khusus
 │   │   └── apiService.js
-│   ├── utils.js               # Utils khusus chart
-│   ├── plugin.js              # Plugin Chart.js khusus
-│   └── styles.js              # Styles khusus chart
+│   ├── chartHelpers.js         # Helper functions dan hooks
+│   └── styles/                 # Styles folder
+│       └── styles.js           # Styles khusus chart
 │
 ├── shared/                    # Resources yang bisa dipakai semua chart
 │   ├── components/            # Komponen reusable
@@ -172,7 +172,7 @@ Setiap chart harus memiliki:
 
 - `ChartName.jsx` - Komponen utama
 - `index.js` - Export helper
-- `styles.js` - Styles khusus chart
+- `styles/styles.js` - Styles khusus chart (atau `styles.js` jika tidak menggunakan folder)
 - `components/` - Komponen UI khusus
 - `hooks/` - Custom hooks khusus
 - `config/` - Konfigurasi chart

@@ -25,9 +25,10 @@ ChartBulanan/
 │   └── chartConfig.js     # Konfigurasi Chart.js dengan memoization
 ├── services/
 │   └── apiService.js      # Service untuk API calls
-├── utils.js               # Utility functions khusus chart
-├── plugin.js              # Plugin Chart.js untuk percentage labels
-└── styles.js              # Styles khusus chart
+├── chartHelpers.js        # Helper functions dan hooks
+├── styles/                # Styles folder
+│   └── styles.js          # Styles khusus chart
+└── README.md              # Dokumentasi
 ```
 
 ## Dependencies
