@@ -71,16 +71,27 @@ class FinancialRepository
 
         // Determine grouping based on date type
         if ($dateType === 'year') {
-            $dateGrouping = "FORMAT_DATE('%Y-%m', a.date) as period";
+            $dateGrouping = "FORMAT_DATE('%Y-%m', a.date)";
             $selectYear = "a.year";
+            $gosaveGrouping = "FORMAT_DATE('%Y-%m', DATE(date))";
+            $bigsellerGrouping = "FORMAT_DATE('%Y-%m', DATE(waktu_pesanan_dibuat))";
         } elseif ($dateType === 'compare_year') {
-            $dateGrouping = "FORMAT_DATE('%m-%d', a.date) as period";
+            $dateGrouping = "FORMAT_DATE('%m-%d', a.date)";
             $selectYear = "a.year";
+            $gosaveGrouping = "FORMAT_DATE('%m-%d', DATE(date))";
+            $bigsellerGrouping = "FORMAT_DATE('%m-%d', DATE(waktu_pesanan_dibuat))";
         } else {
-            $dateGrouping = "FORMAT_DATE('%Y-%m-%d', a.date) as period";
+            $dateGrouping = "FORMAT_DATE('%Y-%m-%d', a.date)";
             $selectYear = "a.year";
+            $gosaveGrouping = "FORMAT_DATE('%Y-%m-%d', DATE(date))";
+            $bigsellerGrouping = "FORMAT_DATE('%Y-%m-%d', DATE(waktu_pesanan_dibuat))";
         }
-                
+
+        // Build Bigseller date filter
+        $bigsellerDateFilter = $this->buildBigsellerDateFilter($years, $dateType, $dateParams);
+        // Build Gosave date filter (without t1 alias)
+        $gosaveDateFilter = $this->buildGosaveDateFilter($years, $dateType, $dateParams);
+
         $query = "
             WITH approved_invoices AS (
                 SELECT
@@ -112,21 +123,70 @@ class FinancialRepository
                     t2.invoice_number IN (SELECT invoice_number FROM approved_invoices)
                 GROUP BY
                     t2.invoice_number
+            ),
+            gosave_invoice_count AS (
+                SELECT
+                    {$gosaveGrouping} as period,
+                    COUNT(DISTINCT invoice_number) as invoice_count
+                FROM
+                    `even-gearbox-255203.ds_netbackup.header_invoice`
+                WHERE
+                    approval_status = 'Approved'
+                    AND department IN ('Sales Offline', 'Sales B2B')
+                    {$gosaveDateFilter}
+                GROUP BY
+                    period
+            ),
+            goto_invoice_count AS (
+                SELECT
+                    {$bigsellerGrouping} as period,
+                    COUNT(DISTINCT nomor_pesanan) as invoice_count
+                FROM (
+                    SELECT nomor_pesanan, waktu_pesanan_dibuat, status_pesanan 
+                    FROM `even-gearbox-255203.ds_bigseller.bigseller_orders_2025`
+                    UNION ALL
+                    SELECT nomor_pesanan, waktu_pesanan_dibuat, status_pesanan 
+                    FROM `even-gearbox-255203.ds_bigseller.bigseller_orders_2024`
+                    UNION ALL
+                    SELECT nomor_pesanan, waktu_pesanan_dibuat, status_pesanan 
+                    FROM `even-gearbox-255203.ds_bigseller.bigseller_orders_2023`
+                ) bigseller_data
+                WHERE
+                    status_pesanan = 'Selesai'
+                    {$bigsellerDateFilter}
+                GROUP BY
+                    period
             )
             SELECT
-                {$dateGrouping},
+                {$dateGrouping} as period,
                 {$selectYear} as year,
                 a.business_unit,
                 a.month,
                 SUM(a.sales_total) as total_sales,
                 SUM(IFNULL(b.total_quantity, 0)) as total_quantity,
-                COUNT(a.invoice_number) as invoice_count
+                CASE 
+                    WHEN a.business_unit = 'Gosave' THEN 
+                        MAX(IFNULL(gc.invoice_count, 0))
+                    WHEN a.business_unit = 'Goto' THEN 
+                        MAX(IFNULL(gtc.invoice_count, 0))
+                    ELSE 0
+                END as invoice_count
             FROM
                 approved_invoices a
             LEFT JOIN
                 invoice_quantity b
             ON
                 a.invoice_number = b.invoice_number
+            LEFT JOIN
+                gosave_invoice_count gc
+            ON
+                {$dateGrouping} = gc.period
+                AND a.business_unit = 'Gosave'
+            LEFT JOIN
+                goto_invoice_count gtc
+            ON
+                {$dateGrouping} = gtc.period
+                AND a.business_unit = 'Goto'
             GROUP BY
                 period, year, a.business_unit, a.month
             ORDER BY
@@ -148,13 +208,21 @@ class FinancialRepository
     {
         $businessUnitCondition = $this->buildBusinessUnitCondition($businessUnits);
         
-        // Build CASE WHEN for range grouping
+        // Build CASE WHEN for range grouping (untuk approved_invoices dengan alias t1)
         $rangeCases = [];
         foreach ($ranges as $index => $range) {
             $rangeLabel = "Range " . ($index + 1) . ": " . date('d M Y', strtotime($range['start'])) . " - " . date('d M Y', strtotime($range['end']));
             $rangeCases[] = "WHEN DATE(t1.date) BETWEEN '{$range['start']}' AND '{$range['end']}' THEN '{$rangeLabel}'";
         }
         $rangeCaseStatement = implode(" ", $rangeCases);
+        
+        // Build CASE WHEN untuk gosave_invoice_count (tanpa t1 alias)
+        $gosaveRangeCases = [];
+        foreach ($ranges as $index => $range) {
+            $rangeLabel = "Range " . ($index + 1) . ": " . date('d M Y', strtotime($range['start'])) . " - " . date('d M Y', strtotime($range['end']));
+            $gosaveRangeCases[] = "WHEN DATE(date) BETWEEN '{$range['start']}' AND '{$range['end']}' THEN '{$rangeLabel}'";
+        }
+        $gosaveRangeCaseStatement = implode(" ", $gosaveRangeCases);
         
         // Build date conditions for Bigseller
         $bigsellerDateConditions = [];
@@ -206,11 +274,10 @@ class FinancialRepository
                 GROUP BY
                     t2.invoice_number
             ),
-            -- Invoice count untuk GOSAVE (dari header_invoice)
             gosave_invoice_count AS (
                 SELECT
                     CASE
-                        {$rangeCaseStatement}
+                        {$gosaveRangeCaseStatement}
                         ELSE NULL
                     END as range_group,
                     COUNT(DISTINCT invoice_number) as invoice_count
@@ -227,7 +294,6 @@ class FinancialRepository
                 GROUP BY
                     range_group
             ),
-            -- Invoice count untuk GOTO (dari bigseller_orders)
             goto_invoice_count AS (
                 SELECT
                     CASE
@@ -258,7 +324,6 @@ class FinancialRepository
                 a.business_unit,
                 SUM(a.sales_total) as total_sales,
                 SUM(IFNULL(b.total_quantity, 0)) as total_quantity,
-                -- Conditional invoice count based on business unit
                 CASE 
                     WHEN a.business_unit = 'Gosave' THEN 
                         MAX(IFNULL(gc.invoice_count, 0))
@@ -349,6 +414,108 @@ class FinancialRepository
             }
             if (!empty($rangeConditions)) {
                 $filters[] = "(" . implode(" OR ", $rangeConditions) . ")";
+            }
+        }
+        
+        if (empty($filters)) {
+            return "";
+        }
+        
+        return "AND " . implode(" AND ", $filters);
+    }
+
+    /**
+     * Build date filter for Bigseller tables
+     */
+    private function buildBigsellerDateFilter($years, $dateType, $dateParams)
+    {
+        $filters = [];
+        
+        // Filter by years
+        if (!empty($years) && $dateType === 'year') {
+            $yearList = implode(',', $years);
+            $filters[] = "EXTRACT(YEAR FROM waktu_pesanan_dibuat) IN ({$yearList})";
+        }
+        
+        // Filter by date range
+        if ($dateType === 'range' && !empty($dateParams)) {
+            $startDate = $dateParams['start'];
+            $endDate = $dateParams['end'];
+            $filters[] = "DATE(waktu_pesanan_dibuat) BETWEEN '{$startDate}' AND '{$endDate}'";
+        }
+        
+        // Filter by specific dates
+        if ($dateType === 'specific' && !empty($dateParams)) {
+            $dateList = "'" . implode("','", $dateParams) . "'";
+            $filters[] = "DATE(waktu_pesanan_dibuat) IN ({$dateList})";
+        }
+        
+        // Filter for compare by year
+        if ($dateType === 'compare_year' && !empty($dateParams)) {
+            $dateConditions = [];
+            foreach ($dateParams['dates'] as $date) {
+                $dateObj = \DateTime::createFromFormat('m-d', $date);
+                $month = $dateObj->format('m');
+                $day = $dateObj->format('d');
+                $dateConditions[] = "(EXTRACT(MONTH FROM waktu_pesanan_dibuat) = {$month} AND EXTRACT(DAY FROM waktu_pesanan_dibuat) = {$day})";
+            }
+            $filters[] = "(" . implode(" OR ", $dateConditions) . ")";
+            
+            // Filter years
+            if (!empty($dateParams['years'])) {
+                $yearList = implode(',', $dateParams['years']);
+                $filters[] = "EXTRACT(YEAR FROM waktu_pesanan_dibuat) IN ({$yearList})";
+            }
+        }
+        
+        if (empty($filters)) {
+            return "";
+        }
+        
+        return "AND " . implode(" AND ", $filters);
+    }
+
+    /**
+     * Build date filter for gosave_invoice_count CTE (no t1 alias)
+     */
+    private function buildGosaveDateFilter($years, $dateType, $dateParams)
+    {
+        $filters = [];
+        
+        // Filter by years
+        if (!empty($years) && $dateType === 'year') {
+            $yearList = implode(',', $years);
+            $filters[] = "EXTRACT(YEAR FROM date) IN ({$yearList})";
+        }
+        
+        // Filter by date range
+        if ($dateType === 'range' && !empty($dateParams)) {
+            $startDate = $dateParams['start'];
+            $endDate = $dateParams['end'];
+            $filters[] = "DATE(date) BETWEEN '{$startDate}' AND '{$endDate}'";
+        }
+        
+        // Filter by specific dates
+        if ($dateType === 'specific' && !empty($dateParams)) {
+            $dateList = "'" . implode("','", $dateParams) . "'";
+            $filters[] = "DATE(date) IN ({$dateList})";
+        }
+        
+        // Filter for compare by year
+        if ($dateType === 'compare_year' && !empty($dateParams)) {
+            $dateConditions = [];
+            foreach ($dateParams['dates'] as $date) {
+                $dateObj = \DateTime::createFromFormat('m-d', $date);
+                $month = $dateObj->format('m');
+                $day = $dateObj->format('d');
+                $dateConditions[] = "(EXTRACT(MONTH FROM date) = {$month} AND EXTRACT(DAY FROM date) = {$day})";
+            }
+            $filters[] = "(" . implode(" OR ", $dateConditions) . ")";
+            
+            // Filter years
+            if (!empty($dateParams['years'])) {
+                $yearList = implode(',', $dateParams['years']);
+                $filters[] = "EXTRACT(YEAR FROM date) IN ({$yearList})";
             }
         }
         
