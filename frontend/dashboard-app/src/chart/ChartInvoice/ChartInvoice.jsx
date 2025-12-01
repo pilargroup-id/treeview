@@ -52,6 +52,7 @@ function ChartInvoice() {
   const [years, setYears] = useState([]);
   const [rangeDates, setRangeDates] = useState([]);
   const [specificDates, setSpecificDates] = useState([]);
+  const [specificDateRanges, setSpecificDateRanges] = useState([]); // Validated ranges untuk perbandingan
   const [invoiceData, setInvoiceData] = useState([]);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [yearSummary, setYearSummary] = useState({}); 
@@ -59,7 +60,15 @@ function ChartInvoice() {
   const [showDetail, setShowDetail] = useState(false);
   const invoiceChartRef = useRef(null);
   const showDetailRef = useRef(showDetail);
+  const isMountedRef = useRef(true);
   const { alertState, showAlert, showError, showWarning, closeAlert } = useAlert();
+  
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   
   useEffect(() => {
     showDetailRef.current = showDetail;
@@ -67,6 +76,16 @@ function ChartInvoice() {
       invoiceChartRef.current.update();
     }
   }, [showDetail]);
+
+  // Update chart ketika invoiceData berubah
+  useEffect(() => {
+    if (invoiceChartRef.current) {
+      invoiceChartRef.current.update();
+    }
+  }, [invoiceData]);
+
+  // Get availableYears di level component
+  const availableYears = getAvailableYears();
   
   // Plugin 
   useEffect(() => {
@@ -264,8 +283,6 @@ function ChartInvoice() {
       ChartJS.unregister(dataLabelsPlugin);
     };
   }, []);
-
-  const availableYears = getAvailableYears();
 
   // Load summary - reload saat businessUnits berubah
   useEffect(() => {
@@ -519,12 +536,26 @@ function ChartInvoice() {
   };
 
   const handleLoadInvoiceSales = async () => {
+    // Jika ada validated ranges untuk specific dates, gunakan multi_range
+    const effectiveDateType = (dateFilterType === 'specific' && specificDateRanges.length > 0) 
+      ? 'multi_range' 
+      : dateFilterType;
+    
+    // Untuk specific dates dengan ranges, gunakan ranges (bukan individual dates)
+    const effectiveRangeDates = (dateFilterType === 'specific' && specificDateRanges.length > 0) 
+      ? specificDateRanges.map(r => ({ start: r.startDate, end: r.endDate }))
+      : rangeDates;
+    
+    const effectiveSpecificDates = (dateFilterType === 'specific' && specificDateRanges.length > 0) 
+      ? [] // Jangan gunakan individual dates jika ada ranges
+      : specificDates;
+    
     await loadInvoiceSales({
       businessUnits,
-      dateFilterType,
+      dateFilterType: effectiveDateType,
       years,
-      rangeDates,
-      specificDates,
+      rangeDates: effectiveRangeDates,
+      specificDates: effectiveSpecificDates,
       availableYears,
       setInvoiceData,
       setInvoiceLoading,
@@ -536,8 +567,13 @@ function ChartInvoice() {
   const isSpecificDate = dateFilterType === 'specific';
   
   // Generate chart 
+  // Determine effective date filter type for chart
+  const effectiveDateType = (dateFilterType === 'specific' && specificDateRanges.length > 0) 
+    ? 'multi_range' 
+    : dateFilterType;
+  
   const { chartData: invoiceChartData, chartOptions: invoiceChartOptions } = generateChartConfig({
-    dateFilterType,
+    dateFilterType: effectiveDateType,
     invoiceData,
     businessUnits,
     years,
@@ -692,6 +728,17 @@ function ChartInvoice() {
                   dataType={dataType}
                   onDataTypeChange={setDataType}
                   invoiceData={invoiceData}
+                  onValidatedRangesChange={(ranges) => {
+                    // Simpan ranges ke state (bukan individual dates)
+                    // Data akan dimuat ketika user klik "Muat Data", bukan otomatis
+                    setSpecificDateRanges(ranges);
+                    // Clear specificDates karena kita menggunakan ranges, bukan individual dates
+                    if (ranges.length === 0) {
+                      setSpecificDates([]);
+                      // Clear data jika tidak ada ranges
+                      setInvoiceData([]);
+                    }
+                  }}
                 />
               )}
             </Card>

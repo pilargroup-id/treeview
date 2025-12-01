@@ -128,6 +128,40 @@ export function buildApiParams({
       });
       console.log('Converted to API format (YYYY-MM-DD):', allDates);
     }
+  } else if (dateFilterType === 'multi_range') {
+    if (!rangeDates || !Array.isArray(rangeDates) || rangeDates.length === 0) {
+      throw new Error('Pilih minimal 1 range tanggal');
+    }
+    
+    if (rangeDates.length > 5) {
+      throw new Error('Maksimal 5 range tanggal');
+    }
+    
+    rangeDates.forEach((range, index) => {
+      if (!range.start || !range.end) {
+        throw new Error(`Range ${index + 1} tidak valid. Pastikan start dan end sudah diisi.`);
+      }
+      
+      // Validasi format YYYY-MM-DD
+      const startDate = new Date(range.start);
+      const endDate = new Date(range.end);
+      
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        throw new Error(`Range ${index + 1}: Format tanggal tidak valid`);
+      }
+      
+      if (endDate < startDate) {
+        throw new Error(`Range ${index + 1}: Tanggal akhir harus setelah tanggal mulai`);
+      }
+      
+      const diffDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+      if (diffDays > 31) {
+        throw new Error(`Range ${index + 1}: Maksimal 31 hari per range`);
+      }
+      
+      params.append(`date_ranges[${index}][start]`, range.start);
+      params.append(`date_ranges[${index}][end]`, range.end);
+    });
   }
   
   return params;
@@ -226,6 +260,27 @@ export async function loadInvoiceSales({
     const MAX_RANGE_DATES = 20;
     if (rangeDates.length > MAX_RANGE_DATES) {
       const msg = `Maksimal ${MAX_RANGE_DATES} range yang bisa dipilih untuk menghindari error. Saat ini ada ${rangeDates.length} range.`;
+      if (showAlert) {
+        showAlert(msg, { severity: 'warning' });
+      } else {
+        window.alert(msg);
+      }
+      return;
+    }
+  }
+  
+  if (dateFilterType === 'multi_range') {
+    if (!rangeDates || rangeDates.length === 0) {
+      if (showAlert) {
+        showAlert('Tambahkan minimal 1 range tanggal', { severity: 'warning' });
+      } else {
+        window.alert('Tambahkan minimal 1 range tanggal');
+      }
+      return;
+    }
+    
+    if (rangeDates.length > 5) {
+      const msg = 'Maksimal 5 range tanggal untuk perbandingan';
       if (showAlert) {
         showAlert(msg, { severity: 'warning' });
       } else {
@@ -350,11 +405,13 @@ export async function loadInvoiceSales({
     } else {
       let params;
       try {
+        // Untuk multi_range, gunakan rangeDates yang dikirim, bukan array kosong
+        const paramsRangeDates = (dateFilterType === 'multi_range') ? rangeDates : [];
         params = buildApiParams({
           businessUnits,
           dateFilterType,
           years,
-          rangeDates: [],
+          rangeDates: paramsRangeDates,
           specificDates,
           availableYears
         });
