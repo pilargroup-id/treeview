@@ -156,6 +156,18 @@ class FinancialRepository
         }
         $rangeCaseStatement = implode(" ", $rangeCases);
         
+        // Build date conditions for Bigseller
+        $bigsellerDateConditions = [];
+        foreach ($ranges as $index => $range) {
+            $rangeLabel = "Range " . ($index + 1) . ": " . date('d M Y', strtotime($range['start'])) . " - " . date('d M Y', strtotime($range['end']));
+            $bigsellerDateConditions[] = "WHEN DATE(waktu_pesanan_dibuat) BETWEEN '{$range['start']}' AND '{$range['end']}' THEN '{$rangeLabel}'";
+        }
+        $bigsellerRangeCaseStatement = implode(" ", $bigsellerDateConditions);
+        
+        $bigsellerDateFilter = implode(" OR ", array_map(function($r) {
+            return "DATE(waktu_pesanan_dibuat) BETWEEN '{$r['start']}' AND '{$r['end']}'";
+        }, $ranges));
+        
         $query = "
             WITH approved_invoices AS (
                 SELECT
@@ -193,19 +205,83 @@ class FinancialRepository
                     t2.invoice_number IN (SELECT invoice_number FROM approved_invoices WHERE range_group IS NOT NULL)
                 GROUP BY
                     t2.invoice_number
+            ),
+            -- Invoice count untuk GOSAVE (dari header_invoice)
+            gosave_invoice_count AS (
+                SELECT
+                    CASE
+                        {$rangeCaseStatement}
+                        ELSE NULL
+                    END as range_group,
+                    COUNT(DISTINCT invoice_number) as invoice_count
+                FROM
+                    `even-gearbox-255203.ds_netbackup.header_invoice`
+                WHERE
+                    approval_status = 'Approved'
+                    AND department IN ('Sales Offline', 'Sales B2B')
+                    AND (
+                        " . implode(" OR ", array_map(function($r) {
+                            return "DATE(date) BETWEEN '{$r['start']}' AND '{$r['end']}'";
+                        }, $ranges)) . "
+                    )
+                GROUP BY
+                    range_group
+            ),
+            -- Invoice count untuk GOTO (dari bigseller_orders)
+            goto_invoice_count AS (
+                SELECT
+                    CASE
+                        {$bigsellerRangeCaseStatement}
+                        ELSE NULL
+                    END as range_group,
+                    COUNT(DISTINCT nomor_pesanan) as invoice_count
+                FROM (
+                    SELECT nomor_pesanan, waktu_pesanan_dibuat, status_pesanan 
+                    FROM `even-gearbox-255203.ds_bigseller.bigseller_orders_2025`
+                    UNION ALL
+                    SELECT nomor_pesanan, waktu_pesanan_dibuat, status_pesanan 
+                    FROM `even-gearbox-255203.ds_bigseller.bigseller_orders_2024`
+                    UNION ALL
+                    SELECT nomor_pesanan, waktu_pesanan_dibuat, status_pesanan 
+                    FROM `even-gearbox-255203.ds_bigseller.bigseller_orders_2023`
+                )
+                WHERE
+                    status_pesanan = 'Selesai'
+                    AND (
+                        {$bigsellerDateFilter}
+                    )
+                GROUP BY
+                    range_group
             )
             SELECT
                 a.range_group as period,
                 a.business_unit,
                 SUM(a.sales_total) as total_sales,
                 SUM(IFNULL(b.total_quantity, 0)) as total_quantity,
-                COUNT(a.invoice_number) as invoice_count
+                -- Conditional invoice count based on business unit
+                CASE 
+                    WHEN a.business_unit = 'Gosave' THEN 
+                        MAX(IFNULL(gc.invoice_count, 0))
+                    WHEN a.business_unit = 'Goto' THEN 
+                        MAX(IFNULL(gtc.invoice_count, 0))
+                    ELSE 0
+                END as invoice_count
             FROM
                 approved_invoices a
             LEFT JOIN
                 invoice_quantity b
             ON
                 a.invoice_number = b.invoice_number
+            LEFT JOIN
+                gosave_invoice_count gc
+            ON
+                a.range_group = gc.range_group
+                AND a.business_unit = 'Gosave'
+            LEFT JOIN
+                goto_invoice_count gtc
+            ON
+                a.range_group = gtc.range_group
+                AND a.business_unit = 'Goto'
             WHERE
                 a.range_group IS NOT NULL
             GROUP BY
