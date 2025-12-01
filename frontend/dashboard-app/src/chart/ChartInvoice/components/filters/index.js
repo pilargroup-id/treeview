@@ -5,4 +5,5 @@ export { default as DataTypeFilter } from './DataTypeFilter';
 export { default as YearCards } from './Tahun/YearCards';
 export { default as RangeDateFilter } from './RangeTanggal/RangeDateFilter';
 export { default as SpecificDateFilter } from './TanggalTertentu/SpecificDateFilter';
+export { default as MultiRangeFilter } from './MultiRange/MultiRange';
 

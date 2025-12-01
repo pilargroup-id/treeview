@@ -95,7 +95,7 @@ function DateFilterType({ value, onChange }) {
             }
           }}
         >
-          Tanggal Tertentu
+          Multi Range Comparison (Max 5)
         </MenuItem>
       </Select>
     </FormControl>

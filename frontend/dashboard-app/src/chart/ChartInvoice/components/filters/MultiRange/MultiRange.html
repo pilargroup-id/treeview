@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Invoice Sales Dashboard</h1>
+
+        <!-- Invoice Sales Section (Multi Range Only) -->
+        <div class="section">
+            <h2>📊 Invoice Sales & Quantity Analysis</h2>
+            
+            <!-- Business Unit Filter (Multi-Select) -->
+            <div class="form-group">
+                <label>Business Unit (Multi-Select):</label>
+                <div class="button-group">
+                    <button class="filter-btn" data-unit="Gosave" onclick="toggleBusinessUnit('Gosave')">Gosave</button>
+                    <button class="filter-btn" data-unit="Goto" onclick="toggleBusinessUnit('Goto')">Goto</button>
+                </div>
+            </div>
+            
+            <!-- Multi Range Comparison Filter -->
+            <div class="form-group">
+                <label>Range Tanggal untuk Perbandingan (Max 5 Range, 31 Hari per Range):</label>
+                
+                <div id="range_inputs_container">
+                    <!-- Range 1 -->
+                    <div class="range-input-group" data-range-index="0">
+                        <span class="range-label">Range 1:</span>
+                        <input type="date" class="range-start" placeholder="Tanggal Mulai">
+                        <span>sampai</span>
+                        <input type="date" class="range-end" placeholder="Tanggal Akhir">
+                        <button class="btn-small" onclick="validateRange(0)">✓ Validasi</button>
+                        <span class="range-status"></span>
+                    </div>
+                </div>
+                
+                <button onclick="addRangeInput()" id="add_range_btn" style="margin-top:10px;">+ Tambah Range</button>
+                <div id="validated_ranges" class="tag-container" style="margin-top:15px;"></div>
+            </div>
+            
+            <button onclick="loadInvoiceSales()" class="btn-primary">Load Data</button>
+            <span id="invoice_loading">⏳ Loading...</span>
+            
+            <div class="chart-container-single">
+                <canvas id="invoice_combined_chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>
