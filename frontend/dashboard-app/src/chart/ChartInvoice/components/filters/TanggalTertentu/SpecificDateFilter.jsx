@@ -12,7 +12,8 @@ function SpecificDateFilter({
   onBusinessUnitToggle,
   dataType = 'both',
   onDataTypeChange,
-  invoiceData = []
+  invoiceData = [],
+  onValidatedRangesChange = null
 }) {
   return (
     <SingleDatePickerWithYear
@@ -25,6 +26,7 @@ function SpecificDateFilter({
       dataType={dataType}
       onDataTypeChange={onDataTypeChange}
       invoiceData={invoiceData}
+      onValidatedRangesChange={onValidatedRangesChange}
     />
   );
 }

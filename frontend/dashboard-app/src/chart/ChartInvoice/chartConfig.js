@@ -17,10 +17,17 @@ export function generatePeriods({
 }) {
   const isYearFilter = dateFilterType === 'year';
   const isSpecificDate = dateFilterType === 'specific';
+  const isMultiRange = dateFilterType === 'multi_range';
   
   let periods = [];
   if (isYearFilter) {
     periods = MONTH_LABELS;
+  } else if (isMultiRange) {
+    // Untuk multi_range, period sudah di-aggregate per range dari backend
+    // Format: "Range 1: 01 Jan 2024 - 31 Jan 2024"
+    periods = invoiceData.length > 0 
+      ? [...new Set(invoiceData.map(item => item.period))].sort()
+      : [];
   } else if (isSpecificDate) {
     if (specificDates.length > 0) {
       const sortedDates = [...specificDates].sort((a, b) => {
@@ -404,6 +411,9 @@ function createSpecificDateChart({
       borderWidth: 0
     });
   } else {
+    // Cek apakah lebih dari 1 business unit dipilih
+    const shouldCombine = businessUnits.length > 1;
+    
     displayYears.forEach((year) => {
       const colorSet = getYearColor(year);
       
@@ -524,10 +534,10 @@ function createSpecificDateChart({
         });
         
         datasets.push({
-          label: `${year} - Penjualan`,
+          label: shouldCombine ? 'Total - Penjualan' : `${year} - Penjualan`,
           data: salesData,
-          borderColor: colorSet.sales,
-          backgroundColor: colorSet.sales.replace('rgb', 'rgba').replace(')', ', 0.3)'),
+          borderColor: shouldCombine ? '#2563EB' : colorSet.sales, // Biru lebih gelap untuk penjualan
+          backgroundColor: shouldCombine ? 'rgba(37, 99, 235, 0.3)' : colorSet.sales.replace('rgb', 'rgba').replace(')', ', 0.3)'),
           tension: 0.4,
           fill: true,
           pointRadius: 6,
@@ -622,10 +632,10 @@ function createSpecificDateChart({
         });
         
         datasets.push({
-          label: `${year} - Quantity`,
+          label: shouldCombine ? 'Total - Quantity' : `${year} - Quantity`,
           data: quantityData,
-          borderColor: colorSet.quantity,
-          backgroundColor: colorSet.quantity.replace('rgb', 'rgba').replace(')', ', 0.3)'),
+          borderColor: shouldCombine ? 'rgba(137, 183, 220, 1)' : colorSet.quantity,
+          backgroundColor: shouldCombine ? 'rgba(137, 183, 220, 0.3)' : colorSet.quantity.replace('rgb', 'rgba').replace(')', ', 0.3)'),
           tension: 0.4,
           fill: true,
           pointRadius: 6,
@@ -898,22 +908,31 @@ function createRangeChart({
       }
     });
   } else {
-    invoiceBusinessUnits.forEach(unit => {
-      // Sales dataset
+    // Jika lebih dari 1 business unit dipilih, jumlahkan nilainya menjadi satu chart
+    const shouldCombine = invoiceBusinessUnits.length > 1 || (businessUnits.length > 1 && invoiceBusinessUnits.length > 0);
+    
+    if (shouldCombine) {
+      // Sales dataset - jumlahkan semua business units
       if (dataType === 'penjualan' || dataType === 'both') {
         const salesData = periods.map(period => {
-          const record = invoiceData.find(d => d.period === period && d.business_unit === unit);
-          if (record && record.total_sales !== null && record.total_sales !== undefined) {
-            return parseFloat(record.total_sales) || 0;
+          const records = invoiceData.filter(d => d.period === period);
+          if (records.length > 0) {
+            const total = records.reduce((sum, record) => {
+              if (record.total_sales !== null && record.total_sales !== undefined) {
+                return sum + (parseFloat(record.total_sales) || 0);
+              }
+              return sum;
+            }, 0);
+            return total;
           }
           return 0;
         });
         
         datasets.push({
-          label: `${unit} - Penjualan`,
+          label: 'Total - Penjualan',
           data: salesData,
-          borderColor: COLOR_BUSINESS_UNIT_RANGE[unit]?.sales || 'rgb(66, 165, 245)',
-          backgroundColor: (COLOR_BUSINESS_UNIT_RANGE[unit]?.sales || 'rgb(66, 165, 245)').replace('rgb', 'rgba').replace(')', ', 0.3)'),
+          borderColor: '#2563EB', // Biru lebih gelap untuk penjualan
+          backgroundColor: 'rgba(37, 99, 235, 0.3)',
           yAxisID: 'y',
           tension: 0.4,
           fill: true,
@@ -923,21 +942,27 @@ function createRangeChart({
         });
       }
       
-      // Quantity dataset
+      // Quantity dataset - jumlahkan semua business units
       if (dataType === 'quantity' || dataType === 'both') {
         const quantityData = periods.map(period => {
-          const record = invoiceData.find(d => d.period === period && d.business_unit === unit);
-          if (record && record.total_quantity !== null && record.total_quantity !== undefined) {
-            return parseFloat(record.total_quantity) || 0;
+          const records = invoiceData.filter(d => d.period === period);
+          if (records.length > 0) {
+            const total = records.reduce((sum, record) => {
+              if (record.total_quantity !== null && record.total_quantity !== undefined) {
+                return sum + (parseFloat(record.total_quantity) || 0);
+              }
+              return sum;
+            }, 0);
+            return total;
           }
           return 0;
         });
         
         datasets.push({
-          label: `${unit} - Quantity`,
+          label: 'Total - Quantity',
           data: quantityData,
-          borderColor: COLOR_BUSINESS_UNIT_RANGE[unit]?.quantity || 'rgb(129, 212, 250)',
-          backgroundColor: (COLOR_BUSINESS_UNIT_RANGE[unit]?.quantity || 'rgb(129, 212, 250)').replace('rgb', 'rgba').replace(')', ', 0.3)'),
+          borderColor: 'rgba(137, 183, 220, 1)',
+          backgroundColor: 'rgba(137, 183, 220, 0.3)',
           yAxisID: dataType === 'both' ? 'y1' : 'y',
           tension: 0.4,
           fill: true,
@@ -947,7 +972,59 @@ function createRangeChart({
           borderWidth: 2
         });
       }
-    });
+    } else {
+      // Jika hanya satu business unit, tampilkan seperti biasa
+      invoiceBusinessUnits.forEach(unit => {
+        // Sales dataset
+        if (dataType === 'penjualan' || dataType === 'both') {
+          const salesData = periods.map(period => {
+            const record = invoiceData.find(d => d.period === period && d.business_unit === unit);
+            if (record && record.total_sales !== null && record.total_sales !== undefined) {
+              return parseFloat(record.total_sales) || 0;
+            }
+            return 0;
+          });
+          
+          datasets.push({
+            label: `${unit} - Penjualan`,
+            data: salesData,
+            borderColor: COLOR_BUSINESS_UNIT_RANGE[unit]?.sales || 'rgb(66, 165, 245)',
+            backgroundColor: (COLOR_BUSINESS_UNIT_RANGE[unit]?.sales || 'rgb(66, 165, 245)').replace('rgb', 'rgba').replace(')', ', 0.3)'),
+            yAxisID: 'y',
+            tension: 0.4,
+            fill: true,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            borderWidth: 2
+          });
+        }
+        
+        // Quantity dataset
+        if (dataType === 'quantity' || dataType === 'both') {
+          const quantityData = periods.map(period => {
+            const record = invoiceData.find(d => d.period === period && d.business_unit === unit);
+            if (record && record.total_quantity !== null && record.total_quantity !== undefined) {
+              return parseFloat(record.total_quantity) || 0;
+            }
+            return 0;
+          });
+          
+          datasets.push({
+            label: `${unit} - Quantity`,
+            data: quantityData,
+            borderColor: COLOR_BUSINESS_UNIT_RANGE[unit]?.quantity || 'rgb(129, 212, 250)',
+            backgroundColor: (COLOR_BUSINESS_UNIT_RANGE[unit]?.quantity || 'rgb(129, 212, 250)').replace('rgb', 'rgba').replace(')', ', 0.3)'),
+            yAxisID: dataType === 'both' ? 'y1' : 'y',
+            tension: 0.4,
+            fill: true,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            borderDash: [5, 5],
+            borderWidth: 2
+          });
+        }
+      });
+    }
   }
   
   const options = {
@@ -1189,6 +1266,17 @@ export function generateChartConfig({
       invoiceData,
       businessUnits,
       specificDates,
+      periods,
+      dataType,
+      formatCurrency
+    });
+    chartData.datasets = result.datasets;
+    chartOptions = result.options;
+  } else if (dateFilterType === 'multi_range') {
+    // Multi range comparison chart - similar to range chart but with range labels
+    const result = createRangeChart({
+      invoiceData,
+      businessUnits,
       periods,
       dataType,
       formatCurrency

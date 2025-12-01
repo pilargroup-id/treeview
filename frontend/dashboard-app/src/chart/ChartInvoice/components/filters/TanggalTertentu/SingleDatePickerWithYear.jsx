@@ -18,7 +18,8 @@ export const SingleDatePickerWithYear = ({
   onBusinessUnitToggle,
   dataType = 'both',
   onDataTypeChange,
-  invoiceData = []
+  invoiceData = [],
+  onValidatedRangesChange = null // Callback untuk mengirim validated ranges ke parent
 }) => {
   const { alertState, showWarning, showError, closeAlert } = useAlert();
   
@@ -42,8 +43,9 @@ export const SingleDatePickerWithYear = ({
   // State Preview
   const [showManualMode, setShowManualMode] = useState(true);
   const [manualPreviewDates, setManualPreviewDates] = useState([]);
+  const [validatedRanges, setValidatedRanges] = useState([]); // Ranges yang sudah divalidasi untuk perbandingan
 
-  // Add Date Range 
+  // Add Date Range untuk perbandingan
   const handleAddToPreview = () => {
     try {
       if (!selectionDate.startDate || !selectionDate.endDate) {
@@ -65,42 +67,12 @@ export const SingleDatePickerWithYear = ({
         return;
       }
 
-      if (manualPreviewDates.length >= 5) {
-        showWarning('Maksimum 5 range di preview');
-        return;
-      }
-      
-      const datesToAdd = [];
-      const currentDate = new Date(startDate);
-      while (currentDate <= endDate) {
-        const year = currentDate.getFullYear();
-        if (availableYears.length > 0 && !availableYears.includes(year)) {
-          currentDate.setDate(currentDate.getDate() + 1);
-          continue;
-        }
-        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-        const day = String(currentDate.getDate()).padStart(2, '0');
-        const monthDay = `${month}-${day}`;
-
-        // Validasi tanggal
-        const testDate = new Date(year, parseInt(month) - 1, parseInt(day));
-        if (testDate.getMonth() === (parseInt(month) - 1) && testDate.getDate() === parseInt(day)) {
-          const existsInSpecific = specificDates.some(date => {
-            if (typeof date === 'string') return date === monthDay;
-            return date.year === year && date.monthDay === monthDay;
-          });
-          if (!existsInSpecific) {
-            datesToAdd.push({ year, monthDay });
-          }
-        }
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-
-      if (datesToAdd.length === 0) {
-        showWarning('Tidak ada tanggal baru yang bisa ditambahkan. Semua tanggal dalam range sudah dipilih.');
+      if (validatedRanges.length >= 5) {
+        showWarning('Maksimum 5 range untuk perbandingan');
         return;
       }
 
+      // Format display label
       const displayLabel = formatDateDisplay({
         year: startDate.getFullYear(),
         monthDay: `${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`
@@ -109,15 +81,28 @@ export const SingleDatePickerWithYear = ({
         monthDay: `${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`
       })}` : '');
 
-      setManualPreviewDates(prev => {
-        const newRange = {
-          startISO: startDate.toISOString(),
-          endISO: endDate.toISOString(),
-          display: displayLabel,
-          count: datesToAdd.length
-        };
-        return [...prev, newRange];
-      });
+      // Validasi range dan tambahkan ke validatedRanges (HANYA RANGE, BUKAN INDIVIDUAL DATES)
+      const newRange = {
+        startISO: startDate.toISOString(),
+        endISO: endDate.toISOString(),
+        startDate: startDate.toISOString().split('T')[0], // YYYY-MM-DD format
+        endDate: endDate.toISOString().split('T')[0], // YYYY-MM-DD format
+        display: displayLabel,
+        days: diffDays,
+        validated: true
+      };
+
+      // Cek duplikasi range
+      const isDuplicate = validatedRanges.some(range => 
+        range.startDate === newRange.startDate && range.endDate === newRange.endDate
+      );
+
+      if (isDuplicate) {
+        showWarning('Range tanggal ini sudah ditambahkan');
+        return;
+      }
+
+      setValidatedRanges(prev => [...prev, newRange]);
       
       // Reset selection
       setSelectionDate({
@@ -131,52 +116,19 @@ export const SingleDatePickerWithYear = ({
     }
   };
 
-  const handleAddAllPreviewDates = () => {
-    if (manualPreviewDates.length === 0) {
-      showWarning('Tidak ada range di preview untuk ditambahkan');
-      return;
-    }
-
-    try {
-      manualPreviewDates.forEach(range => {
-        const start = new Date(range.startISO);
-        const end = new Date(range.endISO);
-        const current = new Date(start);
-        while (current <= end) {
-          const year = current.getFullYear();
-          if (availableYears.length > 0 && !availableYears.includes(year)) {
-            current.setDate(current.getDate() + 1);
-            continue;
-          }
-          const month = String(current.getMonth() + 1).padStart(2, '0');
-          const day = String(current.getDate()).padStart(2, '0');
-          const monthDay = `${month}-${day}`;
-
-          // Validasi 
-          const dateExists = specificDates.some(existingDate => {
-            if (typeof existingDate === 'string') return existingDate === monthDay;
-            return existingDate.year === year && existingDate.monthDay === monthDay;
-          });
-
-          if (!dateExists) {
-            onAddDate({ year, monthDay });
-          }
-
-          current.setDate(current.getDate() + 1);
-        }
-      });
-
-      // Clear preview ranges
-      setManualPreviewDates([]);
-      setShowPicker(false);
-    } catch (error) {
-      console.error('Error adding preview ranges:', error);
-      showError('Error menambahkan tanggal: ' + (error.message || 'Unknown error'));
-    }
+  const handleRemoveValidatedRange = (rangeToRemove) => {
+    setValidatedRanges(prev => prev.filter(r => 
+      !(r.startDate === rangeToRemove.startDate && r.endDate === rangeToRemove.endDate)
+    ));
   };
 
-  const handleRemoveFromPreview = (rangeToRemove) => {
-    setManualPreviewDates(prev => prev.filter(r => !(r.startISO === rangeToRemove.startISO && r.endISO === rangeToRemove.endISO)));
+  const handleClearAllRanges = () => {
+    setValidatedRanges([]);
+    setSelectionDate({
+      startDate: null,
+      endDate: null,
+      key: 'selection',
+    });
   };
 
   const handleAddDate = () => {
@@ -303,7 +255,7 @@ export const SingleDatePickerWithYear = ({
 
     if (showManualMode) {
       data.presetMode = 'manual';
-      manualPreviewDates.forEach(range => {
+      validatedRanges.forEach(range => {
         data.previewDates.push({
           display: range.display,
           startISO: range.startISO,
@@ -315,7 +267,7 @@ export const SingleDatePickerWithYear = ({
     }
 
     return data;
-  }, [selectionDate.startDate, showManualMode, specificDates, manualPreviewDates]);
+  }, [selectionDate.startDate, showManualMode, specificDates, validatedRanges]);
 
   useEffect(() => {
     if (!showPicker || !pickerRef.current) return;
@@ -375,22 +327,18 @@ export const SingleDatePickerWithYear = ({
           letterSpacing: '-0.01em',
           lineHeight: 1.3
         }}>
-          Tanggal Tertentu (Bulan & Hari) 
+          Tanggal Tertentu (Perbandingan Range) 
         </Typography>
       </Box>
 
-      {/* Icon Delete */}
-      {specificDates.length > 0 && (
+      {/* Icon Delete untuk Clear All Ranges */}
+      {validatedRanges.length > 0 && (
         <IconButton
           onClick={() => {
-            specificDates.forEach(date => {
-              onRemoveDate(date);
-            });
-            setSelectionDate({
-              startDate: null,
-              endDate: null,
-              key: 'selection',
-            });
+            handleClearAllRanges();
+            if (onValidatedRangesChange) {
+              onValidatedRangesChange([]);
+            }
           }}
           sx={{
             position: 'absolute',
@@ -412,7 +360,7 @@ export const SingleDatePickerWithYear = ({
             }
           }}
           size="small"
-          aria-label="Hapus semua pilihan tanggal"
+          aria-label="Hapus semua range"
         >
           <DeleteOutlineIcon sx={{ fontSize: '1rem' }} />
         </IconButton>
@@ -536,9 +484,9 @@ export const SingleDatePickerWithYear = ({
                         endDate: null,
                         key: 'selection',
                       });
-                      // Reset manual preview dates saat tutup
+                      // Reset validated ranges saat tutup
                       if (showManualMode) {
-                        setManualPreviewDates([]);
+                        setValidatedRanges([]);
                       }
                     }}
                     sx={{
@@ -644,9 +592,9 @@ export const SingleDatePickerWithYear = ({
                               Preview Pilihan
                             </Typography>
                           </Box>
-                          {manualPreviewDates.length > 0 && (
+                          {validatedRanges.length > 0 && (
                             <Chip
-                              label={`${manualPreviewDates.length} di preview`}
+                              label={`${validatedRanges.length} range divalidasi`}
                               size="small"
                               sx={{
                                 height: '22px',
@@ -660,7 +608,7 @@ export const SingleDatePickerWithYear = ({
                           )}
                         </Box>
                         
-                        {showManualMode && manualPreviewDates.length > 0 ? (
+                        {showManualMode && validatedRanges.length > 0 ? (
                           <Box sx={{
                             display: 'flex',
                             flexDirection: 'column',
@@ -683,10 +631,10 @@ export const SingleDatePickerWithYear = ({
                               },
                             },
                           }}>
-                            {manualPreviewDates.map((range, idx) => {
+                            {validatedRanges.map((range, idx) => {
                               return (
                                 <Box
-                                  key={`${range.startISO}-${range.endISO}-${idx}`}
+                                  key={`${range.startDate}-${range.endDate}-${idx}`}
                                   sx={{
                                     display: 'flex',
                                     alignItems: 'center',
@@ -695,7 +643,7 @@ export const SingleDatePickerWithYear = ({
                                     px: 1.25,
                                     borderRadius: 1.25,
                                     bgcolor: 'rgba(107, 163, 208, 0.08)',
-                                    border: '1px solid rgba(107, 163, 208, 0.2)',
+                                    border: '1px solid rgba(107, 163, 208, 0.3)',
                                     transition: 'all 0.2s ease',
                                     '&:hover': {
                                       bgcolor: 'rgba(107, 163, 208, 0.12)',
@@ -712,19 +660,31 @@ export const SingleDatePickerWithYear = ({
                                     flexShrink: 0,
                                     opacity: 0.8
                                   }} />
-                                  <Typography sx={{
-                                    fontSize: '0.8125rem',
-                                    fontWeight: 500,
-                                    color: '#0F172A',
-                                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-                                    lineHeight: 1.5,
-                                    flex: 1
-                                  }}>
-                                    {range.display} ({range.count} tanggal)
-                                  </Typography>
+                            <Typography sx={{
+                              fontSize: '0.8125rem',
+                              fontWeight: 500,
+                              color: '#0F172A',
+                              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                              lineHeight: 1.5,
+                              flex: 1
+                            }}>
+                              Range {idx + 1}: {range.display} ({range.days} hari)
+                            </Typography>
+                            <Chip
+                              label="Valid"
+                              size="small"
+                              sx={{
+                                height: '20px',
+                                fontSize: '0.6875rem',
+                                fontWeight: 600,
+                                bgcolor: '#6BA3D0',
+                                color: '#FFFFFF',
+                                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                              }}
+                            />
                                   <IconButton
                                     size="small"
-                                    onClick={() => handleRemoveFromPreview({ startISO: range.startISO, endISO: range.endISO })}
+                                    onClick={() => handleRemoveValidatedRange({ startDate: range.startDate, endDate: range.endDate })}
                                     sx={{
                                       width: '24px',
                                       height: '24px',
@@ -732,7 +692,7 @@ export const SingleDatePickerWithYear = ({
                                       color: '#6BA3D0',
                                       '&:hover': {
                                         bgcolor: 'rgba(107, 163, 208, 0.1)',
-                                        color: '#5A9FD0'
+                                        color: '#5A8FB8'
                                       }
                                     }}
                                   >
@@ -794,9 +754,9 @@ export const SingleDatePickerWithYear = ({
                           endDate: null,
                           key: 'selection',
                         });
-                        // Reset manual preview dates saat batal
+                        // Reset validated ranges saat batal
                         if (showManualMode) {
-                          setManualPreviewDates([]);
+                          setValidatedRanges([]);
                         }
                       }}
                       sx={{
@@ -825,8 +785,14 @@ export const SingleDatePickerWithYear = ({
                     <Button 
                       variant="contained" 
                       size="medium" 
-                      onClick={handleAddAllPreviewDates}
-                      disabled={manualPreviewDates.length === 0}
+                      onClick={() => {
+                        // Pass validated ranges to parent component
+                        if (validatedRanges.length > 0 && onValidatedRangesChange) {
+                          onValidatedRangesChange(validatedRanges);
+                          setShowPicker(false);
+                        }
+                      }}
+                      disabled={validatedRanges.length === 0}
                       sx={{
                         bgcolor: '#6BA3D0',
                         color: 'white',
@@ -837,12 +803,12 @@ export const SingleDatePickerWithYear = ({
                         borderRadius: 1.5,
                         px: 2.5,
                         py: 0.75,
-                        minWidth: '160px',
+                        minWidth: '180px',
                         height: '38px',
                         boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         '&:hover': {
-                          bgcolor: '#5A9FD0',
+                          bgcolor: '#5A8FB8',
                           boxShadow: '0 4px 8px rgba(107, 163, 208, 0.3)',
                           transform: 'translateY(-1px)'
                         },
@@ -859,7 +825,7 @@ export const SingleDatePickerWithYear = ({
                         }
                       }}
                     >
-                      Tambah Semua ({manualPreviewDates.length})
+                      Gunakan Range untuk Perbandingan ({validatedRanges.length})
                     </Button>
                   </Box>
                 </Box>
@@ -878,89 +844,121 @@ export const SingleDatePickerWithYear = ({
         fontStyle: 'italic'
       }}>
         {showPicker 
-          ? '* Pilih range tanggal menggunakan kalender (bisa pilih tahun dan bulan di kalender), lalu klik "Tambah ke Preview".'
-          : '* Klik tombol "Pilih Tanggal" untuk memilih range tanggal. Pilih tahun dan bulan langsung di kalender.'}
+          ? '* Pilih range tanggal menggunakan kalender (maksimal 5 range, 31 hari per range), lalu klik "Tambah ke Preview" untuk memvalidasi. Setelah semua range divalidasi, klik "Gunakan Range untuk Perbandingan" untuk membandingkan total per range.'
+          : '* Klik tombol "Pilih Tanggal" untuk memilih dan membandingkan range tanggal. Maksimal 5 range, 31 hari per range. Chart akan menampilkan total per range untuk perbandingan.'}
       </Typography>
 
-      {/* Counter */}
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center',
-        gap: 1,
-        mt: 1
-      }}>
+      {/* Counter untuk Ranges */}
+      {validatedRanges.length > 0 && (
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center',
-          height: '38px',
-          px: 1.5,
-          borderRadius: 1.5,
-          bgcolor: '#F8FAFC',
-          border: '1px solid #F1F5F9'
+          gap: 1,
+          mt: 1
         }}>
-          <Typography sx={{ 
-            fontSize: '0.75rem', 
-            color: '#64748B',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            fontWeight: 500,
-            lineHeight: 1.5,
-            whiteSpace: 'nowrap'
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center',
+            height: '38px',
+            px: 1.5,
+            borderRadius: 1.5,
+            bgcolor: 'rgba(107, 163, 208, 0.08)',
+            border: '1px solid #6BA3D0'
           }}>
-            {specificDates.length} tanggal dipilih
-          </Typography>
+            <Typography sx={{ 
+              fontSize: '0.75rem', 
+              color: '#6BA3D0',
+              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              fontWeight: 600,
+              lineHeight: 1.5,
+              whiteSpace: 'nowrap'
+            }}>
+              {validatedRanges.length} range dipilih untuk perbandingan
+            </Typography>
+          </Box>
         </Box>
-      </Box>
+      )}
 
-      {/* Add Tanggal */}
-      {specificDates.length > 0 && (
+      {/* Display Validated Ranges */}
+      {validatedRanges.length > 0 && (
         <Box sx={{ 
           display: 'flex', 
-          flexWrap: 'wrap', 
+          flexDirection: 'column',
           gap: 0.75, 
           mt: 1.5,
           pt: 1.5,
           borderTop: '1px solid #F1F5F9'
         }}>
-          {specificDates.sort((a, b) => {
-            const aYear = typeof a === 'string' ? 0 : a.year;
-            const bYear = typeof b === 'string' ? 0 : b.year;
-            if (aYear !== bYear) return aYear - bYear;
-            
-            const aMonthDay = typeof a === 'string' ? a : a.monthDay;
-            const bMonthDay = typeof b === 'string' ? b : b.monthDay;
-            return aMonthDay.localeCompare(bMonthDay);
-          }).map((date, index) => {
-            const key = typeof date === 'string' ? date : `${date.year}-${date.monthDay}-${index}`;
-            return (
-              <Chip
-                key={key}
-                label={formatDateDisplay(date)}
-                onDelete={() => onRemoveDate(date)}
-                size="small"
-                variant="outlined"
+          <Typography sx={{
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            color: '#64748B',
+            mb: 0.5,
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+          }}>
+            Range yang akan dibandingkan:
+          </Typography>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: 0.75,
+            alignItems: 'center'
+          }}>
+            {validatedRanges.map((range, idx) => (
+              <Box
+                key={`${range.startDate}-${range.endDate}-${idx}`}
                 sx={{
-                  borderColor: '#E2E8F0',
-                  color: '#475569',
-                  fontSize: '0.75rem',
-                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-                  height: 28,
-                  borderRadius: 1.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  py: 0.5,
+                  px: 1,
+                  borderRadius: 1.25,
+                  bgcolor: 'rgba(107, 163, 208, 0.08)',
+                  border: '1px solid rgba(107, 163, 208, 0.2)',
                   transition: 'all 0.2s ease',
                   '&:hover': {
-                    borderColor: '#CBD5E1',
-                    bgcolor: '#F8FAFC'
-                  },
-                  '& .MuiChip-deleteIcon': {
-                    color: '#94A3B8',
-                    fontSize: '0.875rem',
-                    '&:hover': {
-                      color: '#64748B'
-                    }
+                    bgcolor: 'rgba(107, 163, 208, 0.12)',
+                    borderColor: '#6BA3D0'
                   }
                 }}
-              />
-            );
-          })}
+              >
+                <Box sx={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  bgcolor: '#6BA3D0',
+                  flexShrink: 0
+                }} />
+                <Typography sx={{
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  color: '#0F172A',
+                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                  whiteSpace: 'nowrap'
+                }}>
+                  Range {idx + 1}: {range.display}
+                </Typography>
+                <IconButton
+                  size="small"
+                  onClick={() => handleRemoveValidatedRange({ startDate: range.startDate, endDate: range.endDate })}
+                  sx={{
+                    width: '20px',
+                    height: '20px',
+                    p: 0.25,
+                    color: '#6BA3D0',
+                    '&:hover': {
+                      bgcolor: 'rgba(107, 163, 208, 0.1)',
+                      color: '#5A8FB8'
+                    }
+                  }}
+                >
+                  <DeleteOutlineIcon sx={{ fontSize: '0.75rem' }} />
+                </IconButton>
+              </Box>
+            ))}
+          </Box>
         </Box>
       )}
 
