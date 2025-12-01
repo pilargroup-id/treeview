@@ -81,7 +81,7 @@ export const SingleDatePickerWithYear = ({
         monthDay: `${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`
       })}` : '');
 
-      // Validasi range dan tambahkan ke validatedRanges (HANYA RANGE, BUKAN INDIVIDUAL DATES)
+      // Validasi range 
       const newRange = {
         startISO: startDate.toISOString(),
         endISO: endDate.toISOString(),
