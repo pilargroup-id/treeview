@@ -84,13 +84,7 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
                 mb: 0.5
               }}>
                 <Skeleton variant="text" width={60} height={22} />
-                <Box sx={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  bgcolor: '#F1F5F9',
-                  flexShrink: 0
-                }} />
+                <Skeleton variant="text" width={50} height={16} />
               </Box>
               
               {/* Sales Amount */}
@@ -113,7 +107,7 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
       ) : (
         availableYears.map(year => {
           const isSelected = selectedYears.includes(year);
-          const yearData = yearTotals[year] || { sales: 0, quantity: 0 };
+          const yearData = yearTotals[year] || { sales: 0, quantity: 0, order: 0 };
           return (
             <Card 
               key={year}
@@ -177,14 +171,38 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
                   }}>
                     {year}
                   </Typography>
+                  {/* Order - Pojok Kanan Atas */}
                   <Box sx={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      bgcolor: isSelected ? '#6BA3D0' : '#E5E5E5',
-                      flexShrink: 0,
-                      transition: 'background-color 0.2s ease'
-                    }} />
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-end',
+                    gap: 0.25,
+                    flexShrink: 0
+                  }}>
+                    <Typography sx={{
+                      fontSize: { xs: '0.6875rem', md: '0.75rem' },
+                      fontWeight: 600,
+                      color: isSelected ? '#6BA3D0' : '#9CA3AF',
+                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+                      lineHeight: 1.2,
+                      transition: 'color 0.2s ease',
+                      letterSpacing: '-0.01em'
+                    }}>
+                      {yearData.order.toLocaleString('id-ID')}
+                    </Typography>
+                    <Typography sx={{
+                      fontSize: '0.625rem',
+                      fontWeight: 500,
+                      color: '#9E9E9E',
+                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+                      lineHeight: 1,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      transition: 'color 0.2s ease'
+                    }}>
+                      Order
+                    </Typography>
+                  </Box>
                 </Box>
                 
                 {/* Sales Amount */}

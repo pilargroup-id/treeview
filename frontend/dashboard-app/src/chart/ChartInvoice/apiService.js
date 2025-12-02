@@ -197,12 +197,14 @@ export async function loadYearSummary(availableYears, setYearSummary, setYearSum
         const year = parseInt(item.year) || item.year;
         if (year) {
           if (!summary[year]) {
-            summary[year] = { sales: 0, quantity: 0 };
+            summary[year] = { sales: 0, quantity: 0, order: 0 };
           }
           const sales = parseFloat(item.total_sales) || 0;
           const quantity = parseFloat(item.total_quantity) || 0;
+          const order = parseFloat(item.invoice_count) || 0;
           summary[year].sales += sales;
           summary[year].quantity += quantity;
+          summary[year].order += order;
         }
       });
       setYearSummary(summary);
