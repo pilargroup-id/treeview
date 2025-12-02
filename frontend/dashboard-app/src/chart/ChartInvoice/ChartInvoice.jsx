@@ -388,7 +388,6 @@ function ChartInvoice() {
         return;
       }
       
-      // Cek apakah tanggal dengan tahun ini sudah ada
       const dateExists = specificDates.some(date => {
         if (typeof date === 'string') {
           return date === dateWithYear.monthDay;
@@ -536,18 +535,16 @@ function ChartInvoice() {
   };
 
   const handleLoadInvoiceSales = async () => {
-    // Jika ada validated ranges untuk specific dates, gunakan multi_range
     const effectiveDateType = (dateFilterType === 'specific' && specificDateRanges.length > 0) 
       ? 'multi_range' 
       : dateFilterType;
     
-    // Untuk specific dates dengan ranges, gunakan ranges (bukan individual dates)
     const effectiveRangeDates = (dateFilterType === 'specific' && specificDateRanges.length > 0) 
       ? specificDateRanges.map(r => ({ start: r.startDate, end: r.endDate }))
       : rangeDates;
     
     const effectiveSpecificDates = (dateFilterType === 'specific' && specificDateRanges.length > 0) 
-      ? [] // Jangan gunakan individual dates jika ada ranges
+      ? [] 
       : specificDates;
     
     await loadInvoiceSales({
@@ -567,17 +564,20 @@ function ChartInvoice() {
   const isSpecificDate = dateFilterType === 'specific';
   
   // Generate chart 
-  // Determine effective date filter type for chart
   const effectiveDateType = (dateFilterType === 'specific' && specificDateRanges.length > 0) 
     ? 'multi_range' 
     : dateFilterType;
+  
+  const effectiveSpecificDates = (effectiveDateType === 'multi_range') 
+    ? [] 
+    : specificDates;
   
   const { chartData: invoiceChartData, chartOptions: invoiceChartOptions } = generateChartConfig({
     dateFilterType: effectiveDateType,
     invoiceData,
     businessUnits,
     years,
-    specificDates,
+    specificDates: effectiveSpecificDates,
     dataType
   });
 
@@ -599,7 +599,6 @@ function ChartInvoice() {
       fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
       position: 'relative',
       overflow: 'hidden',
-      // Subtle pattern overlay untuk depth
       '&::before': {
         content: '""',
         position: 'absolute',
@@ -613,7 +612,7 @@ function ChartInvoice() {
         zIndex: 0
       }
     }}>
-      {/* Baris Atas: Filter Section, YearCards, dan Card Filter Tambahan */}
+      {/* Filter Section */}
       <Box sx={{
         display: 'flex',
         flexDirection: { xs: 'column', lg: 'row' },
@@ -729,15 +728,9 @@ function ChartInvoice() {
                   onDataTypeChange={setDataType}
                   invoiceData={invoiceData}
                   onValidatedRangesChange={(ranges) => {
-                    // Simpan ranges ke state (bukan individual dates)
-                    // Data akan dimuat ketika user klik "Muat Data", bukan otomatis
                     setSpecificDateRanges(ranges);
-                    // Clear specificDates karena kita menggunakan ranges, bukan individual dates
-                    if (ranges.length === 0) {
-                      setSpecificDates([]);
-                      // Clear data jika tidak ada ranges
-                      setInvoiceData([]);
-                    }
+                    setSpecificDates([]);
+                    setInvoiceData([]);
                   }}
                 />
               )}
