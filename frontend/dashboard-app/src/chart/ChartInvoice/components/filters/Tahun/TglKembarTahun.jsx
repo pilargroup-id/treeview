@@ -18,7 +18,6 @@ export const TglKembarTahun = ({
   showWarning
 }) => {
   const remainingTwinDates = useMemo(() => {
-    // Jika ada bulan yang dipilih, hanya hitung bulan yang dipilih
     if (selectedMonthsForSingleYear.length > 0) {
       return MONTH_OPTIONS
         .filter(monthOption => selectedMonthsForSingleYear.includes(monthOption.value))
@@ -26,7 +25,6 @@ export const TglKembarTahun = ({
           !specificDates.some(date => getIsSameDate(date, activePresetYear, monthOption.monthDay))
         );
     }
-    // Jika tidak ada bulan yang dipilih, hitung semua
     return TWIN_DATE_PRESETS.filter(preset => 
       !specificDates.some(date => getIsSameDate(date, activePresetYear, preset.monthDay))
     );
@@ -41,10 +39,8 @@ export const TglKembarTahun = ({
         return;
       }
 
-      // Jika ada bulan yang dipilih, hanya tambahkan bulan yang dipilih
       let datesToAdd = [];
       if (selectedMonthsForSingleYear.length > 0) {
-        // Sort bulan yang dipilih untuk memastikan urutan benar
         const sortedMonths = [...selectedMonthsForSingleYear].sort((a, b) => a - b);
         sortedMonths.forEach(monthValue => {
           const monthOption = MONTH_OPTIONS.find(m => m.value === monthValue);
@@ -56,7 +52,6 @@ export const TglKembarTahun = ({
           }
         });
       } else {
-        // Jika tidak ada bulan yang dipilih, tambahkan semua
         datesToAdd = TWIN_DATE_PRESETS
           .filter(preset => !specificDates.some(date => getIsSameDate(date, year, preset.monthDay)))
           .map(preset => ({ year, monthDay: preset.monthDay }));
@@ -252,7 +247,6 @@ export const TglKembarTahun = ({
   );
 };
 
-// Export hook untuk mendapatkan remainingTwinDates dan handleAddTwinDatesPreset
 export const useTglKembarTahun = ({
   activePresetYear,
   availableYears,
