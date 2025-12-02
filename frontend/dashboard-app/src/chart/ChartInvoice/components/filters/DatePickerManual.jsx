@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Button } from "@mui/material";
 import AddIcon from '@mui/icons-material/Add';
 import { DateRange } from 'react-date-range';
+import { enGB } from 'date-fns/locale';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 
@@ -10,11 +11,9 @@ export const DatePickerManual = ({
   years,
   selectionDate,
   setSelectionDate,
-  onAddDate,
   showWarning,
   onAddToPreview
 }) => {
-  // Get min Max Date
   const getMinDate = () => {
     if (availableYears.length === 0) return null;
     const minYear = Math.min(...availableYears);
@@ -27,19 +26,19 @@ export const DatePickerManual = ({
     return new Date(maxYear, 11, 31);
   };
 
-  // Range Date Selection
+  // Range Date 
   const handleSelect = (ranges) => {
     const range = ranges.selection;
     
     if (!range.startDate || !range.endDate) return;
     
-    // Validasi tahun untuk startDate
+    // Validasi tahun 
     if (availableYears.length > 0 && !availableYears.includes(range.startDate.getFullYear())) {
       showWarning(`Tahun ${range.startDate.getFullYear()} tidak tersedia. Pilih tahun yang ada di daftar terlebih dahulu.`);
       return;
     }
     
-    // Validasi tahun untuk endDate
+    // Validasi tahun 
     if (availableYears.length > 0 && !availableYears.includes(range.endDate.getFullYear())) {
       showWarning(`Tahun ${range.endDate.getFullYear()} tidak tersedia. Pilih tahun yang ada di daftar terlebih dahulu.`);
       return;
@@ -243,6 +242,7 @@ export const DatePickerManual = ({
           color="#6BA3D0"
           months={1}
           direction="horizontal"
+          locale={enGB}
         />
       </Box>
       

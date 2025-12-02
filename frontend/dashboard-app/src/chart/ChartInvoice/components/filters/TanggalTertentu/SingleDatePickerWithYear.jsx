@@ -42,7 +42,6 @@ export const SingleDatePickerWithYear = ({
 
   // State Preview
   const [showManualMode, setShowManualMode] = useState(true);
-  const [manualPreviewDates, setManualPreviewDates] = useState([]);
   const [validatedRanges, setValidatedRanges] = useState([]); // Ranges yang sudah divalidasi untuk perbandingan
 
   // Add Date Range untuk perbandingan
@@ -131,89 +130,6 @@ export const SingleDatePickerWithYear = ({
     });
   };
 
-  const handleAddDate = () => {
-    try {
-      if (!selectionDate.startDate || !selectionDate.endDate) {
-        showWarning('Pilih range tanggal terlebih dahulu');
-        return;
-      }
-      
-      const startDate = new Date(selectionDate.startDate);
-      const endDate = new Date(selectionDate.endDate);
-      
-      // startDate <= endDate
-      if (startDate > endDate) {
-        showWarning('Tanggal mulai harus lebih kecil atau sama dengan tanggal akhir');
-        return;
-      }
-      
-      const datesToAdd = [];
-      const currentDate = new Date(startDate);
-      
-      while (currentDate <= endDate) {
-        const year = currentDate.getFullYear();
-        
-        // Validasi tahun
-        if (availableYears.length > 0 && !availableYears.includes(year)) {
-          currentDate.setDate(currentDate.getDate() + 1);
-          continue;
-        }
-        
-        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-        const day = String(currentDate.getDate()).padStart(2, '0');
-        const monthDay = `${month}-${day}`;
-        
-        // Validasi tanggal
-        const testDate = new Date(year, parseInt(month) - 1, parseInt(day));
-        if (testDate.getMonth() === (parseInt(month) - 1) && 
-            testDate.getDate() === parseInt(day)) {
-          
-          const dateWithYear = { year, monthDay };
-          
-          // Cek apakah sudah ada di specificDates
-          const dateExists = specificDates.some(date => {
-            if (typeof date === 'string') {
-              return date === monthDay;
-            }
-            return date.year === year && date.monthDay === monthDay;
-          });
-          
-          // Hanya tambahkan jika belum ada
-          if (!dateExists) {
-            datesToAdd.push(dateWithYear);
-          }
-        }
-        
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-      
-      if (datesToAdd.length === 0) {
-        showWarning('Tidak ada tanggal baru yang bisa ditambahkan. Semua tanggal dalam range sudah dipilih.');
-        return;
-      }
-      
-      try {
-        // Add Semua Tanggal
-        datesToAdd.forEach(date => {
-          onAddDate(date);
-        });
-        
-        setSelectionDate({
-          startDate: null,
-          endDate: null,
-          key: 'selection',
-        });
-        
-        setShowPicker(false);
-      } catch (addError) {
-        console.error('Error adding dates:', addError);
-        showError('Error menambahkan tanggal: ' + (addError.message || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Unexpected error in handleAddDate:', error);
-      showError('Terjadi error: ' + (error.message || 'Unknown error'));
-    }
-  };
 
   // Count Data
   const previewData = useMemo(() => {
@@ -267,7 +183,7 @@ export const SingleDatePickerWithYear = ({
     }
 
     return data;
-  }, [selectionDate.startDate, showManualMode, specificDates, validatedRanges]);
+  }, [selectionDate.startDate, showManualMode, validatedRanges]);
 
   useEffect(() => {
     if (!showPicker || !pickerRef.current) return;
@@ -544,7 +460,6 @@ export const SingleDatePickerWithYear = ({
                           years={years}
                           selectionDate={selectionDate}
                           setSelectionDate={setSelectionDate}
-                          onAddDate={onAddDate}
                           showWarning={showWarning}
                           onAddToPreview={handleAddToPreview}
                         />

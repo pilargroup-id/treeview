@@ -23,8 +23,6 @@ export function generatePeriods({
   if (isYearFilter) {
     periods = MONTH_LABELS;
   } else if (isMultiRange) {
-    // Untuk multi_range, period sudah di-aggregate per range dari backend
-    // Format: "Range 1: 01 Jan 2024 - 31 Jan 2024"
     periods = invoiceData.length > 0 
       ? [...new Set(invoiceData.map(item => item.period))].sort()
       : [];
@@ -95,7 +93,7 @@ function createYearFilterChart({
   if (invoiceYears.length === 0 && years.length > 0) {
     years.sort((a, b) => a - b).forEach((year) => {
       const colorSet = getYearColor(year);
-      if (dataType === 'penjualan' || dataType === 'both') {
+      if (dataType === 'penjualan' || dataType === 'both' || dataType === 'penjualan_order' || dataType === 'all') {
         datasets.push({
           label: `${year} - Penjualan`,
           data: periods.map(() => 0),
@@ -108,7 +106,7 @@ function createYearFilterChart({
           borderWidth: 2
         });
       }
-      if (dataType === 'quantity' || dataType === 'both') {
+      if (dataType === 'quantity' || dataType === 'both' || dataType === 'quantity_order' || dataType === 'all') {
         datasets.push({
           label: `${year} - Quantity`,
           data: periods.map(() => 0),
@@ -119,6 +117,20 @@ function createYearFilterChart({
           pointRadius: 4,
           pointHoverRadius: 6,
           borderDash: [5, 5],
+          borderWidth: 2
+        });
+      }
+      if (dataType === 'order' || dataType === 'penjualan_order' || dataType === 'quantity_order' || dataType === 'all') {
+        datasets.push({
+          label: `${year} - Order`,
+          data: periods.map(() => 0),
+          borderColor: 'rgb(156, 39, 176)',
+          backgroundColor: 'rgba(156, 39, 176, 0.3)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderDash: [10, 5],
           borderWidth: 2
         });
       }
@@ -136,7 +148,7 @@ function createYearFilterChart({
     invoiceYears.forEach((year) => {
       const colorSet = getYearColor(year);
       
-      if (dataType === 'penjualan' || dataType === 'both') {
+      if (dataType === 'penjualan' || dataType === 'both' || dataType === 'penjualan_order' || dataType === 'all') {
         const salesData = periods.map((monthLabel, monthIndex) => {
           const monthNum = String(monthIndex + 1).padStart(2, '0');
           const period = `${year}-${monthNum}`;
@@ -170,7 +182,7 @@ function createYearFilterChart({
       }
       
       // Quantity dataset
-      if (dataType === 'quantity' || dataType === 'both') {
+      if (dataType === 'quantity' || dataType === 'both' || dataType === 'quantity_order' || dataType === 'all') {
         const quantityData = periods.map((monthLabel, monthIndex) => {
           const monthNum = String(monthIndex + 1).padStart(2, '0');
           const period = `${year}-${monthNum}`;
@@ -200,6 +212,41 @@ function createYearFilterChart({
           pointRadius: 4,
           pointHoverRadius: 6,
           borderDash: [5, 5],
+          borderWidth: 2
+        });
+      }
+      
+      // Order dataset
+      if (dataType === 'order' || dataType === 'penjualan_order' || dataType === 'quantity_order' || dataType === 'all') {
+        const orderData = periods.map((monthLabel, monthIndex) => {
+          const monthNum = String(monthIndex + 1).padStart(2, '0');
+          const period = `${year}-${monthNum}`;
+          
+          const records = invoiceData.filter(d => {
+            const recordYear = parseInt(d.year) || d.year;
+            return d.period === period && recordYear === year;
+          });
+          
+          if (records.length > 0) {
+            const total = records.reduce((sum, record) => {
+              const invoiceCount = parseFloat(record.invoice_count) || 0;
+              return sum + invoiceCount;
+            }, 0);
+            return total;
+          }
+          return 0;
+        });
+        
+        datasets.push({
+          label: `${year} - Order`,
+          data: orderData,
+          borderColor: 'rgb(156, 39, 176)',
+          backgroundColor: 'rgba(156, 39, 176, 0.3)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderDash: [10, 5],
           borderWidth: 2
         });
       }
@@ -276,6 +323,8 @@ function createYearFilterChart({
             if (context.parsed.y !== null) {
               if (label.includes('Penjualan')) {
                 label += formatCurrency(context.parsed.y);
+              } else if (label.includes('Order')) {
+                label += context.parsed.y.toLocaleString() + ' order';
               } else {
                 label += context.parsed.y.toLocaleString() + ' unit';
               }
@@ -313,8 +362,8 @@ function createYearFilterChart({
       },
       y: {
         type: 'linear',
-        display: dataType === 'penjualan' || dataType === 'quantity' || dataType === 'both',
-        position: dataType === 'quantity' ? 'left' : 'left',
+        display: dataType === 'penjualan' || dataType === 'quantity' || dataType === 'both' || dataType === 'order' || dataType === 'penjualan_order' || dataType === 'quantity_order' || dataType === 'all',
+        position: 'left',
         grid: {
           color: '#F0F0F0',
           lineWidth: 0.5,
@@ -322,7 +371,7 @@ function createYearFilterChart({
         },
         title: {
           display: true,
-          text: dataType === 'quantity' ? 'Quantity (Unit)' : 'Penjualan (Rp)',
+          text: dataType === 'quantity' || dataType === 'quantity_order' ? 'Quantity (Unit)' : dataType === 'order' ? 'Order' : 'Penjualan (Rp)',
           font: { 
             size: 12, 
             weight: 500,
@@ -337,7 +386,9 @@ function createYearFilterChart({
           },
           color: '#9E9E9E',
           callback: function(value) {
-            if (dataType === 'quantity') {
+            if (dataType === 'quantity' || dataType === 'quantity_order') {
+              return value.toLocaleString();
+            } else if (dataType === 'order') {
               return value.toLocaleString();
             }
             return formatCurrency(value);
@@ -346,11 +397,11 @@ function createYearFilterChart({
       },
       y1: {
         type: 'linear',
-        display: dataType === 'both',
+        display: dataType === 'both' || dataType === 'penjualan_order' || dataType === 'quantity_order' || dataType === 'all',
         position: 'right',
         title: {
-          display: dataType === 'both',
-          text: 'Quantity (Unit)',
+          display: dataType === 'both' || dataType === 'penjualan_order' || dataType === 'quantity_order' || dataType === 'all',
+          text: dataType === 'penjualan_order' ? 'Order' : dataType === 'quantity_order' ? 'Order' : dataType === 'all' ? 'Order / Quantity' : 'Quantity (Unit)',
           font: { 
             size: 12, 
             weight: 500,
@@ -450,7 +501,7 @@ function createSpecificDateChart({
       }
       
       // Penjualan dataset
-      if (dataType === 'penjualan' || dataType === 'both') {
+      if (dataType === 'penjualan' || dataType === 'both' || dataType === 'penjualan_order' || dataType === 'all') {
         // Map data hanya untuk periods yang sesuai dengan tahun ini
         const salesData = periods.map((periodLabel, periodIndex) => {
           // Jika period ini tidak untuk tahun ini, return null
@@ -548,7 +599,7 @@ function createSpecificDateChart({
       }
       
       // Quantity dataset
-      if (dataType === 'quantity' || dataType === 'both') {
+      if (dataType === 'quantity' || dataType === 'both' || dataType === 'quantity_order' || dataType === 'all') {
         // Map data hanya untuk periods yang sesuai dengan tahun ini
         const quantityData = periods.map((periodLabel, periodIndex) => {
           // Jika period ini tidak untuk tahun ini, return null
@@ -641,7 +692,96 @@ function createSpecificDateChart({
           pointRadius: 6,
           pointHoverRadius: 8,
           borderDash: [5, 5],
-          yAxisID: dataType === 'both' ? 'y1' : 'y',
+          yAxisID: dataType === 'both' || dataType === 'penjualan_order' || dataType === 'quantity_order' || dataType === 'all' ? 'y1' : 'y',
+          borderWidth: 2
+        });
+      }
+      
+      // Order dataset
+      if (dataType === 'order' || dataType === 'penjualan_order' || dataType === 'quantity_order' || dataType === 'all') {
+        const orderData = periods.map((periodLabel, periodIndex) => {
+          if (!periodsForThisYear.includes(periodLabel)) {
+            return null;
+          }
+          
+          let targetYear, targetMonthDay;
+          
+          const periodParts = periodLabel.split(' ');
+          if (periodParts.length === 3) {
+            const day = parseInt(periodParts[0]);
+            const monthName = periodParts[1];
+            const yearFromLabel = parseInt(periodParts[2]);
+            
+            const monthIndex = MONTH_NAMES_ID.indexOf(monthName);
+            if (monthIndex === -1) return null;
+            const month = String(monthIndex + 1).padStart(2, '0');
+            const dayStr = String(day).padStart(2, '0');
+            
+            targetYear = yearFromLabel;
+            targetMonthDay = `${month}-${dayStr}`;
+          } else if (periodParts.length === 2) {
+            const day = parseInt(periodParts[0]);
+            const monthName = periodParts[1];
+            
+            const monthIndex = MONTH_NAMES_ID.indexOf(monthName);
+            if (monthIndex === -1) return null;
+            const month = String(monthIndex + 1).padStart(2, '0');
+            const dayStr = String(day).padStart(2, '0');
+            
+            targetYear = year;
+            targetMonthDay = `${month}-${dayStr}`;
+          } else {
+            return null;
+          }
+          
+          if (targetYear !== year) {
+            return null;
+          }
+          
+          const fullDate = `${targetYear}-${targetMonthDay}`;
+          
+          const records = invoiceData.filter(d => {
+            if (!d.period) return false;
+            
+            const periodNormalized = String(d.period).trim();
+            const fullDateNormalized = fullDate.trim();
+            
+            const periodMatches = periodNormalized === fullDateNormalized;
+            
+            const businessUnitMatches = businessUnits.length === 0 || 
+                                       (d.business_unit && businessUnits.includes(d.business_unit));
+            
+            return periodMatches && businessUnitMatches;
+          });
+          
+          if (records.length > 0) {
+            let total = 0;
+            records.forEach(record => {
+              if (record.invoice_count !== null && record.invoice_count !== undefined && record.invoice_count !== '') {
+                const parsedOrder = parseFloat(record.invoice_count);
+                if (!isNaN(parsedOrder)) {
+                  total += parsedOrder;
+                }
+              }
+            });
+            
+            return total;
+          }
+          
+          return null;
+        });
+        
+        datasets.push({
+          label: shouldCombine ? 'Total - Order' : `${year} - Order`,
+          data: orderData,
+          borderColor: 'rgb(156, 39, 176)',
+          backgroundColor: 'rgba(156, 39, 176, 0.3)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          borderDash: [10, 5],
+          yAxisID: dataType === 'order' ? 'y' : 'y1',
           borderWidth: 2
         });
       }
@@ -745,6 +885,8 @@ function createSpecificDateChart({
             if (context.parsed.y !== null) {
               if (label.includes('Penjualan')) {
                 label += formatCurrency(context.parsed.y);
+              } else if (label.includes('Order')) {
+                label += context.parsed.y.toLocaleString() + ' order';
               } else {
                 label += context.parsed.y.toLocaleString() + ' unit';
               }
@@ -784,7 +926,7 @@ function createSpecificDateChart({
       },
       y: {
         type: 'linear',
-        display: dataType === 'penjualan' || dataType === 'quantity' || dataType === 'both',
+        display: dataType === 'penjualan' || dataType === 'quantity' || dataType === 'both' || dataType === 'order' || dataType === 'penjualan_order' || dataType === 'quantity_order' || dataType === 'all',
         position: 'left',
         grid: {
           color: '#F0F0F0',
@@ -793,7 +935,7 @@ function createSpecificDateChart({
         },
         title: {
           display: true,
-          text: dataType === 'quantity' ? 'Quantity (Unit)' : 'Penjualan (Rp)',
+          text: dataType === 'quantity' || dataType === 'quantity_order' ? 'Quantity (Unit)' : dataType === 'order' ? 'Order' : 'Penjualan (Rp)',
           font: { 
             size: 12, 
             weight: 500,
@@ -808,7 +950,9 @@ function createSpecificDateChart({
           },
           color: '#9E9E9E',
           callback: function(value) {
-            if (dataType === 'quantity') {
+            if (dataType === 'quantity' || dataType === 'quantity_order') {
+              return value.toLocaleString();
+            } else if (dataType === 'order') {
               return value.toLocaleString();
             }
             return formatCurrency(value);
@@ -818,11 +962,11 @@ function createSpecificDateChart({
       },
       y1: {
         type: 'linear',
-        display: dataType === 'both',
+        display: dataType === 'both' || dataType === 'penjualan_order' || dataType === 'quantity_order' || dataType === 'all',
         position: 'right',
         title: {
-          display: dataType === 'both',
-          text: 'Quantity (Unit)',
+          display: dataType === 'both' || dataType === 'penjualan_order' || dataType === 'quantity_order' || dataType === 'all',
+          text: dataType === 'penjualan_order' ? 'Order' : dataType === 'quantity_order' ? 'Order' : dataType === 'all' ? 'Order / Quantity' : 'Quantity (Unit)',
           font: { 
             size: 12, 
             weight: 500,
@@ -877,7 +1021,7 @@ function createRangeChart({
     });
   } else if (invoiceBusinessUnits.length === 0 && businessUnits.length > 0) {
     businessUnits.forEach(unit => {
-      if (dataType === 'penjualan' || dataType === 'both') {
+      if (dataType === 'penjualan' || dataType === 'both' || dataType === 'penjualan_order' || dataType === 'all') {
         datasets.push({
           label: `${unit} - Penjualan`,
           data: periods.map(() => 0),
@@ -891,18 +1035,33 @@ function createRangeChart({
           borderWidth: 2
         });
       }
-      if (dataType === 'quantity' || dataType === 'both') {
+      if (dataType === 'quantity' || dataType === 'both' || dataType === 'quantity_order' || dataType === 'all') {
         datasets.push({
           label: `${unit} - Quantity`,
           data: periods.map(() => 0),
           borderColor: COLOR_BUSINESS_UNIT_RANGE[unit]?.quantity || 'rgb(129, 212, 250)',
           backgroundColor: (COLOR_BUSINESS_UNIT_RANGE[unit]?.quantity || 'rgb(129, 212, 250)').replace('rgb', 'rgba').replace(')', ', 0.3)'),
-          yAxisID: dataType === 'both' ? 'y1' : 'y',
+          yAxisID: dataType === 'both' || dataType === 'penjualan_order' || dataType === 'quantity_order' || dataType === 'all' ? 'y1' : 'y',
           tension: 0.4,
           fill: true,
           pointRadius: 4,
           pointHoverRadius: 6,
           borderDash: [5, 5],
+          borderWidth: 2
+        });
+      }
+      if (dataType === 'order' || dataType === 'penjualan_order' || dataType === 'quantity_order' || dataType === 'all') {
+        datasets.push({
+          label: `${unit} - Order`,
+          data: periods.map(() => 0),
+          borderColor: 'rgb(156, 39, 176)',
+          backgroundColor: 'rgba(156, 39, 176, 0.3)',
+          yAxisID: dataType === 'order' ? 'y' : 'y1',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderDash: [10, 5],
           borderWidth: 2
         });
       }
@@ -913,7 +1072,7 @@ function createRangeChart({
     
     if (shouldCombine) {
       // Sales dataset - jumlahkan semua business units
-      if (dataType === 'penjualan' || dataType === 'both') {
+      if (dataType === 'penjualan' || dataType === 'both' || dataType === 'penjualan_order' || dataType === 'all') {
         const salesData = periods.map(period => {
           const records = invoiceData.filter(d => d.period === period);
           if (records.length > 0) {
@@ -943,7 +1102,7 @@ function createRangeChart({
       }
       
       // Quantity dataset - jumlahkan semua business units
-      if (dataType === 'quantity' || dataType === 'both') {
+      if (dataType === 'quantity' || dataType === 'both' || dataType === 'quantity_order' || dataType === 'all') {
         const quantityData = periods.map(period => {
           const records = invoiceData.filter(d => d.period === period);
           if (records.length > 0) {
@@ -963,7 +1122,7 @@ function createRangeChart({
           data: quantityData,
           borderColor: 'rgba(137, 183, 220, 1)',
           backgroundColor: 'rgba(137, 183, 220, 0.3)',
-          yAxisID: dataType === 'both' ? 'y1' : 'y',
+          yAxisID: dataType === 'both' || dataType === 'penjualan_order' || dataType === 'quantity_order' || dataType === 'all' ? 'y1' : 'y',
           tension: 0.4,
           fill: true,
           pointRadius: 4,
@@ -972,11 +1131,42 @@ function createRangeChart({
           borderWidth: 2
         });
       }
+      
+      // Order dataset - jumlahkan semua business units
+      if (dataType === 'order' || dataType === 'penjualan_order' || dataType === 'quantity_order' || dataType === 'all') {
+        const orderData = periods.map(period => {
+          const records = invoiceData.filter(d => d.period === period);
+          if (records.length > 0) {
+            const total = records.reduce((sum, record) => {
+              if (record.invoice_count !== null && record.invoice_count !== undefined) {
+                return sum + (parseFloat(record.invoice_count) || 0);
+              }
+              return sum;
+            }, 0);
+            return total;
+          }
+          return 0;
+        });
+        
+        datasets.push({
+          label: 'Total - Order',
+          data: orderData,
+          borderColor: 'rgba(156, 39, 176, 1)',
+          backgroundColor: 'rgba(156, 39, 176, 0.3)',
+          yAxisID: dataType === 'order' ? 'y' : 'y1',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderDash: [10, 5],
+          borderWidth: 2
+        });
+      }
     } else {
       // Jika hanya satu business unit, tampilkan seperti biasa
       invoiceBusinessUnits.forEach(unit => {
         // Sales dataset
-        if (dataType === 'penjualan' || dataType === 'both') {
+        if (dataType === 'penjualan' || dataType === 'both' || dataType === 'penjualan_order' || dataType === 'all') {
           const salesData = periods.map(period => {
             const record = invoiceData.find(d => d.period === period && d.business_unit === unit);
             if (record && record.total_sales !== null && record.total_sales !== undefined) {
@@ -1000,7 +1190,7 @@ function createRangeChart({
         }
         
         // Quantity dataset
-        if (dataType === 'quantity' || dataType === 'both') {
+        if (dataType === 'quantity' || dataType === 'both' || dataType === 'quantity_order' || dataType === 'all') {
           const quantityData = periods.map(period => {
             const record = invoiceData.find(d => d.period === period && d.business_unit === unit);
             if (record && record.total_quantity !== null && record.total_quantity !== undefined) {
@@ -1014,12 +1204,37 @@ function createRangeChart({
             data: quantityData,
             borderColor: COLOR_BUSINESS_UNIT_RANGE[unit]?.quantity || 'rgb(129, 212, 250)',
             backgroundColor: (COLOR_BUSINESS_UNIT_RANGE[unit]?.quantity || 'rgb(129, 212, 250)').replace('rgb', 'rgba').replace(')', ', 0.3)'),
-            yAxisID: dataType === 'both' ? 'y1' : 'y',
+            yAxisID: dataType === 'both' || dataType === 'penjualan_order' || dataType === 'quantity_order' || dataType === 'all' ? 'y1' : 'y',
             tension: 0.4,
             fill: true,
             pointRadius: 4,
             pointHoverRadius: 6,
             borderDash: [5, 5],
+            borderWidth: 2
+          });
+        }
+        
+        // Order dataset
+        if (dataType === 'order' || dataType === 'penjualan_order' || dataType === 'quantity_order' || dataType === 'all') {
+          const orderData = periods.map(period => {
+            const record = invoiceData.find(d => d.period === period && d.business_unit === unit);
+            if (record && record.invoice_count !== null && record.invoice_count !== undefined) {
+              return parseFloat(record.invoice_count) || 0;
+            }
+            return 0;
+          });
+          
+          datasets.push({
+            label: `${unit} - Order`,
+            data: orderData,
+            borderColor: 'rgb(156, 39, 176)',
+            backgroundColor: 'rgba(156, 39, 176, 0.3)',
+            yAxisID: dataType === 'order' ? 'y' : 'y1',
+            tension: 0.4,
+            fill: true,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            borderDash: [10, 5],
             borderWidth: 2
           });
         }
@@ -1076,31 +1291,24 @@ function createRangeChart({
         boxPadding: 8,
         usePointStyle: true,
         itemSort: function(a, b) {
-          // Extract tahun dari label dataset (format: "YYYY - Penjualan" atau "YYYY - Quantity")
-          // Untuk range chart, label format: "BusinessUnit - Penjualan" atau "BusinessUnit - Quantity"
-          // Jadi kita perlu handle kedua kasus
-          const getYear = (label) => {
-            // Coba extract tahun dari format "YYYY - ..."
-            const yearMatch = label.match(/^(\d{4})\s*-/);
-            if (yearMatch) {
-              return parseInt(yearMatch[1], 10);
-            }
-            // Jika tidak ada tahun, return 0 untuk tetap di bawah
-            return 0;
+          // Urutkan berdasarkan tipe data: Penjualan -> Quantity -> Order
+          const getDataTypeOrder = (label) => {
+            if (label.includes('Penjualan')) return 1;
+            if (label.includes('Quantity')) return 2;
+            if (label.includes('Order')) return 3;
+            return 4; // Untuk tipe lain, taruh di bawah
           };
           
-          const yearA = getYear(a.dataset.label || '');
-          const yearB = getYear(b.dataset.label || '');
+          const orderA = getDataTypeOrder(a.dataset.label || '');
+          const orderB = getDataTypeOrder(b.dataset.label || '');
           
-          // Jika kedua item punya tahun, urutkan descending (tahun terbaru di atas)
-          if (yearA > 0 && yearB > 0) {
-            return yearB - yearA;
+          // Jika tipe data sama, urutkan berdasarkan label (alphabetical)
+          if (orderA === orderB) {
+            return (a.dataset.label || '').localeCompare(b.dataset.label || '');
           }
-          // Jika salah satu tidak punya tahun, yang punya tahun di atas
-          if (yearA > 0 && yearB === 0) return -1;
-          if (yearB > 0 && yearA === 0) return 1;
-          // Jika keduanya tidak punya tahun, urutkan berdasarkan label
-          return (a.dataset.label || '').localeCompare(b.dataset.label || '');
+          
+          // Urutkan berdasarkan tipe data
+          return orderA - orderB;
         },
         callbacks: {
           label: function(context) {
@@ -1111,6 +1319,8 @@ function createRangeChart({
             if (context.parsed.y !== null) {
               if (label.includes('Penjualan')) {
                 label += formatCurrency(context.parsed.y);
+              } else if (label.includes('Order')) {
+                label += context.parsed.y.toLocaleString() + ' order';
               } else {
                 label += context.parsed.y.toLocaleString() + ' unit';
               }

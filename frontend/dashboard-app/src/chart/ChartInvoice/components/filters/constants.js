@@ -35,7 +35,7 @@ export const formatDateDisplay = (dateObj) => {
     const [month, day] = dateObj.split('-');
     return `${parseInt(day)} ${monthNames[parseInt(month) - 1]}`;
   }
-  // Jika object, ambil monthDay dan year
+  
   const { monthDay, year } = dateObj;
   if (!monthDay || !year) return '';
   const [month, day] = monthDay.split('-');
