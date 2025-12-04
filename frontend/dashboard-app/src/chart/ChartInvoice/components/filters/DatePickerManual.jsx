@@ -32,13 +32,11 @@ export const DatePickerManual = ({
     
     if (!range.startDate || !range.endDate) return;
     
-    // Validasi tahun 
     if (availableYears.length > 0 && !availableYears.includes(range.startDate.getFullYear())) {
       showWarning(`Tahun ${range.startDate.getFullYear()} tidak tersedia. Pilih tahun yang ada di daftar terlebih dahulu.`);
       return;
     }
     
-    // Validasi tahun 
     if (availableYears.length > 0 && !availableYears.includes(range.endDate.getFullYear())) {
       showWarning(`Tahun ${range.endDate.getFullYear()} tidak tersedia. Pilih tahun yang ada di daftar terlebih dahulu.`);
       return;
@@ -233,6 +231,23 @@ export const DatePickerManual = ({
             borderColor: '#0F172A !important',
           }
         },
+        // Hide defined ranges wrapper (Early, Continuous buttons)
+        '& .rdr-DefinedRangesWrapper': {
+          display: 'none !important',
+        },
+        '& .rdrDefinedRangesWrapper': {
+          display: 'none !important',
+        },
+        '& .rdrStaticRange': {
+          display: 'none !important',
+        },
+        '& .rdrStaticRangeLabel': {
+          display: 'none !important',
+        },
+        // Hide any buttons with Early or Continuous text
+        '& button:contains("Early"), & button:contains("Continuous")': {
+          display: 'none !important',
+        },
       }}>
         <DateRange
           ranges={[selectionDate]}
@@ -243,6 +258,9 @@ export const DatePickerManual = ({
           months={1}
           direction="horizontal"
           locale={enGB}
+          staticRanges={[]}
+          inputRanges={[]}
+          showDateDisplay={false}
         />
       </Box>
       

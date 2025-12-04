@@ -11,7 +11,6 @@ import { AppProvider } from '@toolpad/core/AppProvider';
 import { DashboardLayout } from '@toolpad/core/DashboardLayout';
 import { useDemoRouter } from '@toolpad/core/internal';
 import ChartInvoice from './chart/ChartInvoice';
-import ChartMonthly from './chart/ChartMonthly';
 
 const NAVIGATION = [
   { kind: 'header', title: 'Main items' },
@@ -20,7 +19,6 @@ const NAVIGATION = [
     title: 'Dashboard',
     icon: <DashboardIcon />,
     children: [
-      { segment: 'RevenueTrend', title: 'Revenue Trend', icon: <BarChartIcon /> },
       { segment: 'RevenueInvoice', title: 'Revenue Invoice', icon: <BarChartIcon /> },
     ],
   },
@@ -128,21 +126,6 @@ function DemoPageContent({ pathname }) {
         }}>
           <ChartInvoice />
         </Box>
-      </Box>
-    );
-  }
-
-  if (pathname.includes('RevenueTrend')) {
-    return (
-      <Box sx={{ 
-        width: '100%',
-        height: '100%',
-        overflow: 'auto',
-        position: 'relative',
-        padding: 0,
-        margin: 0
-      }}>
-        <ChartMonthly />
       </Box>
     );
   }
@@ -331,7 +314,6 @@ export default function DashboardLayoutBasic() {
     >
       <GlobalStyles
         styles={{
-          // Override Toolpad sidebar active state dengan warna biru soft
           '[data-toolpad-color-scheme] [role="menuitem"][aria-selected="true"]': {
             backgroundColor: 'rgba(107, 163, 208, 0.12) !important',
             color: '#6BA3D0 !important',
@@ -345,14 +327,14 @@ export default function DashboardLayoutBasic() {
           '[data-toolpad-color-scheme] [role="menuitem"]:hover': {
             backgroundColor: 'rgba(107, 163, 208, 0.08) !important',
           },
-          // Styling untuk icon di sidebar - multiple selectors untuk coverage lebih luas
+
           '[data-toolpad-color-scheme] [role="menuitem"][aria-selected="true"] svg': {
             color: '#6BA3D0 !important',
           },
           '[data-toolpad-color-scheme] [role="menuitem"][aria-selected="true"] .MuiSvgIcon-root': {
             color: '#6BA3D0 !important',
           },
-          // Styling untuk nested menu items
+
           '[data-toolpad-color-scheme] [role="menuitem"][aria-selected="true"] [role="menuitem"][aria-selected="true"]': {
             backgroundColor: 'rgba(107, 163, 208, 0.12) !important',
             color: '#6BA3D0 !important',

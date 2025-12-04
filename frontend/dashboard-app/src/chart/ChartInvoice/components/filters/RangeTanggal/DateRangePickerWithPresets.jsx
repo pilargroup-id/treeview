@@ -64,12 +64,12 @@ export const DateRangePickerWithPresets = ({
         endDate = new Date(today);
         endDate.setDate(today.getDate() - 1);
         break;
-      case 'last3Days':
-        startDate = new Date(today);
-        startDate.setDate(today.getDate() - 3);
-        endDate = new Date(today);
-        endDate.setDate(today.getDate() - 1);
-        break;
+      // case 'last3Days':
+      //   startDate = new Date(today);
+      //   startDate.setDate(today.getDate() - 3);
+      //   endDate = new Date(today);
+      //   endDate.setDate(today.getDate() - 1);
+      //   break;
       case 'last7Days':
         startDate = new Date(today);
         startDate.setDate(today.getDate() - 7);
@@ -79,12 +79,6 @@ export const DateRangePickerWithPresets = ({
       case 'last14Days':
         startDate = new Date(today);
         startDate.setDate(today.getDate() - 14);
-        endDate = new Date(today);
-        endDate.setDate(today.getDate() - 1);
-        break;
-      case 'last21Days':
-        startDate = new Date(today);
-        startDate.setDate(today.getDate() - 21);
         endDate = new Date(today);
         endDate.setDate(today.getDate() - 1);
         break;
@@ -118,10 +112,8 @@ export const DateRangePickerWithPresets = ({
   const presetRanges = [
     { key: 'today', label: 'Today' },
     { key: 'thisMonth', label: 'This Month' },
-    { key: 'last3Days', label: 'Last 3 Days' },
     { key: 'last7Days', label: 'Last 7 Days' },
     { key: 'last14Days', label: 'Last 14 Days' },
-    { key: 'last21Days', label: 'Last 21 Days' },
     { key: 'last30Days', label: 'Last 30 Days' },
   ]; 
 
