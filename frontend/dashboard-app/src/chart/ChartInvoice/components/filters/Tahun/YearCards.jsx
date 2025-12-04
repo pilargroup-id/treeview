@@ -283,19 +283,19 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
                         }}>
                           {isPositive ? (
                             <ArrowUpwardIcon sx={{ 
-                              fontSize: '0.875rem', 
+                              fontSize: '1,5rem', 
                               color: '#10B981',
                               lineHeight: 1
                             }} />
                           ) : isNegative ? (
                             <ArrowDownwardIcon sx={{ 
-                              fontSize: '0.875rem', 
+                              fontSize: '1,5rem', 
                               color: '#EF4444',
                               lineHeight: 1
                             }} />
                           ) : null}
                           <Typography sx={{
-                            fontSize: '0.6875rem',
+                            fontSize: '1drem',
                             fontWeight: 600,
                             color: isPositive ? '#10B981' : isNegative ? '#EF4444' : '#64748B',
                             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',

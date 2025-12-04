@@ -1,4 +1,3 @@
-// Constants 
 export const TWIN_DATE_PRESETS = [
   { monthDay: '01-01', label: '1 Januari' },
   { monthDay: '02-02', label: '2 Februari' },

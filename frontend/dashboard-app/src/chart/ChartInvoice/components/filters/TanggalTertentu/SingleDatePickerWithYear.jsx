@@ -19,7 +19,7 @@ export const SingleDatePickerWithYear = ({
   dataType = 'both',
   onDataTypeChange,
   invoiceData = [],
-  onValidatedRangesChange = null // Callback untuk mengirim validated ranges ke parent
+  onValidatedRangesChange = null 
 }) => {
   const { alertState, showWarning, showError, closeAlert } = useAlert();
   
@@ -42,9 +42,9 @@ export const SingleDatePickerWithYear = ({
 
   // State Preview
   const [showManualMode, setShowManualMode] = useState(true);
-  const [validatedRanges, setValidatedRanges] = useState([]); // Ranges yang sudah divalidasi untuk perbandingan
+  const [validatedRanges, setValidatedRanges] = useState([]); 
 
-  // Add Date Range untuk perbandingan
+  // Add Date Range 
   const handleAddToPreview = () => {
     try {
       if (!selectionDate.startDate || !selectionDate.endDate) {
@@ -80,18 +80,25 @@ export const SingleDatePickerWithYear = ({
         monthDay: `${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`
       })}` : '');
 
+      // Format tanggal 
+      const formatLocalDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
       // Validasi range 
       const newRange = {
         startISO: startDate.toISOString(),
         endISO: endDate.toISOString(),
-        startDate: startDate.toISOString().split('T')[0], // YYYY-MM-DD format
-        endDate: endDate.toISOString().split('T')[0], // YYYY-MM-DD format
+        startDate: formatLocalDate(startDate), // YYYY-MM-DD format 
+        endDate: formatLocalDate(endDate), // YYYY-MM-DD format 
         display: displayLabel,
         days: diffDays,
         validated: true
       };
 
-      // Cek duplikasi range
       const isDuplicate = validatedRanges.some(range => 
         range.startDate === newRange.startDate && range.endDate === newRange.endDate
       );
@@ -247,7 +254,7 @@ export const SingleDatePickerWithYear = ({
         </Typography>
       </Box>
 
-      {/* Icon Delete untuk Clear All Ranges */}
+      {/* Icon Delete All */}
       {validatedRanges.length > 0 && (
         <IconButton
           onClick={() => {
@@ -366,7 +373,7 @@ export const SingleDatePickerWithYear = ({
                   boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.2)',
                   width: { xs: '95%', sm: '90%', md: '800px', lg: '950px' },
                   maxWidth: '950px',
-                  maxHeight: '90vh',
+                  maxHeight: '75vh',
                   height: 'auto',
                   display: 'flex',
                   flexDirection: 'column',
@@ -436,7 +443,7 @@ export const SingleDatePickerWithYear = ({
                     flexDirection: { xs: 'column', md: 'row' },
                     gap: 0,
                     overflow: 'hidden',
-                    minHeight: { md: 'calc(90vh - 180px)' },
+                    minHeight: { md: 'calc(75vh - 180px)' },
                   }}>
                     {/* Left Section - Filter Controls */}
                     <Box sx={{
@@ -450,8 +457,8 @@ export const SingleDatePickerWithYear = ({
                       flexDirection: 'column',
                       gap: 1.25,
                       overflowY: 'auto',
-                      maxHeight: { md: 'calc(90vh - 180px)' },
-                      minHeight: { md: 'calc(90vh - 180px)' },
+                      maxHeight: { md: 'calc(75vh - 180px)' },
+                      minHeight: { md: 'calc(75vh - 180px)' },
                     }}>
                       {/* Render content - hanya mode manual */}
                       {showManualMode && (
@@ -476,7 +483,7 @@ export const SingleDatePickerWithYear = ({
                         flexDirection: 'column',
                         alignItems: 'stretch',
                         justifyContent: 'flex-start',
-                        minHeight: { md: 'calc(90vh - 180px)' },
+                        minHeight: { md: 'calc(75vh - 180px)' },
                         overflow: 'hidden',
                         bgcolor: '#FFFFFF',
                         borderLeft: { md: '1px solid #E2E8F0' },
@@ -528,7 +535,7 @@ export const SingleDatePickerWithYear = ({
                             display: 'flex',
                             flexDirection: 'column',
                             gap: 0.75,
-                            maxHeight: 'calc(90vh - 250px)',
+                            maxHeight: 'calc(75vh - 250px)',
                             overflowY: 'auto',
                             pr: 0.5,
                             '&::-webkit-scrollbar': {
