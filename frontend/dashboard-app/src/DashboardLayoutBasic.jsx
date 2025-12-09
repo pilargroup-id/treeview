@@ -7,10 +7,13 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import DescriptionIcon from '@mui/icons-material/Description';
 import LayersIcon from '@mui/icons-material/Layers';
+import CategoryIcon from '@mui/icons-material/Category';
 import { AppProvider } from '@toolpad/core/AppProvider';
 import { DashboardLayout } from '@toolpad/core/DashboardLayout';
 import { useDemoRouter } from '@toolpad/core/internal';
 import ChartInvoice from './chart/ChartInvoice';
+import CategoryItem from './chart/CategoryItem';
+import ItemTes from './chart/TestItemCategory';
 
 const NAVIGATION = [
   { kind: 'header', title: 'Main items' },
@@ -20,6 +23,8 @@ const NAVIGATION = [
     icon: <DashboardIcon />,
     children: [
       { segment: 'RevenueInvoice', title: 'Revenue Invoice', icon: <BarChartIcon /> },
+      { segment: 'CategoryItem', title: 'Category Item', icon: <CategoryIcon /> },
+      { segment: 'CategoryItemTes', title: 'Category Item (Tes)', icon: <CategoryIcon /> },
     ],
   },
   { segment: 'orders', title: 'Orders', icon: <ShoppingCartIcon /> },
@@ -126,6 +131,34 @@ function DemoPageContent({ pathname }) {
         }}>
           <ChartInvoice />
         </Box>
+      </Box>
+    );
+  }
+
+  if (pathname.includes('CategoryItemTes')) {
+    return (
+      <Box sx={{ 
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
+        backgroundColor: (theme) => 
+          theme.palette.mode === 'dark' 
+            ? 'rgba(18, 18, 18, 0.8)' 
+            : 'rgba(250, 250, 250, 1)',
+      }}>
+        <ItemTes />
+      </Box>
+    );
+  }
+
+  if (pathname.includes('CategoryItem')) {
+    return (
+      <Box sx={{ 
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
+      }}>
+        <CategoryItem />
       </Box>
     );
   }

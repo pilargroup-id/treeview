@@ -137,7 +137,6 @@ export const SingleDatePickerWithYear = ({
     });
   };
 
-
   // Count Data
   const previewData = useMemo(() => {
     const data = {

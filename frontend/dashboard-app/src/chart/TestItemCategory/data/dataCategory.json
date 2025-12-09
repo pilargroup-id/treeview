@@ -1,0 +1,120 @@
+{
+    "tanggal": "2025/9/1",
+    "categories": [
+      {
+        "main_category": "AUTOMOTIVE",
+        "DPP": 9575852,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "BEAUTY & PERSONAL CARE",
+        "DPP": 1999413,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "BUNDLING SKU",
+        "DPP": 9882230,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "DISCONTINUE",
+        "DPP": 3648019,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "DISNEY",
+        "DPP": 5453781,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "ELECTRONIC",
+        "DPP": 181771411,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "FASHION",
+        "DPP": 2652865,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "HOBBIES & LIFESTYLE",
+        "DPP": 52014216,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "HOME & LIVING",
+        "DPP": 353920797,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "HOME SLIPPER",
+        "DPP": 1724237,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "LAINNYA",
+        "DPP": 76757,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "LISENCE",
+        "DPP": 6512495,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "MOMS, KIDS & BABY",
+        "DPP": 31183868,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "OFFICE & STATIONERY",
+        "DPP": 3562605,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "OUTDOOR",
+        "DPP": 89290290,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "PARTNERSHIP PRODUCT",
+        "DPP": 39143,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "PUMP",
+        "DPP": 3950129,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "SPORT & HEALTH",
+        "DPP": 46133312,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "TECH & ACCESSORIES",
+        "DPP": 62211323,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "TOOLS & HOME IMPROVEMENT",
+        "DPP": 55038469,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "TOYS",
+        "DPP": 353063,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "TRADING PRODUCT",
+        "DPP": 4142238,
+        "items_file": "dataItem.json"
+      },
+      {
+        "main_category": "TRAVEL EQUIPMENT",
+        "DPP": 5477064,
+        "items_file": "dataItem.json"
+      }
+    ]
+  }
