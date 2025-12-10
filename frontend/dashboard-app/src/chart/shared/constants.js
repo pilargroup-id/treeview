@@ -1,4 +1,7 @@
-export const API_URL = 'http://localhost:8000/api';
+import { API_URL } from '../../config/api';
+
+// Re-export API_URL untuk backward compatibility
+export { API_URL };
 
 export const monthNames = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',

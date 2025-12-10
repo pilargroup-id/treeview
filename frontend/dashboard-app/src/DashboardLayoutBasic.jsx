@@ -12,8 +12,8 @@ import { AppProvider } from '@toolpad/core/AppProvider';
 import { DashboardLayout } from '@toolpad/core/DashboardLayout';
 import { useDemoRouter } from '@toolpad/core/internal';
 import ChartInvoice from './chart/ChartInvoice';
-import CategoryItem from './chart/CategoryItem';
 import ItemTes from './chart/TestItemCategory';
+import { API_URL } from './config/api';
 
 const NAVIGATION = [
   { kind: 'header', title: 'Main items' },
@@ -23,7 +23,6 @@ const NAVIGATION = [
     icon: <DashboardIcon />,
     children: [
       { segment: 'RevenueInvoice', title: 'Revenue Invoice', icon: <BarChartIcon /> },
-      { segment: 'CategoryItem', title: 'Category Item', icon: <CategoryIcon /> },
       { segment: 'CategoryItemTes', title: 'Category Item (Tes)', icon: <CategoryIcon /> },
     ],
   },
@@ -151,18 +150,6 @@ function DemoPageContent({ pathname }) {
     );
   }
 
-  if (pathname.includes('CategoryItem')) {
-    return (
-      <Box sx={{ 
-        width: '100%',
-        height: '100%',
-        overflow: 'hidden',
-      }}>
-        <CategoryItem />
-      </Box>
-    );
-  }
-
   return (
     <Box
       sx={{
@@ -194,7 +181,6 @@ function LastUpdateHeader() {
 
   React.useEffect(() => {
     setIsLoading(true);
-    const API_URL = 'http://localhost:8000/api';
     fetch(`${API_URL}/financial/last-update`)
       .then(response => response.json())
       .then(data => {

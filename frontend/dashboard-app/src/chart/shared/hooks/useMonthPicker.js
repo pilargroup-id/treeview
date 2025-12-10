@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 
 /**
- * Custom hook untuk mengelola state month picker
+ * Custom hook
  */
 export const useMonthPicker = (selectedMonths) => {
   const [tempSelectedMonths, setTempSelectedMonths] = useState(new Set());
@@ -24,7 +24,6 @@ export const useMonthPicker = (selectedMonths) => {
     };
   }, [monthPickerOpen]);
 
-  // Handle escape key
   useEffect(() => {
     const handleEscape = (event) => {
       if (event.key === 'Escape') {

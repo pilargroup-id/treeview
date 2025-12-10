@@ -31,6 +31,8 @@ import { useAlert } from './hooks/useAlert';
 import { formatCurrency, formatShortNumber, getAvailableYears } from './utils';
 import { loadYearSummary, loadInvoiceSales, refreshData } from './apiService';
 import { generateChartConfig } from './chartConfig';
+import { useMobile } from './Mobile/useMobile';
+import ChartInvoiceMobile from './Mobile';
 
 ChartJS.register(
   CategoryScale,
@@ -46,6 +48,13 @@ ChartJS.register(
 
 
 function ChartInvoice() {
+  const isMobile = useMobile();
+  
+  // Jika mobile, render versi mobile
+  if (isMobile) {
+    return <ChartInvoiceMobile />;
+  }
+  
   const [businessUnits, setBusinessUnits] = useState(['Gosave', 'Goto']);
   const [dateFilterType, setDateFilterType] = useState('year');
   const [dataType, setDataType] = useState('both'); 
@@ -598,7 +607,7 @@ function ChartInvoice() {
       gap: { xs: 3, md: 4 },
       fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
       position: 'relative',
-      overflow: 'hidden',
+      overflow: 'hidden', // Desktop tidak bisa scroll
       '&::before': {
         content: '""',
         position: 'absolute',

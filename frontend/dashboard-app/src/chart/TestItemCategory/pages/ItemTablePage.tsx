@@ -114,6 +114,12 @@ function SparkLine({ data, color }: { data: number[]; color: string }) {
   );
 }
 
+interface RangeDate {
+  start: string;
+  end: string;
+  year: number;
+}
+
 interface ItemTablePageProps {
   currentPage: PageType;
   onPageChange: (page: PageType) => void;
@@ -129,6 +135,16 @@ interface ItemTablePageProps {
   onRefresh: () => void;
   isLoading: boolean;
   categories: Array<{ name: string; count: number; dpp: number }>;
+  rangeDates?: RangeDate[];
+  onAddRange?: (range: RangeDate) => void;
+  onRemoveRange?: (range: RangeDate) => void;
+  availableYears?: number[];
+  selectedYears?: number[];
+  businessUnits?: string[];
+  onBusinessUnitToggle?: (unit: string) => void;
+  dataType?: 'both' | 'invoice' | 'payment';
+  onDataTypeChange?: (type: 'both' | 'invoice' | 'payment') => void;
+  invoiceData?: any[];
 }
 
 function ItemTablePage({
@@ -146,6 +162,16 @@ function ItemTablePage({
   onRefresh,
   isLoading,
   categories,
+  rangeDates = [],
+  onAddRange,
+  onRemoveRange,
+  availableYears = [],
+  selectedYears = [],
+  businessUnits = [],
+  onBusinessUnitToggle,
+  dataType = 'both',
+  onDataTypeChange,
+  invoiceData = []
 }: ItemTablePageProps) {
   const apiRef = useGridApiRef();
   const theme = useTheme();
@@ -426,6 +452,16 @@ function ItemTablePage({
             onRefresh={onRefresh}
             isLoading={isLoading}
             categories={categories}
+            rangeDates={rangeDates}
+            onAddRange={onAddRange}
+            onRemoveRange={onRemoveRange}
+            availableYears={availableYears}
+            selectedYears={selectedYears}
+            businessUnits={businessUnits}
+            onBusinessUnitToggle={onBusinessUnitToggle}
+            dataType={dataType}
+            onDataTypeChange={onDataTypeChange}
+            invoiceData={invoiceData}
           />
         </Box>
 

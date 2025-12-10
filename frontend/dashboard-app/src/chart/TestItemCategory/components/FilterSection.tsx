@@ -1,9 +1,11 @@
 import React from 'react';
-import { Button, Card, Typography, IconButton, Box, TextField, InputAdornment } from '@mui/material';
+import { Button, Card, Typography, IconButton, Box, Badge } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import SearchIcon from '@mui/icons-material/Search';
-import CategoryFilter from './CategoryFilter';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
+import CategoryModal from './CategoryModal';
 import PageSwitcher, { PageType } from './PageSwitcher';
+import { RangeDateFilter, RangeDate } from './filters/RangeTanggal';
 
 interface FilterSectionProps {
   currentPage: PageType;
@@ -16,6 +18,17 @@ interface FilterSectionProps {
   onRefresh: () => void;
   isLoading: boolean;
   categories: Array<{ name: string; count: number; dpp: number }>;
+  // Range Date Filter Props
+  rangeDates?: RangeDate[];
+  onAddRange?: (range: RangeDate) => void;
+  onRemoveRange?: (range: RangeDate) => void;
+  availableYears?: number[];
+  selectedYears?: number[];
+  businessUnits?: string[];
+  onBusinessUnitToggle?: (unit: string) => void;
+  dataType?: 'both' | 'invoice' | 'payment';
+  onDataTypeChange?: (type: 'both' | 'invoice' | 'payment') => void;
+  invoiceData?: any[];
 }
 
 function FilterSection({
@@ -28,8 +41,21 @@ function FilterSection({
   onSearchChange,
   onRefresh,
   isLoading,
-  categories
+  categories,
+  rangeDates = [],
+  onAddRange,
+  onRemoveRange,
+  availableYears = [],
+  selectedYears = [],
+  businessUnits = [],
+  onBusinessUnitToggle,
+  dataType = 'both',
+  onDataTypeChange,
+  invoiceData = []
 }: FilterSectionProps) {
+  const [modalOpen, setModalOpen] = React.useState(false);
+  const [rangeDateModalOpen, setRangeDateModalOpen] = React.useState(false);
+
   return (
     <Card sx={{ 
       bgcolor: '#FFFFFF', 
@@ -93,51 +119,102 @@ function FilterSection({
         onPageChange={onPageChange}
       />
 
-      <TextField
+      {/* Tombol Range Date Filter */}
+      <Button
         fullWidth
-        size="medium"
-        placeholder="Cari kategori..."
-        value={searchQuery}
-        onChange={(e) => onSearchChange(e.target.value)}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon sx={{ color: '#9E9E9E', fontSize: '1.25rem' }} />
-            </InputAdornment>
-          ),
-        }}
+        variant="outlined"
+        startIcon={<CalendarMonthRoundedIcon />}
+        onClick={() => setRangeDateModalOpen(true)}
         sx={{
-          '& .MuiOutlinedInput-root': {
-            borderRadius: '12px',
-            fontSize: '0.875rem',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-            bgcolor: '#FFFFFF',
-            transition: 'all 0.2s ease',
-            '& fieldset': {
-              borderColor: '#E5E5E5',
-              borderWidth: '1px'
-            },
-            '&:hover fieldset': {
-              borderColor: '#E0E0E0'
-            },
-            '&.Mui-focused fieldset': {
-              borderColor: '#6BA3D0',
-              borderWidth: '1px'
-            }
+          textTransform: 'none',
+          fontSize: '0.875rem',
+          fontWeight: 500,
+          color: '#212121',
+          borderColor: '#E5E5E5',
+          borderRadius: '12px',
+          py: 1.25,
+          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          bgcolor: 'transparent',
+          '&:hover': {
+            borderColor: '#6BA3D0',
+            bgcolor: 'rgba(107, 163, 208, 0.04)',
+            transform: 'translateY(-1px)',
+            boxShadow: '0 2px 8px rgba(107, 163, 208, 0.15)',
           },
-          '& .MuiInputBase-input': {
-            py: 1.125
-          }
         }}
+      >
+        Pilih Range Tanggal
+      </Button>
+
+      {/* Range Date Filter Component - Modal dikontrol oleh prop open */}
+      <RangeDateFilter
+        rangeDates={rangeDates}
+        onAddRange={onAddRange || (() => {})}
+        onRemoveRange={onRemoveRange || (() => {})}
+        availableYears={availableYears}
+        selectedYears={selectedYears}
+        businessUnits={businessUnits}
+        onBusinessUnitToggle={onBusinessUnitToggle}
+        dataType={dataType}
+        onDataTypeChange={onDataTypeChange}
+        invoiceData={invoiceData}
+        open={rangeDateModalOpen}
+        onClose={() => setRangeDateModalOpen(false)}
       />
 
-      <CategoryFilter 
-        categories={categories}
-        selectedCategories={selectedCategories}
-        onToggle={onCategoryToggle}
-        onChange={onCategoryChange}
-        searchQuery={searchQuery}
-      />
+      {/* Hanya tampilkan tombol filter kategori untuk halaman table */}
+      {currentPage === 'table' && (
+        <Button
+          fullWidth
+          variant="outlined"
+          startIcon={
+            <Badge badgeContent={selectedCategories.length} color="primary" max={99}>
+              <FilterListIcon />
+            </Badge>
+          }
+          onClick={() => setModalOpen(true)}
+          sx={{
+            textTransform: 'none',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            color: '#212121',
+            borderColor: '#E5E5E5',
+            borderRadius: '12px',
+            py: 1.25,
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            '&:hover': {
+              borderColor: '#6BA3D0',
+              bgcolor: 'rgba(107, 163, 208, 0.04)',
+              transform: 'translateY(-1px)',
+              boxShadow: '0 2px 8px rgba(107, 163, 208, 0.15)',
+            },
+            '& .MuiBadge-badge': {
+              fontSize: '0.625rem',
+              height: '18px',
+              minWidth: '18px',
+              padding: '0 4px',
+            },
+          }}
+        >
+          {selectedCategories.length > 0
+            ? `${selectedCategories.length} Kategori Dipilih`
+            : 'Pilih Kategori'}
+        </Button>
+      )}
+
+      {/* Modal untuk mengatur kategori (hanya untuk halaman table) */}
+      {currentPage === 'table' && (
+        <CategoryModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          categories={categories}
+          selectedCategories={selectedCategories}
+          onToggle={onCategoryToggle}
+          onChange={onCategoryChange}
+        />
+      )}
     </Card>
   );
 }

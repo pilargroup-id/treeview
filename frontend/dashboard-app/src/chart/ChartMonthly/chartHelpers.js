@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { API_URL } from '../../config/api';
 
 //  variable
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 const monthNames = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'

@@ -66,17 +66,93 @@ function ItemTes() {
   const [error, setError] = React.useState<string | null>(null);
   const [allRows, setAllRows] = React.useState<StockData[]>([]);
   const [filteredRows, setFilteredRows] = React.useState<StockData[]>([]);
-  const [selectedCategories, setSelectedCategories] = React.useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = React.useState('');
+  
+  // Filter terpisah untuk Chart Category
+  const [selectedCategoriesChart, setSelectedCategoriesChart] = React.useState<string[]>([]);
+  const [searchQueryChart, setSearchQueryChart] = React.useState('');
+  
+  // Filter terpisah untuk Table Item
+  const [selectedCategoriesTable, setSelectedCategoriesTable] = React.useState<string[]>([]);
+  const [searchQueryTable, setSearchQueryTable] = React.useState('');
   const [itemSearchQuery, setItemSearchQuery] = React.useState('');
+  
+  // Range Date Filter State
+  const [rangeDates, setRangeDates] = React.useState<Array<{ start: string; end: string; year: number }>>([]);
+  const [availableYears] = React.useState<number[]>([2020, 2021, 2022, 2023, 2024, 2025]);
+  const [selectedYears] = React.useState<number[]>([]);
+  const [businessUnits] = React.useState<string[]>([]);
+  const [dataType, setDataType] = React.useState<'both' | 'invoice' | 'payment'>('both');
+  const [invoiceData] = React.useState<any[]>([]);
+  
+  const handleAddRange = React.useCallback((range: { start: string; end: string; year: number }) => {
+    setRangeDates(prev => [...prev, range]);
+  }, []);
+  
+  const handleRemoveRange = React.useCallback((range: { start: string; end: string; year: number }) => {
+    setRangeDates(prev => prev.filter(r => 
+      !(r.start === range.start && r.end === range.end && r.year === range.year)
+    ));
+  }, []);
+  
   const { fetchRows, isReady } = useMockStockServer();
 
-  const categories = React.useMemo(() => {
-    return loadCategories(allRows);
-  }, [allRows]);
+  // Categories untuk Chart (di-filter berdasarkan filter chart)
+  const categoriesChart = React.useMemo(() => {
+    // Filter rows berdasarkan kategori yang dipilih untuk chart (hanya mempengaruhi perhitungan count)
+    let filteredRows = allRows;
+    if (selectedCategoriesChart.length > 0) {
+      filteredRows = filteredRows.filter((row) => {
+        return selectedCategoriesChart.some(selectedCat => 
+          row.category === selectedCat || 
+          row.category.toLowerCase() === selectedCat.toLowerCase()
+        );
+      });
+    }
+    
+    // Load categories dari filtered rows
+    const categories = loadCategories(filteredRows);
+    
+    // Filter categories berdasarkan searchQueryChart (untuk mencari nama kategori di list filter)
+    if (searchQueryChart.trim() !== '') {
+      const searchLower = searchQueryChart.toLowerCase().trim();
+      return categories.filter(cat => 
+        cat.name.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return categories;
+  }, [allRows, selectedCategoriesChart, searchQueryChart]);
 
-  const handleCategoryToggle = (category: string) => {
-    setSelectedCategories(prev => {
+  // Categories untuk Table (di-filter berdasarkan filter table)
+  const categoriesTable = React.useMemo(() => {
+    // Filter rows berdasarkan kategori yang dipilih untuk table (hanya mempengaruhi perhitungan count)
+    let filteredRows = allRows;
+    if (selectedCategoriesTable.length > 0) {
+      filteredRows = filteredRows.filter((row) => {
+        return selectedCategoriesTable.some(selectedCat => 
+          row.category === selectedCat || 
+          row.category.toLowerCase() === selectedCat.toLowerCase()
+        );
+      });
+    }
+    
+    // Load categories dari filtered rows
+    const categories = loadCategories(filteredRows);
+    
+    // Filter categories berdasarkan searchQueryTable (untuk mencari nama kategori di list filter)
+    if (searchQueryTable.trim() !== '') {
+      const searchLower = searchQueryTable.toLowerCase().trim();
+      return categories.filter(cat => 
+        cat.name.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return categories;
+  }, [allRows, selectedCategoriesTable, searchQueryTable]);
+
+  // Handler untuk Chart Category
+  const handleCategoryToggleChart = (category: string) => {
+    setSelectedCategoriesChart(prev => {
       if (prev.includes(category)) {
         return prev.filter(c => c !== category);
       } else {
@@ -85,8 +161,23 @@ function ItemTes() {
     });
   };
 
-  const handleCategoryChange = (categories: string[]) => {
-    setSelectedCategories(categories);
+  const handleCategoryChangeChart = (categories: string[]) => {
+    setSelectedCategoriesChart(categories);
+  };
+
+  // Handler untuk Table Item
+  const handleCategoryToggleTable = (category: string) => {
+    setSelectedCategoriesTable(prev => {
+      if (prev.includes(category)) {
+        return prev.filter(c => c !== category);
+      } else {
+        return [...prev, category];
+      }
+    });
+  };
+
+  const handleCategoryChangeTable = (categories: string[]) => {
+    setSelectedCategoriesTable(categories);
   };
 
   const handleRefresh = React.useCallback(() => {
@@ -116,13 +207,18 @@ function ItemTes() {
     loadData();
   }, [isReady, fetchRows]);
 
+  // Filter untuk Table Item (hanya berlaku saat di halaman table)
   React.useEffect(() => {
+    if (currentPage !== 'table') {
+      return;
+    }
+
     let filtered = allRows;
 
-    if (selectedCategories.length > 0) {
+    // Filter berdasarkan kategori yang dipilih untuk table
+    if (selectedCategoriesTable.length > 0) {
       filtered = filtered.filter((row) => {
-        // Check if row's category matches any of the selected categories
-        return selectedCategories.some(selectedCat => 
+        return selectedCategoriesTable.some(selectedCat => 
           row.category === selectedCat || 
           row.category.toLowerCase() === selectedCat.toLowerCase()
         );
@@ -130,6 +226,7 @@ function ItemTes() {
     }
 
     // Filter by item search query (name, symbol, or category)
+    // Note: searchQueryTable hanya untuk mencari kategori di list filter, bukan untuk memfilter data rows
     if (itemSearchQuery.trim() !== '') {
       const searchLower = itemSearchQuery.toLowerCase().trim();
       filtered = filtered.filter((row) => {
@@ -141,7 +238,7 @@ function ItemTes() {
     }
 
     setFilteredRows(filtered);
-  }, [selectedCategories, allRows, itemSearchQuery]);
+  }, [selectedCategoriesTable, itemSearchQuery, allRows, currentPage]);
 
   React.useEffect(() => {
     if (!isReady) {
@@ -248,14 +345,23 @@ function ItemTes() {
           <CategoryChartPage
             currentPage={currentPage}
             onPageChange={setCurrentPage}
-            categories={categories}
-            selectedCategories={selectedCategories}
-            onCategoryToggle={handleCategoryToggle}
-            onCategoryChange={handleCategoryChange}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
+            categories={categoriesChart}
+            selectedCategories={selectedCategoriesChart}
+            onCategoryToggle={handleCategoryToggleChart}
+            onCategoryChange={handleCategoryChangeChart}
+            searchQuery={searchQueryChart}
+            onSearchChange={setSearchQueryChart}
             onRefresh={handleRefresh}
             isLoading={loading}
+            rangeDates={rangeDates}
+            onAddRange={handleAddRange}
+            onRemoveRange={handleRemoveRange}
+            availableYears={availableYears}
+            selectedYears={selectedYears}
+            businessUnits={businessUnits}
+            dataType={dataType}
+            onDataTypeChange={setDataType}
+            invoiceData={invoiceData}
           />
         ) : (
           <ItemTablePage
@@ -263,16 +369,25 @@ function ItemTes() {
             onPageChange={setCurrentPage}
             allRows={allRows}
             filteredRows={filteredRows}
-            selectedCategories={selectedCategories}
-            onCategoryToggle={handleCategoryToggle}
-            onCategoryChange={handleCategoryChange}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
+            selectedCategories={selectedCategoriesTable}
+            onCategoryToggle={handleCategoryToggleTable}
+            onCategoryChange={handleCategoryChangeTable}
+            searchQuery={searchQueryTable}
+            onSearchChange={setSearchQueryTable}
             itemSearchQuery={itemSearchQuery}
             onItemSearchChange={setItemSearchQuery}
             onRefresh={handleRefresh}
             isLoading={loading}
-            categories={categories}
+            categories={categoriesTable}
+            rangeDates={rangeDates}
+            onAddRange={handleAddRange}
+            onRemoveRange={handleRemoveRange}
+            availableYears={availableYears}
+            selectedYears={selectedYears}
+            businessUnits={businessUnits}
+            dataType={dataType}
+            onDataTypeChange={setDataType}
+            invoiceData={invoiceData}
           />
         )}
       </Box>
