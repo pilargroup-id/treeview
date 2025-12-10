@@ -49,7 +49,9 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
       },
       gap: { xs: 2, md: 2.5 },
       alignItems: 'start',
-      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+      overflow: 'visible',
+      minWidth: 0 // Prevent grid items from overflowing
     }}>
       {isLoading ? (
         // Loading 
@@ -113,7 +115,7 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
               key={year}
               onClick={() => !isDisabled && onToggleYear && onToggleYear(year)}
               sx={{ 
-                p: { xs: 2.5, md: 3 },
+                p: { xs: 1.75, md: 3 },
                 borderRadius: '16px',
                 boxShadow: isSelected 
                   ? '0 4px 12px rgba(107, 163, 208, 0.15), 0 2px 4px rgba(107, 163, 208, 0.1)' 
@@ -125,8 +127,9 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
                 transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 bgcolor: isSelected ? '#F5F8FB' : '#FFFFFF',
                 position: 'relative',
-                overflow: 'hidden',
+                overflow: 'visible',
                 height: 'fit-content',
+                minWidth: 0, // Prevent overflow
                 opacity: isDisabled ? 0.6 : 1,
                 pointerEvents: isDisabled ? 'none' : 'auto',
                 fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
@@ -148,8 +151,9 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
               <Box sx={{ 
                 display: 'flex', 
                 flexDirection: 'column',
-                gap: 1,
+                gap: { xs: 0.75, md: 1 },
                 width: '100%',
+                minWidth: 0, // Prevent overflow
                 position: 'relative',
                 zIndex: 2
               }}>
@@ -158,16 +162,23 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'space-between',
-                  mb: 0.5
+                  mb: 0.5,
+                  minWidth: 0, // Prevent overflow
+                  gap: 1
                 }}>
                   <Typography sx={{ 
-                    fontSize: { xs: '1.25rem', md: '1.5rem' }, 
+                    fontSize: { xs: '1rem', md: '1.5rem' }, 
                     color: isSelected ? '#6BA3D0' : '#212121', 
                     fontWeight: 600,
                     fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
                     letterSpacing: '-0.02em',
                     lineHeight: 1.2,
-                    transition: 'color 0.2s ease'
+                    transition: 'color 0.2s ease',
+                    minWidth: 0, // Prevent overflow
+                    flex: 1,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
                   }}>
                     {year}
                   </Typography>
@@ -180,7 +191,7 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
                     flexShrink: 0
                   }}>
                     <Typography sx={{
-                      fontSize: { xs: '0.6875rem', md: '0.75rem' },
+                      fontSize: { xs: '0.625rem', md: '0.75rem' },
                       fontWeight: 600,
                       color: isSelected ? '#6BA3D0' : '#9CA3AF',
                       fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
@@ -206,12 +217,12 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
                 </Box>
                 
                 {/* Sales Amount */}
-                <Box>
+                <Box sx={{ minWidth: 0, width: '100%' }}>
                   <Typography sx={{ 
-                    fontSize: '0.6875rem', 
+                    fontSize: { xs: '0.625rem', md: '0.6875rem' }, 
                     color: '#757575',
                     fontWeight: 500,
-                    mb: 1,
+                    mb: { xs: 0.75, md: 1 },
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
                     lineHeight: 1.2,
@@ -221,14 +232,17 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
                     Total Penjualan
                   </Typography>
                   <Typography sx={{ 
-                    fontSize: { xs: '1.125rem', md: '1.25rem' }, 
+                    fontSize: { xs: '0.875rem', md: '1.25rem' }, 
                     fontWeight: 600, 
                     color: '#212121',
                     fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
                     lineHeight: 1.3,
                     wordBreak: 'break-word',
+                    overflowWrap: 'break-word',
                     transition: 'color 0.2s ease',
-                    letterSpacing: '-0.01em'
+                    letterSpacing: '-0.01em',
+                    minWidth: 0, // Prevent text overflow
+                    width: '100%'
                   }}>
                     {formatCurrency(yearData.sales)}
                   </Typography>
@@ -236,9 +250,9 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
                 
                 {/* Quantity */}
                 <Box sx={{ 
-                  pt: 1.5,
+                  pt: { xs: 1, md: 1.5 },
                   borderTop: '1px solid #F5F5F5',
-                  mt: 1,
+                  mt: { xs: 0.75, md: 1 },
                   transition: 'border-color 0.2s ease',
                   position: 'relative'
                 }}>
@@ -249,7 +263,7 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
                     gap: 1
                   }}>
                     <Typography sx={{ 
-                      fontSize: '0.6875rem', 
+                      fontSize: { xs: '0.625rem', md: '0.6875rem' }, 
                       color: '#9E9E9E',
                       fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
                       lineHeight: 1.5,
@@ -283,19 +297,19 @@ function YearCards({ availableYears, selectedYears, yearTotals, onToggleYear, is
                         }}>
                           {isPositive ? (
                             <ArrowUpwardIcon sx={{ 
-                              fontSize: '1,5rem', 
+                              fontSize: { xs: '0.875rem', md: '1rem' }, 
                               color: '#10B981',
                               lineHeight: 1
                             }} />
                           ) : isNegative ? (
                             <ArrowDownwardIcon sx={{ 
-                              fontSize: '1,5rem', 
+                              fontSize: { xs: '0.875rem', md: '1rem' }, 
                               color: '#EF4444',
                               lineHeight: 1
                             }} />
                           ) : null}
                           <Typography sx={{
-                            fontSize: '1drem',
+                            fontSize: { xs: '0.75rem', md: '0.875rem' },
                             fontWeight: 600,
                             color: isPositive ? '#10B981' : isNegative ? '#EF4444' : '#64748B',
                             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',

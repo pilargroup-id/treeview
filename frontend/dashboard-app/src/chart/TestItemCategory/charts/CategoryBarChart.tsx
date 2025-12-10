@@ -22,7 +22,6 @@ ChartJS.register(
   Legend
 );
 
-// Custom plugin untuk menampilkan label DPP
 const datalabelsPlugin = {
   id: 'datalabels',
   afterDraw: (chart: any) => {
@@ -58,35 +57,24 @@ const datalabelsPlugin = {
         const value = dataset.data[index];
         if (value === null || value === undefined) return;
         
-        // Untuk horizontal bar chart dengan indexAxis: 'y'
-        // bar.x adalah posisi ujung kanan bar
-        // Untuk memastikan, kita bisa menggunakan bar.x + bar.width/2 tapi lebih baik langsung bar.x
         const barEndX = bar.x;
         const y = bar.y;
         const label = formatDpp(value);
         
-        // Hitung lebar teks
         const textMetrics = ctx.measureText(label);
         const textWidth = textMetrics.width;
         
-        // Padding dari ujung bar (di luar bar) - minimal 10px
         const padding = 10;
         
-        // Posisikan label di luar bar, tepat setelah ujung kanan bar
-        // Pastikan labelX > barEndX agar benar-benar di luar bar
         let labelX = barEndX + padding;
         
-        // Pastikan label tidak keluar dari chart area yang sudah di-padding
         const maxX = chartArea.right - 5;
         if (labelX + textWidth > maxX) {
-          // Jika tidak muat, geser ke kiri tapi tetap di luar bar
           labelX = Math.max(barEndX + 5, maxX - textWidth);
         }
         
-        // Final check: pastikan label selalu di luar bar
-        // Jika masih di dalam atau sama dengan barEndX, paksa ke luar
         if (labelX <= barEndX) {
-          labelX = barEndX + 5; // Minimal 5px di luar bar
+          labelX = barEndX + 5; 
         }
         
         ctx.fillText(label, labelX, y);
@@ -107,7 +95,6 @@ function CategoryBarChart({ categories }: CategoryBarChartProps) {
   const [showDetail, setShowDetail] = React.useState(false);
 
   const chartData = React.useMemo(() => {
-    // Sort by DPP descending and take top 20
     const sortedCategories = [...categories]
       .sort((a, b) => b.dpp - a.dpp)
       .slice(0, 20);
@@ -115,7 +102,6 @@ function CategoryBarChart({ categories }: CategoryBarChartProps) {
     const labels = sortedCategories.map(cat => cat.name);
     const data = sortedCategories.map(cat => cat.dpp);
 
-    // Generate colors based on DPP (gradient)
     const maxDpp = Math.max(...data, 1);
     const backgroundColor = data.map(dpp => {
       const intensity = dpp / maxDpp;
@@ -160,7 +146,7 @@ function CategoryBarChart({ categories }: CategoryBarChartProps) {
     maintainAspectRatio: false,
     layout: {
       padding: {
-        right: showDetail ? 150 : 0, // Tambahkan padding kanan yang cukup untuk label
+        right: showDetail ? 150 : 0,
       },
     },
     plugins: {

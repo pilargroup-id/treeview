@@ -12,10 +12,9 @@ interface FilterBarProps {
 export default function FilterBar({ searchText, setSearchText }: FilterBarProps) {
   const [open, setOpen] = useState(false);
 
-  // Keep search open if there's text
   useEffect(() => {
     if (searchText.trim() !== '') {
-      setOpen(true);
+      setOpen(true);  
     }
   }, [searchText]);
 

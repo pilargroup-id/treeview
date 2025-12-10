@@ -17,7 +17,7 @@ export interface CategoryJsonData {
 
 export interface StockData {
   id: number;
-  symbol: string; // display_name
+  symbol: string; 
   name: string;
   logoUrl: string;
   price: number;

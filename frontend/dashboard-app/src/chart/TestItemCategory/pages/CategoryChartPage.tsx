@@ -2,8 +2,13 @@ import * as React from 'react';
 import { Box } from '@mui/material';
 import CategoryBarChart from '../charts/CategoryBarChart';
 import FilterSection from '../components/FilterSection';
-
 import { PageType } from '../components/PageSwitcher';
+
+interface RangeDate {
+  start: string;
+  end: string;
+  year: number;
+}
 
 interface CategoryChartPageProps {
   currentPage: PageType;
@@ -16,6 +21,16 @@ interface CategoryChartPageProps {
   onSearchChange: (query: string) => void;
   onRefresh: () => void;
   isLoading: boolean;
+  rangeDates?: RangeDate[];
+  onAddRange?: (range: RangeDate) => void;
+  onRemoveRange?: (range: RangeDate) => void;
+  availableYears?: number[];
+  selectedYears?: number[];
+  businessUnits?: string[];
+  onBusinessUnitToggle?: (unit: string) => void;
+  dataType?: 'both' | 'invoice' | 'payment';
+  onDataTypeChange?: (type: 'both' | 'invoice' | 'payment') => void;
+  invoiceData?: any[];
 }
 
 function CategoryChartPage({
@@ -29,6 +44,16 @@ function CategoryChartPage({
   onSearchChange,
   onRefresh,
   isLoading,
+  rangeDates = [],
+  onAddRange,
+  onRemoveRange,
+  availableYears = [],
+  selectedYears = [],
+  businessUnits = [],
+  onBusinessUnitToggle,
+  dataType = 'both',
+  onDataTypeChange,
+  invoiceData = []
 }: CategoryChartPageProps) {
   return (
     <Box
@@ -65,6 +90,16 @@ function CategoryChartPage({
           onRefresh={onRefresh}
           isLoading={isLoading}
           categories={categories}
+          rangeDates={rangeDates}
+          onAddRange={onAddRange}
+          onRemoveRange={onRemoveRange}
+          availableYears={availableYears}
+          selectedYears={selectedYears}
+          businessUnits={businessUnits}
+          onBusinessUnitToggle={onBusinessUnitToggle}
+          dataType={dataType}
+          onDataTypeChange={onDataTypeChange}
+          invoiceData={invoiceData}
         />
       </Box>
 
