@@ -22,7 +22,7 @@ const NAVIGATION = [
     title: 'Dashboard',
     icon: <DashboardIcon />,
     children: [
-      { segment: 'RevenueInvoice', title: 'Revenue Invoice', icon: <BarChartIcon /> },
+      { segment: 'RevenueInvoice', title: 'Revenue', icon: <BarChartIcon /> },
       { segment: 'CategoryItemTes', title: 'Category Item (Tes)', icon: <CategoryIcon /> },
     ],
   },
