@@ -1,6 +1,3 @@
-/**
- * Format currency ke format Rupiah
- */
 export const formatCurrency = (num) => {
   const value = parseFloat(num);
   if (isNaN(value)) return 'Rp 0';
