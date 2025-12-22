@@ -1,5 +1,7 @@
 <?php
 
+//backend/app/Repositories/FinancialRepository.php
+
 namespace App\Repositories;
 
 use App\Services\BigQueryService;
@@ -34,7 +36,7 @@ class FinancialRepository
                 EXTRACT(MONTH FROM date) as month,
                 SUM(credit) AS total_credit,
                 SUM(debit) AS total_debit,
-                SUM(credit) - SUM(debit) AS total_difference
+                COALESCE(SUM(credit), 0) - COALESCE(SUM(debit), 0) AS total_difference
             FROM
                 {$this->tablePath}
             WHERE
@@ -53,16 +55,17 @@ class FinancialRepository
             return $this->bigQueryService->runQuery($query);
         });
     }
+
     /**
-     * Query 2: Invoice Sales & Quantity by Business Unit
+     * Query 2: Invoice Sales & Quantity by Business Unit (Revenue from GL)
      */
     public function getInvoiceSalesData($businessUnits, $years = null, $dateType = null, $dateParams = null)
     {
-        // Build business unit condition (multi-select)
-        $businessUnitCondition = $this->buildBusinessUnitCondition($businessUnits);
+        // Build business unit condition for GL
+        $businessUnitCondition = $this->buildBusinessUnitConditionForFinancialGL($businessUnits);
         
-        // Build date filter
-        $dateFilter = $this->buildDateFilter($years, $dateType, $dateParams);
+        // Build date filter for GL
+        $dateFilter = $this->buildDateFilterForGL($years, $dateType, $dateParams);
         
         // Special handling for multi_range
         if ($dateType === 'multi_range' && !empty($dateParams)) {
@@ -71,34 +74,55 @@ class FinancialRepository
 
         // Determine grouping based on date type
         if ($dateType === 'year') {
-            $dateGrouping = "FORMAT_DATE('%Y-%m', a.date)";
-            $selectYear = "a.year";
+            $dateGrouping = "FORMAT_DATE('%Y-%m', DATE(date))";
+            $selectYear = "EXTRACT(YEAR FROM date)";
+            $selectMonth = "EXTRACT(MONTH FROM date)";
             $gosaveGrouping = "FORMAT_DATE('%Y-%m', DATE(date))";
             $bigsellerGrouping = "FORMAT_DATE('%Y-%m', DATE(waktu_pesanan_dibuat))";
         } elseif ($dateType === 'compare_year') {
-            $dateGrouping = "FORMAT_DATE('%m-%d', a.date)";
-            $selectYear = "a.year";
+            $dateGrouping = "FORMAT_DATE('%m-%d', DATE(date))";
+            $selectYear = "EXTRACT(YEAR FROM date)";
+            $selectMonth = "EXTRACT(MONTH FROM date)";
             $gosaveGrouping = "FORMAT_DATE('%m-%d', DATE(date))";
             $bigsellerGrouping = "FORMAT_DATE('%m-%d', DATE(waktu_pesanan_dibuat))";
         } else {
-            $dateGrouping = "FORMAT_DATE('%Y-%m-%d', a.date)";
-            $selectYear = "a.year";
+            $dateGrouping = "FORMAT_DATE('%Y-%m-%d', DATE(date))";
+            $selectYear = "EXTRACT(YEAR FROM date)";
+            $selectMonth = "EXTRACT(MONTH FROM date)";
             $gosaveGrouping = "FORMAT_DATE('%Y-%m-%d', DATE(date))";
             $bigsellerGrouping = "FORMAT_DATE('%Y-%m-%d', DATE(waktu_pesanan_dibuat))";
         }
 
         // Build Bigseller date filter
         $bigsellerDateFilter = $this->buildBigsellerDateFilter($years, $dateType, $dateParams);
-        // Build Gosave date filter (without t1 alias)
+        // Build Gosave date filter
         $gosaveDateFilter = $this->buildGosaveDateFilter($years, $dateType, $dateParams);
 
         $query = "
-            WITH approved_invoices AS (
+            WITH gl_revenue AS (
+                SELECT
+                    {$dateGrouping} as period,
+                    {$selectYear} as year,
+                    {$selectMonth} as month,
+                    CASE 
+                        WHEN department_name IN ('Sales Offline', 'Sales B2B') THEN 'Gosave'
+                        ELSE 'Goto'
+                    END as business_unit,
+                    COALESCE(SUM(credit), 0) - COALESCE(SUM(debit), 0) as total_sales
+                FROM
+                    {$this->tablePath}
+                WHERE
+                    account_header = '4000.01.00'
+                    AND {$businessUnitCondition}
+                    {$dateFilter}
+                GROUP BY
+                    period, year, month, business_unit
+            ),
+            approved_invoices AS (
                 SELECT
                     t1.internal_id,
                     t1.invoice_number,
                     t1.date,
-                    t1.total as sales_total,
                     t1.department,
                     CASE 
                         WHEN t1.department IN ('Sales Offline', 'Sales B2B') THEN 'Gosave'
@@ -110,8 +134,8 @@ class FinancialRepository
                     `even-gearbox-255203.ds_netbackup.header_invoice` t1
                 WHERE
                     t1.approval_status = 'Approved'
-                    AND {$businessUnitCondition}
-                    {$dateFilter}
+                    AND " . $this->buildBusinessUnitCondition($businessUnits) . "
+                    " . $this->buildDateFilter($years, $dateType, $dateParams) . "
             ),
             invoice_quantity AS (
                 SELECT
@@ -123,6 +147,20 @@ class FinancialRepository
                     t2.invoice_number IN (SELECT invoice_number FROM approved_invoices)
                 GROUP BY
                     t2.invoice_number
+            ),
+            quantity_summary AS (
+                SELECT
+                    {$dateGrouping} as period,
+                    a.business_unit,
+                    SUM(IFNULL(b.total_quantity, 0)) as total_quantity
+                FROM
+                    approved_invoices a
+                LEFT JOIN
+                    invoice_quantity b
+                ON
+                    a.invoice_number = b.invoice_number
+                GROUP BY
+                    period, a.business_unit
             ),
             gosave_invoice_count AS (
                 SELECT
@@ -158,42 +196,41 @@ class FinancialRepository
                     period
             )
             SELECT
-                {$dateGrouping} as period,
-                {$selectYear} as year,
-                a.business_unit,
-                a.month,
-                SUM(a.sales_total) as total_sales,
-                SUM(IFNULL(b.total_quantity, 0)) as total_quantity,
+                gl.period,
+                gl.year,
+                gl.business_unit,
+                gl.month,
+                gl.total_sales,
+                IFNULL(qs.total_quantity, 0) as total_quantity,
                 CASE 
-                    WHEN a.business_unit = 'Gosave' THEN 
-                        MAX(IFNULL(gc.invoice_count, 0))
-                    WHEN a.business_unit = 'Goto' THEN 
-                        MAX(IFNULL(gtc.invoice_count, 0))
+                    WHEN gl.business_unit = 'Gosave' THEN 
+                        IFNULL(gc.invoice_count, 0)
+                    WHEN gl.business_unit = 'Goto' THEN 
+                        IFNULL(gtc.invoice_count, 0)
                     ELSE 0
                 END as invoice_count
             FROM
-                approved_invoices a
+                gl_revenue gl
             LEFT JOIN
-                invoice_quantity b
+                quantity_summary qs
             ON
-                a.invoice_number = b.invoice_number
+                gl.period = qs.period
+                AND gl.business_unit = qs.business_unit
             LEFT JOIN
                 gosave_invoice_count gc
             ON
-                {$dateGrouping} = gc.period
-                AND a.business_unit = 'Gosave'
+                gl.period = gc.period
+                AND gl.business_unit = 'Gosave'
             LEFT JOIN
                 goto_invoice_count gtc
             ON
-                {$dateGrouping} = gtc.period
-                AND a.business_unit = 'Goto'
-            GROUP BY
-                period, year, a.business_unit, a.month
+                gl.period = gtc.period
+                AND gl.business_unit = 'Goto'
             ORDER BY
-                year, a.month, a.business_unit
+                gl.year, gl.month, gl.business_unit
         ";
         
-        $cacheKey = "invoice_sales_" . md5(json_encode($businessUnits) . json_encode($years) . $dateType . json_encode($dateParams));
+        $cacheKey = "invoice_sales_gl_" . md5(json_encode($businessUnits) . json_encode($years) . $dateType . json_encode($dateParams));
         
         return Cache::remember($cacheKey, 1800, function () use ($query) {
             return $this->bigQueryService->runQuery($query);
@@ -201,22 +238,29 @@ class FinancialRepository
     }
 
     /**
-     * Get multi-range comparison data
-     * Each range is treated as a separate group for comparison
+     * Get multi-range comparison data (Revenue from GL)
      */
     private function getMultiRangeComparison($businessUnits, $ranges)
     {
-        $businessUnitCondition = $this->buildBusinessUnitCondition($businessUnits);
+        $businessUnitCondition = $this->buildBusinessUnitConditionForFinancialGL($businessUnits);
         
-        // Build CASE WHEN for range grouping (untuk approved_invoices dengan alias t1)
+        // Build CASE WHEN for range grouping (untuk GL)
         $rangeCases = [];
         foreach ($ranges as $index => $range) {
             $rangeLabel = "Range " . ($index + 1) . ": " . date('d M Y', strtotime($range['start'])) . " - " . date('d M Y', strtotime($range['end']));
-            $rangeCases[] = "WHEN DATE(t1.date) BETWEEN '{$range['start']}' AND '{$range['end']}' THEN '{$rangeLabel}'";
+            $rangeCases[] = "WHEN DATE(date) BETWEEN '{$range['start']}' AND '{$range['end']}' THEN '{$rangeLabel}'";
         }
         $rangeCaseStatement = implode(" ", $rangeCases);
         
-        // Build CASE WHEN untuk gosave_invoice_count (tanpa t1 alias)
+        // Build CASE WHEN untuk approved_invoices (dengan t1 alias)
+        $invoiceRangeCases = [];
+        foreach ($ranges as $index => $range) {
+            $rangeLabel = "Range " . ($index + 1) . ": " . date('d M Y', strtotime($range['start'])) . " - " . date('d M Y', strtotime($range['end']));
+            $invoiceRangeCases[] = "WHEN DATE(t1.date) BETWEEN '{$range['start']}' AND '{$range['end']}' THEN '{$rangeLabel}'";
+        }
+        $invoiceRangeCaseStatement = implode(" ", $invoiceRangeCases);
+        
+        // Build CASE WHEN untuk gosave_invoice_count (tanpa alias)
         $gosaveRangeCases = [];
         foreach ($ranges as $index => $range) {
             $rangeLabel = "Range " . ($index + 1) . ": " . date('d M Y', strtotime($range['start'])) . " - " . date('d M Y', strtotime($range['end']));
@@ -237,26 +281,49 @@ class FinancialRepository
         }, $ranges));
         
         $query = "
-            WITH approved_invoices AS (
+            WITH gl_revenue AS (
+                SELECT
+                    CASE
+                        {$rangeCaseStatement}
+                        ELSE NULL
+                    END as range_group,
+                    CASE 
+                        WHEN department_name IN ('Sales Offline', 'Sales B2B') THEN 'Gosave'
+                        ELSE 'Goto'
+                    END as business_unit,
+                    COALESCE(SUM(credit), 0) - COALESCE(SUM(debit), 0) as total_sales
+                FROM
+                    {$this->tablePath}
+                WHERE
+                    account_header = '4000.01.00'
+                    AND {$businessUnitCondition}
+                    AND (
+                        " . implode(" OR ", array_map(function($r) {
+                            return "DATE(date) BETWEEN '{$r['start']}' AND '{$r['end']}'";
+                        }, $ranges)) . "
+                    )
+                GROUP BY
+                    range_group, business_unit
+            ),
+            approved_invoices AS (
                 SELECT
                     t1.internal_id,
                     t1.invoice_number,
                     t1.date,
-                    t1.total as sales_total,
                     t1.department,
                     CASE 
                         WHEN t1.department IN ('Sales Offline', 'Sales B2B') THEN 'Gosave'
                         ELSE 'Goto'
                     END as business_unit,
                     CASE
-                        {$rangeCaseStatement}
+                        {$invoiceRangeCaseStatement}
                         ELSE NULL
                     END as range_group
                 FROM
                     `even-gearbox-255203.ds_netbackup.header_invoice` t1
                 WHERE
                     t1.approval_status = 'Approved'
-                    AND {$businessUnitCondition}
+                    AND " . $this->buildBusinessUnitCondition($businessUnits) . "
                     AND (
                         " . implode(" OR ", array_map(function($r) {
                             return "DATE(t1.date) BETWEEN '{$r['start']}' AND '{$r['end']}'";
@@ -273,6 +340,22 @@ class FinancialRepository
                     t2.invoice_number IN (SELECT invoice_number FROM approved_invoices WHERE range_group IS NOT NULL)
                 GROUP BY
                     t2.invoice_number
+            ),
+            quantity_summary AS (
+                SELECT
+                    a.range_group,
+                    a.business_unit,
+                    SUM(IFNULL(b.total_quantity, 0)) as total_quantity
+                FROM
+                    approved_invoices a
+                LEFT JOIN
+                    invoice_quantity b
+                ON
+                    a.invoice_number = b.invoice_number
+                WHERE
+                    a.range_group IS NOT NULL
+                GROUP BY
+                    a.range_group, a.business_unit
             ),
             gosave_invoice_count AS (
                 SELECT
@@ -320,42 +403,41 @@ class FinancialRepository
                     range_group
             )
             SELECT
-                a.range_group as period,
-                a.business_unit,
-                SUM(a.sales_total) as total_sales,
-                SUM(IFNULL(b.total_quantity, 0)) as total_quantity,
+                gl.range_group as period,
+                gl.business_unit,
+                gl.total_sales,
+                IFNULL(qs.total_quantity, 0) as total_quantity,
                 CASE 
-                    WHEN a.business_unit = 'Gosave' THEN 
-                        MAX(IFNULL(gc.invoice_count, 0))
-                    WHEN a.business_unit = 'Goto' THEN 
-                        MAX(IFNULL(gtc.invoice_count, 0))
+                    WHEN gl.business_unit = 'Gosave' THEN 
+                        IFNULL(gc.invoice_count, 0)
+                    WHEN gl.business_unit = 'Goto' THEN 
+                        IFNULL(gtc.invoice_count, 0)
                     ELSE 0
                 END as invoice_count
             FROM
-                approved_invoices a
+                gl_revenue gl
             LEFT JOIN
-                invoice_quantity b
+                quantity_summary qs
             ON
-                a.invoice_number = b.invoice_number
+                gl.range_group = qs.range_group
+                AND gl.business_unit = qs.business_unit
             LEFT JOIN
                 gosave_invoice_count gc
             ON
-                a.range_group = gc.range_group
-                AND a.business_unit = 'Gosave'
+                gl.range_group = gc.range_group
+                AND gl.business_unit = 'Gosave'
             LEFT JOIN
                 goto_invoice_count gtc
             ON
-                a.range_group = gtc.range_group
-                AND a.business_unit = 'Goto'
+                gl.range_group = gtc.range_group
+                AND gl.business_unit = 'Goto'
             WHERE
-                a.range_group IS NOT NULL
-            GROUP BY
-                a.range_group, a.business_unit
+                gl.range_group IS NOT NULL
             ORDER BY
-                a.range_group, a.business_unit
+                gl.range_group, gl.business_unit
         ";
         
-        $cacheKey = "multi_range_comparison_" . md5(json_encode($businessUnits) . json_encode($ranges));
+        $cacheKey = "multi_range_comparison_gl_" . md5(json_encode($businessUnits) . json_encode($ranges));
         
         return Cache::remember($cacheKey, 1800, function () use ($query) {
             return $this->bigQueryService->runQuery($query);
@@ -363,7 +445,70 @@ class FinancialRepository
     }
 
     /**
-     * Helper: Build date filter based on selected filters
+     * Helper: Build date filter for GL table
+     */
+    private function buildDateFilterForGL($years, $dateType, $dateParams)
+    {
+        $filters = [];
+        
+        // Filter by years (monthly aggregation)
+        if (!empty($years) && $dateType === 'year') {
+            $yearList = implode(',', $years);
+            $filters[] = "EXTRACT(YEAR FROM date) IN ({$yearList})";
+        }
+        
+        // Filter for compare by year
+        if ($dateType === 'compare_year' && !empty($dateParams)) {
+            $dateConditions = [];
+            foreach ($dateParams['dates'] as $date) {
+                $dateObj = \DateTime::createFromFormat('m-d', $date);
+                $month = $dateObj->format('m');
+                $day = $dateObj->format('d');
+                $dateConditions[] = "(EXTRACT(MONTH FROM date) = {$month} AND EXTRACT(DAY FROM date) = {$day})";
+            }
+            $filters[] = "(" . implode(" OR ", $dateConditions) . ")";
+            
+            // Filter years
+            if (!empty($dateParams['years'])) {
+                $yearList = implode(',', $dateParams['years']);
+                $filters[] = "EXTRACT(YEAR FROM date) IN ({$yearList})";
+            }
+        }
+        
+        // Filter by date range
+        if ($dateType === 'range' && !empty($dateParams)) {
+            $startDate = $dateParams['start'];
+            $endDate = $dateParams['end'];
+            $filters[] = "DATE(date) BETWEEN '{$startDate}' AND '{$endDate}'";
+        }
+        
+        // Filter by specific dates
+        if ($dateType === 'specific' && !empty($dateParams)) {
+            $dateList = "'" . implode("','", $dateParams) . "'";
+            $filters[] = "DATE(date) IN ({$dateList})";
+        }
+
+        if ($dateType === 'multi_range' && !empty($dateParams)) {
+            $rangeConditions = [];
+            foreach ($dateParams as $range) {
+                if (!empty($range['start']) && !empty($range['end'])) {
+                    $rangeConditions[] = "(DATE(date) BETWEEN '{$range['start']}' AND '{$range['end']}')";
+                }
+            }
+            if (!empty($rangeConditions)) {
+                $filters[] = "(" . implode(" OR ", $rangeConditions) . ")";
+            }
+        }
+        
+        if (empty($filters)) {
+            return "";
+        }
+        
+        return "AND " . implode(" AND ", $filters);
+    }
+
+    /**
+     * Helper: Build date filter based on selected filters (for invoice table with t1 alias)
      */
     private function buildDateFilter($years, $dateType, $dateParams)
     {
