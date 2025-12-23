@@ -108,11 +108,11 @@ class FinancialRepository
                         WHEN department_name IN ('Sales Offline', 'Sales B2B') THEN 'Gosave'
                         ELSE 'Goto'
                     END as business_unit,
-                    COALESCE(SUM(credit), 0) - COALESCE(SUM(debit), 0) as total_sales
+                    SUM(debit) * -1 + SUM(credit) as total_sales
                 FROM
                     {$this->tablePath}
                 WHERE
-                    account_header = '4000.01.00'
+                    account_header IN ('4000.00.00', '4000.01.00', '4000.08.00', '4000.01.10', '4000.01.11', '4000.01.12', '4000.01.13', '4000.02.00', '4000.03.00', '4000.04.00', '4000.05.00', '4000.06.00', '4000.07.00')
                     AND {$businessUnitCondition}
                     {$dateFilter}
                 GROUP BY
@@ -291,11 +291,11 @@ class FinancialRepository
                         WHEN department_name IN ('Sales Offline', 'Sales B2B') THEN 'Gosave'
                         ELSE 'Goto'
                     END as business_unit,
-                    COALESCE(SUM(credit), 0) - COALESCE(SUM(debit), 0) as total_sales
+                    SUM(debit) * -1 + SUM(credit) as total_sales
                 FROM
                     {$this->tablePath}
                 WHERE
-                    account_header = '4000.01.00'
+                    account_header IN ('4000.00.00', '4000.01.00', '4000.08.00', '4000.01.10', '4000.01.11', '4000.01.12', '4000.01.13', '4000.02.00', '4000.03.00', '4000.04.00', '4000.05.00', '4000.06.00', '4000.07.00')
                     AND {$businessUnitCondition}
                     AND (
                         " . implode(" OR ", array_map(function($r) {
