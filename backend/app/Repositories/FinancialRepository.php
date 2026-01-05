@@ -181,6 +181,12 @@ class FinancialRepository
                     COUNT(DISTINCT nomor_pesanan) as invoice_count
                 FROM (
                     SELECT nomor_pesanan, waktu_pesanan_dibuat, status_pesanan 
+                    FROM `even-gearbox-255203.ds_bigseller.bigseller_orders_2027`
+                    UNION ALL
+                    SELECT nomor_pesanan, waktu_pesanan_dibuat, status_pesanan 
+                    FROM `even-gearbox-255203.ds_bigseller.bigseller_orders_2026`
+                    UNION ALL
+                    SELECT nomor_pesanan, waktu_pesanan_dibuat, status_pesanan 
                     FROM `even-gearbox-255203.ds_bigseller.bigseller_orders_2025`
                     UNION ALL
                     SELECT nomor_pesanan, waktu_pesanan_dibuat, status_pesanan 
@@ -385,6 +391,12 @@ class FinancialRepository
                     END as range_group,
                     COUNT(DISTINCT nomor_pesanan) as invoice_count
                 FROM (
+                    SELECT nomor_pesanan, waktu_pesanan_dibuat, status_pesanan 
+                    FROM `even-gearbox-255203.ds_bigseller.bigseller_orders_2027`
+                    UNION ALL
+                    SELECT nomor_pesanan, waktu_pesanan_dibuat, status_pesanan 
+                    FROM `even-gearbox-255203.ds_bigseller.bigseller_orders_2026`
+                    UNION ALL
                     SELECT nomor_pesanan, waktu_pesanan_dibuat, status_pesanan 
                     FROM `even-gearbox-255203.ds_bigseller.bigseller_orders_2025`
                     UNION ALL
