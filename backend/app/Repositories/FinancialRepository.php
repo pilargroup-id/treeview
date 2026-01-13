@@ -104,10 +104,11 @@ class FinancialRepository
                     {$dateGrouping} as period,
                     {$selectYear} as year,
                     {$selectMonth} as month,
-                    CASE 
-                        WHEN department_name IN ('Sales Offline', 'Sales B2B') THEN 'Gosave'
-                        ELSE 'Goto'
-                    END as business_unit,
+                        CASE 
+                            WHEN department_name IN ('Sales Offline', 'Gosave GT') THEN 'Gosave'
+                            WHEN department_name IN ('E-Commerce', 'GOTO E-Com') THEN 'Goto'
+                            ELSE NULL
+                        END as business_unit,
                     SUM(debit) * -1 + SUM(credit) as total_sales
                 FROM
                     {$this->tablePath}
@@ -125,8 +126,9 @@ class FinancialRepository
                     t1.date,
                     t1.department,
                     CASE 
-                        WHEN t1.department IN ('Sales Offline', 'Sales B2B') THEN 'Gosave'
-                        ELSE 'Goto'
+                        WHEN t1.department IN ('Sales Offline', 'Gosave GT') THEN 'Gosave'
+                        WHEN t1.department IN ('E-Commerce', 'GOTO E-Com') THEN 'Goto'
+                        ELSE NULL
                     END as business_unit,
                     EXTRACT(YEAR FROM t1.date) as year,
                     EXTRACT(MONTH FROM t1.date) as month
@@ -170,7 +172,7 @@ class FinancialRepository
                     `even-gearbox-255203.ds_netbackup.header_invoice`
                 WHERE
                     approval_status = 'Approved'
-                    AND department IN ('Sales Offline', 'Sales B2B')
+                    AND department IN ('Sales Offline', 'Gosave GT')
                     {$gosaveDateFilter}
                 GROUP BY
                     period
@@ -250,52 +252,18 @@ class FinancialRepository
     {
         $businessUnitCondition = $this->buildBusinessUnitConditionForFinancialGL($businessUnits);
         
-        // Build CASE WHEN for range grouping (untuk GL)
-        $rangeCases = [];
+        // Build GL Revenue untuk setiap range independently
+        $glRevenueQueries = [];
         foreach ($ranges as $index => $range) {
             $rangeLabel = "Range " . ($index + 1) . ": " . date('d M Y', strtotime($range['start'])) . " - " . date('d M Y', strtotime($range['end']));
-            $rangeCases[] = "WHEN DATE(date) BETWEEN '{$range['start']}' AND '{$range['end']}' THEN '{$rangeLabel}'";
-        }
-        $rangeCaseStatement = implode(" ", $rangeCases);
-        
-        // Build CASE WHEN untuk approved_invoices (dengan t1 alias)
-        $invoiceRangeCases = [];
-        foreach ($ranges as $index => $range) {
-            $rangeLabel = "Range " . ($index + 1) . ": " . date('d M Y', strtotime($range['start'])) . " - " . date('d M Y', strtotime($range['end']));
-            $invoiceRangeCases[] = "WHEN DATE(t1.date) BETWEEN '{$range['start']}' AND '{$range['end']}' THEN '{$rangeLabel}'";
-        }
-        $invoiceRangeCaseStatement = implode(" ", $invoiceRangeCases);
-        
-        // Build CASE WHEN untuk gosave_invoice_count (tanpa alias)
-        $gosaveRangeCases = [];
-        foreach ($ranges as $index => $range) {
-            $rangeLabel = "Range " . ($index + 1) . ": " . date('d M Y', strtotime($range['start'])) . " - " . date('d M Y', strtotime($range['end']));
-            $gosaveRangeCases[] = "WHEN DATE(date) BETWEEN '{$range['start']}' AND '{$range['end']}' THEN '{$rangeLabel}'";
-        }
-        $gosaveRangeCaseStatement = implode(" ", $gosaveRangeCases);
-        
-        // Build date conditions for Bigseller
-        $bigsellerDateConditions = [];
-        foreach ($ranges as $index => $range) {
-            $rangeLabel = "Range " . ($index + 1) . ": " . date('d M Y', strtotime($range['start'])) . " - " . date('d M Y', strtotime($range['end']));
-            $bigsellerDateConditions[] = "WHEN DATE(waktu_pesanan_dibuat) BETWEEN '{$range['start']}' AND '{$range['end']}' THEN '{$rangeLabel}'";
-        }
-        $bigsellerRangeCaseStatement = implode(" ", $bigsellerDateConditions);
-        
-        $bigsellerDateFilter = implode(" OR ", array_map(function($r) {
-            return "DATE(waktu_pesanan_dibuat) BETWEEN '{$r['start']}' AND '{$r['end']}'";
-        }, $ranges));
-        
-        $query = "
-            WITH gl_revenue AS (
+            
+            $glRevenueQueries[] = "
                 SELECT
-                    CASE
-                        {$rangeCaseStatement}
-                        ELSE NULL
-                    END as range_group,
+                    '{$rangeLabel}' as range_group,
                     CASE 
-                        WHEN department_name IN ('Sales Offline', 'Sales B2B') THEN 'Gosave'
-                        ELSE 'Goto'
+                        WHEN department_name IN ('Sales Offline', 'Gosave GT') THEN 'Gosave'
+                        WHEN department_name IN ('E-Commerce', 'GOTO E-Com') THEN 'Goto'
+                        ELSE NULL
                     END as business_unit,
                     SUM(debit) * -1 + SUM(credit) as total_sales
                 FROM
@@ -303,92 +271,84 @@ class FinancialRepository
                 WHERE
                     account_header IN ('4000.00.00', '4000.01.00', '4000.08.00', '4000.01.10', '4000.01.11', '4000.01.12', '4000.01.13', '4000.02.00', '4000.03.00', '4000.04.00', '4000.05.00', '4000.06.00', '4000.07.00')
                     AND {$businessUnitCondition}
-                    AND (
-                        " . implode(" OR ", array_map(function($r) {
-                            return "DATE(date) BETWEEN '{$r['start']}' AND '{$r['end']}'";
-                        }, $ranges)) . "
-                    )
+                    AND DATE(date) BETWEEN '{$range['start']}' AND '{$range['end']}'
                 GROUP BY
-                    range_group, business_unit
-            ),
-            approved_invoices AS (
+                    business_unit
+            ";
+        }
+        
+        // Build Quantity Summary - LANGSUNG JOIN TANPA CTE APPROVED INVOICES
+        $quantitySummaryQueries = [];
+        foreach ($ranges as $index => $range) {
+            $rangeLabel = "Range " . ($index + 1) . ": " . date('d M Y', strtotime($range['start'])) . " - " . date('d M Y', strtotime($range['end']));
+            
+            // Query untuk Gosave
+            if (empty($businessUnits) || in_array('Gosave', $businessUnits)) {
+                $quantitySummaryQueries[] = "
+                    SELECT
+                        '{$rangeLabel}' as range_group,
+                        'Gosave' as business_unit,
+                        COALESCE(SUM(t2.quantity), 0) as total_quantity
+                    FROM
+                        `even-gearbox-255203.ds_netbackup.header_invoice` t1
+                    LEFT JOIN
+                        `even-gearbox-255203.ds_netbackup.detail_invoice` t2
+                    ON
+                        t1.invoice_number = t2.invoice_number
+                    WHERE
+                        t1.approval_status = 'Approved'
+                        AND t1.department IN ('Sales Offline', 'Gosave GT')
+                        AND DATE(t1.date) BETWEEN '{$range['start']}' AND '{$range['end']}'
+                ";
+            }
+            
+            // Query untuk Goto
+            if (empty($businessUnits) || in_array('Goto', $businessUnits)) {
+                $quantitySummaryQueries[] = "
+                    SELECT
+                        '{$rangeLabel}' as range_group,
+                        'Goto' as business_unit,
+                        COALESCE(SUM(t2.quantity), 0) as total_quantity
+                    FROM
+                        `even-gearbox-255203.ds_netbackup.header_invoice` t1
+                    LEFT JOIN
+                        `even-gearbox-255203.ds_netbackup.detail_invoice` t2
+                    ON
+                        t1.invoice_number = t2.invoice_number
+                    WHERE
+                        t1.approval_status = 'Approved'
+                        AND t1.department IN ('E-Commerce', 'GOTO E-Com')
+                        AND DATE(t1.date) BETWEEN '{$range['start']}' AND '{$range['end']}'
+                ";
+            }
+        }
+        
+        // Build Gosave Invoice Count untuk setiap range
+        $gosaveInvoiceQueries = [];
+        foreach ($ranges as $index => $range) {
+            $rangeLabel = "Range " . ($index + 1) . ": " . date('d M Y', strtotime($range['start'])) . " - " . date('d M Y', strtotime($range['end']));
+            
+            $gosaveInvoiceQueries[] = "
                 SELECT
-                    t1.internal_id,
-                    t1.invoice_number,
-                    t1.date,
-                    t1.department,
-                    CASE 
-                        WHEN t1.department IN ('Sales Offline', 'Sales B2B') THEN 'Gosave'
-                        ELSE 'Goto'
-                    END as business_unit,
-                    CASE
-                        {$invoiceRangeCaseStatement}
-                        ELSE NULL
-                    END as range_group
-                FROM
-                    `even-gearbox-255203.ds_netbackup.header_invoice` t1
-                WHERE
-                    t1.approval_status = 'Approved'
-                    AND " . $this->buildBusinessUnitCondition($businessUnits) . "
-                    AND (
-                        " . implode(" OR ", array_map(function($r) {
-                            return "DATE(t1.date) BETWEEN '{$r['start']}' AND '{$r['end']}'";
-                        }, $ranges)) . "
-                    )
-            ),
-            invoice_quantity AS (
-                SELECT
-                    t2.invoice_number,
-                    SUM(t2.quantity) as total_quantity
-                FROM
-                    `even-gearbox-255203.ds_netbackup.detail_invoice` t2
-                WHERE
-                    t2.invoice_number IN (SELECT invoice_number FROM approved_invoices WHERE range_group IS NOT NULL)
-                GROUP BY
-                    t2.invoice_number
-            ),
-            quantity_summary AS (
-                SELECT
-                    a.range_group,
-                    a.business_unit,
-                    SUM(IFNULL(b.total_quantity, 0)) as total_quantity
-                FROM
-                    approved_invoices a
-                LEFT JOIN
-                    invoice_quantity b
-                ON
-                    a.invoice_number = b.invoice_number
-                WHERE
-                    a.range_group IS NOT NULL
-                GROUP BY
-                    a.range_group, a.business_unit
-            ),
-            gosave_invoice_count AS (
-                SELECT
-                    CASE
-                        {$gosaveRangeCaseStatement}
-                        ELSE NULL
-                    END as range_group,
+                    '{$rangeLabel}' as range_group,
                     COUNT(DISTINCT invoice_number) as invoice_count
                 FROM
                     `even-gearbox-255203.ds_netbackup.header_invoice`
                 WHERE
                     approval_status = 'Approved'
-                    AND department IN ('Sales Offline', 'Sales B2B')
-                    AND (
-                        " . implode(" OR ", array_map(function($r) {
-                            return "DATE(date) BETWEEN '{$r['start']}' AND '{$r['end']}'";
-                        }, $ranges)) . "
-                    )
-                GROUP BY
-                    range_group
-            ),
-            goto_invoice_count AS (
+                    AND department IN ('Sales Offline', 'Gosave GT')
+                    AND DATE(date) BETWEEN '{$range['start']}' AND '{$range['end']}'
+            ";
+        }
+        
+        // Build Goto Invoice Count untuk setiap range
+        $gotoInvoiceQueries = [];
+        foreach ($ranges as $index => $range) {
+            $rangeLabel = "Range " . ($index + 1) . ": " . date('d M Y', strtotime($range['start'])) . " - " . date('d M Y', strtotime($range['end']));
+            
+            $gotoInvoiceQueries[] = "
                 SELECT
-                    CASE
-                        {$bigsellerRangeCaseStatement}
-                        ELSE NULL
-                    END as range_group,
+                    '{$rangeLabel}' as range_group,
                     COUNT(DISTINCT nomor_pesanan) as invoice_count
                 FROM (
                     SELECT nomor_pesanan, waktu_pesanan_dibuat, status_pesanan 
@@ -408,22 +368,37 @@ class FinancialRepository
                 )
                 WHERE
                     status_pesanan = 'Selesai'
-                    AND (
-                        {$bigsellerDateFilter}
-                    )
-                GROUP BY
-                    range_group
+                    AND DATE(waktu_pesanan_dibuat) BETWEEN '{$range['start']}' AND '{$range['end']}'
+            ";
+        }
+        
+        $quantitySummaryUnion = !empty($quantitySummaryQueries) 
+            ? implode(" UNION ALL ", $quantitySummaryQueries) 
+            : "SELECT NULL as range_group, NULL as business_unit, 0 as total_quantity WHERE 1=0";
+        
+        $query = "
+            WITH gl_revenue AS (
+                " . implode(" UNION ALL ", $glRevenueQueries) . "
+            ),
+            quantity_summary AS (
+                " . $quantitySummaryUnion . "
+            ),
+            gosave_invoice_count AS (
+                " . implode(" UNION ALL ", $gosaveInvoiceQueries) . "
+            ),
+            goto_invoice_count AS (
+                " . implode(" UNION ALL ", $gotoInvoiceQueries) . "
             )
             SELECT
                 gl.range_group as period,
                 gl.business_unit,
                 gl.total_sales,
-                IFNULL(qs.total_quantity, 0) as total_quantity,
+                COALESCE(qs.total_quantity, 0) as total_quantity,
                 CASE 
                     WHEN gl.business_unit = 'Gosave' THEN 
-                        IFNULL(gc.invoice_count, 0)
+                        COALESCE(gc.invoice_count, 0)
                     WHEN gl.business_unit = 'Goto' THEN 
-                        IFNULL(gtc.invoice_count, 0)
+                        COALESCE(gtc.invoice_count, 0)
                     ELSE 0
                 END as invoice_count
             FROM
@@ -445,6 +420,7 @@ class FinancialRepository
                 AND gl.business_unit = 'Goto'
             WHERE
                 gl.range_group IS NOT NULL
+                AND gl.business_unit IS NOT NULL
             ORDER BY
                 gl.range_group, gl.business_unit
         ";
@@ -455,7 +431,6 @@ class FinancialRepository
             return $this->bigQueryService->runQuery($query);
         });
     }
-
     /**
      * Helper: Build date filter for GL table
      */
@@ -692,9 +667,9 @@ class FinancialRepository
         $conditions = [];
         foreach ($businessUnits as $unit) {
             if ($unit === 'Gosave') {
-                $conditions[] = "t1.department IN ('Sales Offline', 'Sales B2B')";
+                $conditions[] = "t1.department IN ('Sales Offline', 'Gosave GT')";
             } elseif ($unit === 'Goto') {
-                $conditions[] = "t1.department NOT IN ('Sales Offline', 'Sales B2B')";
+                $conditions[] = "t1.department IN ('E-Commerce', 'GOTO E-Com')";
             }
         }
         
@@ -717,9 +692,9 @@ class FinancialRepository
         $conditions = [];
         foreach ($businessUnits as $unit) {
             if ($unit === 'Gosave') {
-                $conditions[] = "department_name IN ('Sales Offline', 'Sales B2B')";
+                $conditions[] = "department_name IN ('Sales Offline', 'Gosave GT')";
             } elseif ($unit === 'Goto') {
-                $conditions[] = "department_name NOT IN ('Sales Offline', 'Sales B2B')";
+                $conditions[] = "department_name IN ('E-Commerce', 'GOTO E-Com')";
             }
         }
         
