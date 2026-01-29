@@ -105,8 +105,8 @@ class FinancialRepository
                     {$selectYear} as year,
                     {$selectMonth} as month,
                         CASE 
-                            WHEN department_name IN ('Sales Offline', 'Gosave GT') THEN 'Gosave'
-                            WHEN department_name IN ('E-Commerce', 'GOTO E-Com') THEN 'Goto'
+                            WHEN department_name = 'Gosave GT' THEN 'Gosave'
+                            WHEN department_name = 'GOTO E-Com' THEN 'Goto'
                             ELSE NULL
                         END as business_unit,
                     SUM(debit) * -1 + SUM(credit) as total_sales
@@ -119,25 +119,37 @@ class FinancialRepository
                 GROUP BY
                     period, year, month, business_unit
             ),
+            deduped_header AS (
+                SELECT * EXCEPT(row_num)
+                FROM (
+                    SELECT 
+                        *,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY invoice_number 
+                            ORDER BY internal_id ASC, do_id ASC
+                        ) as row_num
+                    FROM `even-gearbox-255203.ds_netbackup.header_invoice`
+                    WHERE approval_status = 'Approved'
+                    AND " . $this->buildDedupedHeaderBusinessUnitCondition($businessUnits) . "
+                    " . $this->buildDedupedHeaderDateFilter($years, $dateType, $dateParams) . "
+                )
+                WHERE row_num = 1
+            ),
             approved_invoices AS (
                 SELECT
-                    t1.internal_id,
-                    t1.invoice_number,
-                    t1.date,
-                    t1.department,
+                    internal_id,
+                    invoice_number,
+                    date,
+                    department,
                     CASE 
-                        WHEN t1.department IN ('Sales Offline', 'Gosave GT') THEN 'Gosave'
-                        WHEN t1.department IN ('E-Commerce', 'GOTO E-Com') THEN 'Goto'
+                        WHEN department = 'Gosave GT' THEN 'Gosave'
+                        WHEN department = 'GOTO E-Com' THEN 'Goto'
                         ELSE NULL
                     END as business_unit,
-                    EXTRACT(YEAR FROM t1.date) as year,
-                    EXTRACT(MONTH FROM t1.date) as month
+                    EXTRACT(YEAR FROM date) as year,
+                    EXTRACT(MONTH FROM date) as month
                 FROM
-                    `even-gearbox-255203.ds_netbackup.header_invoice` t1
-                WHERE
-                    t1.approval_status = 'Approved'
-                    AND " . $this->buildBusinessUnitCondition($businessUnits) . "
-                    " . $this->buildDateFilter($years, $dateType, $dateParams) . "
+                    deduped_header
             ),
             invoice_quantity AS (
                 SELECT
@@ -169,11 +181,9 @@ class FinancialRepository
                     {$gosaveGrouping} as period,
                     COUNT(DISTINCT invoice_number) as invoice_count
                 FROM
-                    `even-gearbox-255203.ds_netbackup.header_invoice`
+                    deduped_header
                 WHERE
-                    approval_status = 'Approved'
-                    AND department IN ('Sales Offline', 'Gosave GT')
-                    {$gosaveDateFilter}
+                    department IN ('Gosave GT')
                 GROUP BY
                     period
             ),
@@ -261,8 +271,8 @@ class FinancialRepository
                 SELECT
                     '{$rangeLabel}' as range_group,
                     CASE 
-                        WHEN department_name IN ('Sales Offline', 'Gosave GT') THEN 'Gosave'
-                        WHEN department_name IN ('E-Commerce', 'GOTO E-Com') THEN 'Goto'
+                        WHEN department_name = 'Gosave GT' THEN 'Gosave'
+                        WHEN department_name = 'GOTO E-Com' THEN 'Goto'
                         ELSE NULL
                     END as business_unit,
                     SUM(debit) * -1 + SUM(credit) as total_sales
@@ -289,16 +299,26 @@ class FinancialRepository
                         '{$rangeLabel}' as range_group,
                         'Gosave' as business_unit,
                         COALESCE(SUM(t2.quantity), 0) as total_quantity
-                    FROM
-                        `even-gearbox-255203.ds_netbackup.header_invoice` t1
+                    FROM (
+                        SELECT * EXCEPT(row_num)
+                        FROM (
+                            SELECT 
+                                *,
+                                ROW_NUMBER() OVER (
+                                    PARTITION BY invoice_number 
+                                    ORDER BY internal_id ASC, do_id ASC
+                                ) as row_num
+                            FROM `even-gearbox-255203.ds_netbackup.header_invoice`
+                            WHERE approval_status = 'Approved'
+                            AND department IN ('Gosave GT')
+                            AND DATE(date) BETWEEN '{$range['start']}' AND '{$range['end']}'
+                        )
+                        WHERE row_num = 1
+                    ) t1
                     LEFT JOIN
                         `even-gearbox-255203.ds_netbackup.detail_invoice` t2
                     ON
                         t1.invoice_number = t2.invoice_number
-                    WHERE
-                        t1.approval_status = 'Approved'
-                        AND t1.department IN ('Sales Offline', 'Gosave GT')
-                        AND DATE(t1.date) BETWEEN '{$range['start']}' AND '{$range['end']}'
                 ";
             }
             
@@ -309,16 +329,26 @@ class FinancialRepository
                         '{$rangeLabel}' as range_group,
                         'Goto' as business_unit,
                         COALESCE(SUM(t2.quantity), 0) as total_quantity
-                    FROM
-                        `even-gearbox-255203.ds_netbackup.header_invoice` t1
+                    FROM (
+                        SELECT * EXCEPT(row_num)
+                        FROM (
+                            SELECT 
+                                *,
+                                ROW_NUMBER() OVER (
+                                    PARTITION BY invoice_number 
+                                    ORDER BY internal_id ASC, do_id ASC
+                                ) as row_num
+                            FROM `even-gearbox-255203.ds_netbackup.header_invoice`
+                            WHERE approval_status = 'Approved'
+                            AND department IN ('GOTO E-Com')
+                            AND DATE(date) BETWEEN '{$range['start']}' AND '{$range['end']}'
+                        )
+                        WHERE row_num = 1
+                    ) t1
                     LEFT JOIN
                         `even-gearbox-255203.ds_netbackup.detail_invoice` t2
                     ON
                         t1.invoice_number = t2.invoice_number
-                    WHERE
-                        t1.approval_status = 'Approved'
-                        AND t1.department IN ('E-Commerce', 'GOTO E-Com')
-                        AND DATE(t1.date) BETWEEN '{$range['start']}' AND '{$range['end']}'
                 ";
             }
         }
@@ -332,12 +362,22 @@ class FinancialRepository
                 SELECT
                     '{$rangeLabel}' as range_group,
                     COUNT(DISTINCT invoice_number) as invoice_count
-                FROM
-                    `even-gearbox-255203.ds_netbackup.header_invoice`
-                WHERE
-                    approval_status = 'Approved'
-                    AND department IN ('Sales Offline', 'Gosave GT')
-                    AND DATE(date) BETWEEN '{$range['start']}' AND '{$range['end']}'
+                FROM (
+                    SELECT * EXCEPT(row_num)
+                    FROM (
+                        SELECT 
+                            invoice_number,
+                            ROW_NUMBER() OVER (
+                                PARTITION BY invoice_number 
+                                ORDER BY internal_id ASC, do_id ASC
+                            ) as row_num
+                        FROM `even-gearbox-255203.ds_netbackup.header_invoice`
+                        WHERE approval_status = 'Approved'
+                        AND department IN ('Gosave GT')
+                        AND DATE(date) BETWEEN '{$range['start']}' AND '{$range['end']}'
+                    )
+                    WHERE row_num = 1
+                )
             ";
         }
         
@@ -658,6 +698,69 @@ class FinancialRepository
         return "AND " . implode(" AND ", $filters);
     }
 
+    /**
+     * Build date filter for deduped_header CTE (no alias)
+     */
+    private function buildDedupedHeaderDateFilter($years, $dateType, $dateParams)
+    {
+        $filters = [];
+        
+        // Filter by years (monthly aggregation)
+        if (!empty($years) && $dateType === 'year') {
+            $yearList = implode(',', $years);
+            $filters[] = "EXTRACT(YEAR FROM date) IN ({$yearList})";
+        }
+        
+        // Filter for compare by year
+        if ($dateType === 'compare_year' && !empty($dateParams)) {
+            $dateConditions = [];
+            foreach ($dateParams['dates'] as $date) {
+                $dateObj = \DateTime::createFromFormat('m-d', $date);
+                $month = $dateObj->format('m');
+                $day = $dateObj->format('d');
+                $dateConditions[] = "(EXTRACT(MONTH FROM date) = {$month} AND EXTRACT(DAY FROM date) = {$day})";
+            }
+            $filters[] = "(" . implode(" OR ", $dateConditions) . ")";
+            
+            // Filter years
+            if (!empty($dateParams['years'])) {
+                $yearList = implode(',', $dateParams['years']);
+                $filters[] = "EXTRACT(YEAR FROM date) IN ({$yearList})";
+            }
+        }
+        
+        // Filter by date range
+        if ($dateType === 'range' && !empty($dateParams)) {
+            $startDate = $dateParams['start'];
+            $endDate = $dateParams['end'];
+            $filters[] = "DATE(date) BETWEEN '{$startDate}' AND '{$endDate}'";
+        }
+        
+        // Filter by specific dates
+        if ($dateType === 'specific' && !empty($dateParams)) {
+            $dateList = "'" . implode("','", $dateParams) . "'";
+            $filters[] = "DATE(date) IN ({$dateList})";
+        }
+
+        if ($dateType === 'multi_range' && !empty($dateParams)) {
+            $rangeConditions = [];
+            foreach ($dateParams as $range) {
+                if (!empty($range['start']) && !empty($range['end'])) {
+                    $rangeConditions[] = "(DATE(date) BETWEEN '{$range['start']}' AND '{$range['end']}')";
+                }
+            }
+            if (!empty($rangeConditions)) {
+                $filters[] = "(" . implode(" OR ", $rangeConditions) . ")";
+            }
+        }
+        
+        if (empty($filters)) {
+            return "";
+        }
+        
+        return "AND " . implode(" AND ", $filters);
+    }
+
     private function buildBusinessUnitCondition($businessUnits)
     {
         if (empty($businessUnits)) {
@@ -667,9 +770,9 @@ class FinancialRepository
         $conditions = [];
         foreach ($businessUnits as $unit) {
             if ($unit === 'Gosave') {
-                $conditions[] = "t1.department IN ('Sales Offline', 'Gosave GT')";
+                $conditions[] = "t1.department IN ('Gosave GT')";
             } elseif ($unit === 'Goto') {
-                $conditions[] = "t1.department IN ('E-Commerce', 'GOTO E-Com')";
+                $conditions[] = "t1.department IN ('GOTO E-Com')";
             }
         }
         
@@ -692,9 +795,34 @@ class FinancialRepository
         $conditions = [];
         foreach ($businessUnits as $unit) {
             if ($unit === 'Gosave') {
-                $conditions[] = "department_name IN ('Sales Offline', 'Gosave GT')";
+                $conditions[] = "department_name IN ('Gosave GT')";
             } elseif ($unit === 'Goto') {
-                $conditions[] = "department_name IN ('E-Commerce', 'GOTO E-Com')";
+                $conditions[] = "department_name IN ('GOTO E-Com')";
+            }
+        }
+        
+        if (empty($conditions)) {
+            return "1=1";
+        }
+        
+        return "(" . implode(" OR ", $conditions) . ")";
+    }
+
+    /**
+     * Build business unit condition for deduped_header (no alias)
+     */
+    private function buildDedupedHeaderBusinessUnitCondition($businessUnits)
+    {
+        if (empty($businessUnits)) {
+            return "1=1"; // No filter
+        }
+        
+        $conditions = [];
+        foreach ($businessUnits as $unit) {
+            if ($unit === 'Gosave') {
+                $conditions[] = "department IN ('Gosave GT')";
+            } elseif ($unit === 'Goto') {
+                $conditions[] = "department IN ('GOTO E-Com')";
             }
         }
         
