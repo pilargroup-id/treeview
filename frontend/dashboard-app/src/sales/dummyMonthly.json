@@ -1,0 +1,24 @@
+[
+  { "state": "Banten", "customer_name": "BAJA SAKTI", "plan_date": "2026-01-03" },
+  { "state": null, "customer_name": "BAJA UTAMA TEKNIK, UD", "plan_date": "2026-01-05" },
+  { "state": "DKI Jakarta", "customer_name": "MITRA LOGAM JAYA", "plan_date": "2026-01-08" },
+  { "state": "Jawa Barat", "customer_name": "SUMBER BESI MAKMUR", "plan_date": "2026-01-10" },
+  { "state": null, "customer_name": "CV ANUGRAH STEEL", "plan_date": "2026-01-15" },
+  { "state": "Banten", "customer_name": "CheckIn", "plan_date": "2026-01-18" },
+  { "state": "Jawa Tengah", "customer_name": "KARYA BAJA SEJAHTERA", "plan_date": "2026-01-22" },
+
+  { "state": "Banten", "customer_name": "BAJA SAKTI", "plan_date": "2026-02-02" },
+  { "state": "DKI Jakarta", "customer_name": "CheckIn", "plan_date": "2026-02-04" },
+  { "state": null, "customer_name": "UD MEGA BAJA", "plan_date": "2026-02-06" },
+  { "state": "Jawa Barat", "customer_name": "CV PRIMA LOGAM", "plan_date": "2026-02-10" },
+  { "state": "Banten", "customer_name": "BAJA UTAMA TEKNIK, UD", "plan_date": "2026-02-13" },
+  { "state": null, "customer_name": "TOKO BESI MAJU JAYA", "plan_date": "2026-02-18" },
+  { "state": "Jawa Timur", "customer_name": "CheckIn", "plan_date": "2026-02-22" },
+
+  { "state": "Banten", "customer_name": "MITRA LOGAM JAYA", "plan_date": "2026-03-03" },
+  { "state": null, "customer_name": "CV ANUGRAH STEEL", "plan_date": "2026-03-05" },
+  { "state": "DKI Jakarta", "customer_name": "SUMBER BESI MAKMUR", "plan_date": "2026-03-08" },
+  { "state": "Jawa Barat", "customer_name": "CheckIn", "plan_date": "2026-03-12" },
+  { "state": "Jawa Tengah", "customer_name": "UD MEGA BAJA", "plan_date": "2026-03-18" },
+  { "state": null, "customer_name": "TOKO BESI MAKMUR SENTOSA", "plan_date": "2026-03-25" }
+]
