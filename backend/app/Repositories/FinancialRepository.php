@@ -51,7 +51,7 @@ class FinancialRepository
 
         $cacheKey = "monthly_revenue_{$accountHeader}_{$startDate}_{$endDate}_" . md5(json_encode($businessUnits));
         
-        return Cache::remember($cacheKey, 1800, function () use ($query) {
+        return Cache::store('file')->remember($cacheKey, 1800, function () use ($query) {
             return $this->bigQueryService->runQuery($query);
         });
     }
@@ -255,7 +255,7 @@ class FinancialRepository
         
         $cacheKey = "invoice_sales_gl_" . md5(json_encode($businessUnits) . json_encode($subBusinessUnits) . json_encode($years) . $dateType . json_encode($dateParams));
         
-        return Cache::remember($cacheKey, 1800, function () use ($query) {
+        return Cache::store('file')->remember($cacheKey, 1800, function () use ($query) {
             return $this->bigQueryService->runQuery($query);
         });
     }
@@ -495,7 +495,7 @@ class FinancialRepository
         
         $cacheKey = "multi_range_comparison_gl_" . md5(json_encode($businessUnits) . json_encode($ranges));
         
-        return Cache::remember($cacheKey, 1800, function () use ($query) {
+        return Cache::store('file')->remember($cacheKey, 1800, function () use ($query) {
             return $this->bigQueryService->runQuery($query);
         });
     }
@@ -918,7 +918,7 @@ class FinancialRepository
 
         $cacheKey = "last_update_info";
         
-        return Cache::remember($cacheKey, 3600, function () use ($query) {
+        return Cache::store('file')->remember($cacheKey, 3600, function () use ($query) {
             return $this->bigQueryService->runQuery($query);
         });
     }
