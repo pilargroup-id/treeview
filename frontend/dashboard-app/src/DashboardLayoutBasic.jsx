@@ -5,7 +5,8 @@ import { createTheme, GlobalStyles } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import BarChartIcon from '@mui/icons-material/BarChart';
-import DescriptionIcon from '@mui/icons-material/Description';
+import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
+import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import LayersIcon from '@mui/icons-material/Layers';
 import CategoryIcon from '@mui/icons-material/Category';
 import { AppProvider } from '@toolpad/core/AppProvider';
@@ -13,6 +14,8 @@ import { DashboardLayout } from '@toolpad/core/DashboardLayout';
 import { useDemoRouter } from '@toolpad/core/internal';
 import ChartInvoice from './chart/ChartInvoice';
 import ItemTes from './chart/TestItemCategory';
+import ReportTableSales from './sales/ReportTableSales';
+import ReportTableCustomers from './sales/ReportTableCustomers';
 import { API_URL } from './config/api';
 
 const NAVIGATION = [
@@ -34,8 +37,8 @@ const NAVIGATION = [
     title: 'Reports',
     icon: <BarChartIcon />,
     children: [
-      { segment: 'sales', title: 'Sales', icon: <DescriptionIcon /> },
-      { segment: 'traffic', title: 'Traffic', icon: <DescriptionIcon /> },
+      { segment: 'sales', title: 'Sales', icon: <PointOfSaleIcon /> },
+      { segment: 'customers', title: 'Customers', icon: <PeopleAltIcon /> },
     ],
   },
   { segment: 'integrations', title: 'Integrations', icon: <LayersIcon /> },
@@ -109,8 +112,9 @@ const demoTheme = createTheme({
 });
 
 function DemoPageContent({ pathname }) {
+  const currentPathname = String(pathname ?? '');
 
-  if (pathname.includes('RevenueInvoice')) {
+  if (currentPathname.includes('RevenueInvoice')) {
     return (
       <Box sx={{ 
         width: '100%',
@@ -134,7 +138,7 @@ function DemoPageContent({ pathname }) {
     );
   }
 
-  if (pathname.includes('CategoryItemTes')) {
+  if (currentPathname.includes('CategoryItemTes')) {
     return (
       <Box sx={{ 
         width: '100%',
@@ -146,6 +150,22 @@ function DemoPageContent({ pathname }) {
             : 'rgba(250, 250, 250, 1)',
       }}>
         <ItemTes />
+      </Box>
+    );
+  }
+
+  if (currentPathname.includes('reports/sales')) {
+    return (
+      <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
+        <ReportTableSales />
+      </Box>
+    );
+  }
+
+  if (currentPathname.includes('reports/customers')) {
+    return (
+      <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
+        <ReportTableCustomers />
       </Box>
     );
   }
