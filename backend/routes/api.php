@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\FinancialController;
 use App\Http\Controllers\TreeViewAuthController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\Api\ActivityPlanController;
+use App\Http\Controllers\Api\MissedActivityController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -19,6 +20,7 @@ Route::prefix('financial')->group(function () {
 
 Route::prefix('activity-plans')->group(function () {
     Route::get('/weekly-summary', [ActivityPlanController::class, 'weeklySummary']);
+    Route::get('/missed-summary', [MissedActivityController::class, 'index']);
 });
 
 
