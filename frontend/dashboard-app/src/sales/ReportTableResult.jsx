@@ -7,37 +7,9 @@ import 'w2ui/w2ui-2.0.min.css';
 import { API_URL } from '../config/api';
 
 const WEEK_COLUMNS = ['Week1', 'Week2', 'Week3', 'Week4'];
-const MONTH_LABELS = [
-  'Januari',
-  'Februari',
-  'Maret',
-  'April',
-  'Mei',
-  'Juni',
-  'Juli',
-  'Agustus',
-  'September',
-  'Oktober',
-  'November',
-  'Desember',
-];
 
 const GRID_NAME = 'reportCustomersGrid';
 const LAYOUT_NAME = 'reportCustomersLayout';
-const EN_MONTH_NAMES = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
 const TOOLBAR_SVGS = {
   search: `
     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
@@ -48,29 +20,9 @@ const TOOLBAR_SVGS = {
 
 const TOOLBAR_ICONS = {
   wilayah: 'tv-w2-icon tv-w2-icon-wilayah',
-  month: 'tv-w2-icon tv-w2-icon-month',
   year: 'tv-w2-icon tv-w2-icon-year',
   reset: 'tv-w2-icon tv-w2-icon-reset',
 };
-
-function monthNameToIndex(monthNameRaw) {
-  const monthName = String(monthNameRaw ?? '').trim();
-  if (!monthName) return null;
-
-  const idx = EN_MONTH_NAMES.findIndex((m) => m.toLowerCase() === monthName.toLowerCase());
-  if (idx >= 0) return idx;
-
-  const parsed = new Date(`${monthName} 1, 2000`);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.getMonth();
-}
-
-function getDefaultMonthSelection() {
-  const currentMonthIndex = new Date().getMonth();
-  const prevMonthIndex = (currentMonthIndex + 11) % 12;
-  const nextMonthIndex = (currentMonthIndex + 1) % 12;
-  return [prevMonthIndex, currentMonthIndex, nextMonthIndex];
-}
 
 function toFiniteNumberOrNull(value) {
   if (value == null || value === '') return null;
@@ -87,16 +39,7 @@ function mergeWeek4(week4, week5, week6) {
   return (n4 ?? 0) + (n5 ?? 0) + (n6 ?? 0);
 }
 
-function buildColumnGroups(visibleMonths) {
-  return [{ text: '', span: 2 }].concat(
-    visibleMonths.map((monthIndex) => ({
-      text: MONTH_LABELS[monthIndex] ?? '-',
-      span: WEEK_COLUMNS.length,
-    })),
-  );
-}
-
-function buildColumns(visibleMonths) {
+function buildColumns() {
   const base = [
     {
       field: 'wilayah',
@@ -116,18 +59,25 @@ function buildColumns(visibleMonths) {
     },
   ];
 
-  const weekCols = visibleMonths.flatMap((monthIndex) =>
-    WEEK_COLUMNS.map((label, weekIndex) => ({
-      field: `m${monthIndex}_w${weekIndex}`,
-      text: label,
-      size: '72px',
-      sortable: false,
-      resizable: true,
-      attr: 'align=right class=tv-week-cell style="white-space:nowrap;"',
-    })),
-  );
+  const weekCols = WEEK_COLUMNS.map((label, weekIndex) => ({
+    field: `week${weekIndex + 1}`,
+    text: label,
+    size: '92px',
+    sortable: false,
+    resizable: true,
+    attr: 'align=right class=tv-week-cell style="white-space:nowrap;"',
+  }));
 
-  return base.concat(weekCols);
+  const totalCol = {
+    field: 'total',
+    text: 'Total (week1-4)',
+    size: '120px',
+    sortable: false,
+    resizable: true,
+    attr: 'align=right class=tv-week-cell style="white-space:nowrap;"',
+  };
+
+  return base.concat(weekCols, totalCol);
 }
 
 export default function DataTableMonthly() {
@@ -138,7 +88,6 @@ export default function DataTableMonthly() {
   const queryInputRef = React.useRef(null);
   const activeMainTabRef = React.useRef('data');
   const latestFilteredRowsRef = React.useRef([]);
-  const latestVisibleMonthsRef = React.useRef([]);
   const latestSummaryDataRef = React.useRef([]);
   const abortRef = React.useRef(null);
   const requestIdRef = React.useRef(0);
@@ -152,22 +101,11 @@ export default function DataTableMonthly() {
     query: '',
     wilayah: 'ALL',
     year: new Date().getFullYear(),
-    months: getDefaultMonthSelection(),
   }));
 
   const [summaryData, setSummaryData] = React.useState([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState(null);
-
-  const visibleMonths = React.useMemo(() => {
-    const unique = Array.from(new Set(filters.months))
-      .map((m) => Number(m))
-      .filter((m) => Number.isInteger(m) && m >= 0 && m <= 11)
-      .sort((a, b) => a - b);
-
-    if (unique.length === 0) return [new Date().getMonth()];
-    return unique.slice(0, 3);
-  }, [filters.months]);
 
   React.useEffect(() => {
     const nextRequestId = requestIdRef.current + 1;
@@ -187,9 +125,6 @@ export default function DataTableMonthly() {
 
     if (yearIsValid) {
       params.set('year', String(year));
-      for (const monthIndex of visibleMonths) {
-        params.append('months[]', String(monthIndex + 1));
-      }
     }
 
     const url = `${API_URL}/activity-plans/weekly-summary?${params.toString()}`;
@@ -229,7 +164,7 @@ export default function DataTableMonthly() {
       });
 
     return () => controller.abort();
-  }, [filters.year, filters.wilayah, visibleMonths]);
+  }, [filters.year, filters.wilayah]);
 
   React.useEffect(() => {
     const lockTarget = lockBoxRef.current;
@@ -246,29 +181,34 @@ export default function DataTableMonthly() {
 
   const rows = React.useMemo(() => {
     return (Array.isArray(summaryData) ? summaryData : []).map((item, index) => {
-      const monthsByIndex = {};
       const years = new Set();
+      const weeksByYear = {};
 
       const months = Array.isArray(item?.months) ? item.months : [];
       for (const m of months) {
-        const monthIndex = monthNameToIndex(m?.month_name);
-        if (monthIndex == null) continue;
         const year = Number(m?.year);
-        if (Number.isInteger(year)) years.add(year);
-        monthsByIndex[monthIndex] = {
-          year,
-          week1: m?.week1 ?? null,
-          week2: m?.week2 ?? null,
-          week3: m?.week3 ?? null,
-          week4: mergeWeek4(m?.week4 ?? null, m?.week5 ?? null, m?.week6 ?? null),
-        };
+        if (!Number.isInteger(year)) continue;
+
+        years.add(year);
+        const acc = (weeksByYear[year] ??= { week1: 0, week2: 0, week3: 0, week4: 0, total: 0 });
+
+        const week4 = mergeWeek4(m?.week4 ?? null, m?.week5 ?? null, m?.week6 ?? null);
+        acc.week1 += toFiniteNumberOrNull(m?.week1) ?? 0;
+        acc.week2 += toFiniteNumberOrNull(m?.week2) ?? 0;
+        acc.week3 += toFiniteNumberOrNull(m?.week3) ?? 0;
+        acc.week4 += (typeof week4 === 'number' ? week4 : toFiniteNumberOrNull(week4) ?? 0);
+      }
+
+      for (const yearKey of Object.keys(weeksByYear)) {
+        const acc = weeksByYear[yearKey];
+        acc.total = acc.week1 + acc.week2 + acc.week3 + acc.week4;
       }
 
       return {
         id: index + 1,
         wilayah: item?.wilayah ?? '-',
         customer: item?.customer ?? '-',
-        monthsByIndex,
+        weeksByYear,
         years,
       };
     });
@@ -316,10 +256,6 @@ export default function DataTableMonthly() {
     latestFilteredRowsRef.current = filteredRows;
   }, [filteredRows]);
 
-  React.useEffect(() => {
-    latestVisibleMonthsRef.current = visibleMonths;
-  }, [visibleMonths]);
-
   const MAIN_DATA_ID = `${LAYOUT_NAME}__tab_data`;
   const MAIN_SUMMARY_ID = `${LAYOUT_NAME}__tab_summary`;
   const MAIN_JSON_ID = `${LAYOUT_NAME}__tab_json`;
@@ -339,36 +275,18 @@ export default function DataTableMonthly() {
     if (!summaryEl) return;
 
     const currentRows = Array.isArray(latestFilteredRowsRef.current) ? latestFilteredRowsRef.current : [];
-    const months = Array.isArray(latestVisibleMonthsRef.current) ? latestVisibleMonthsRef.current : [];
+    const filterYear = Number(filters.year);
+    const yearIsValid = Number.isInteger(filterYear);
 
-    const safeNum = (v) => {
-      const n = typeof v === 'number' ? v : Number(v);
-      return Number.isFinite(n) ? n : 0;
-    };
-
-    const totals = months.map((monthIndex) => {
-      const acc = { monthIndex, week1: 0, week2: 0, week3: 0, week4: 0, total: 0 };
-
-      for (const row of currentRows) {
-        const md = row?.monthsByIndex?.[monthIndex];
-        if (!md) continue;
-        acc.week1 += safeNum(md.week1);
-        acc.week2 += safeNum(md.week2);
-        acc.week3 += safeNum(md.week3);
-        acc.week4 += safeNum(md.week4);
-      }
-
-      acc.total = acc.week1 + acc.week2 + acc.week3 + acc.week4;
-      return acc;
-    });
-
-    const grand = totals.reduce(
-      (acc, t) => {
-        acc.week1 += t.week1;
-        acc.week2 += t.week2;
-        acc.week3 += t.week3;
-        acc.week4 += t.week4;
-        acc.total += t.total;
+    const grand = currentRows.reduce(
+      (acc, row) => {
+        const yd = yearIsValid ? row?.weeksByYear?.[filterYear] : null;
+        if (!yd) return acc;
+        acc.week1 += typeof yd.week1 === 'number' ? yd.week1 : 0;
+        acc.week2 += typeof yd.week2 === 'number' ? yd.week2 : 0;
+        acc.week3 += typeof yd.week3 === 'number' ? yd.week3 : 0;
+        acc.week4 += typeof yd.week4 === 'number' ? yd.week4 : 0;
+        acc.total += typeof yd.total === 'number' ? yd.total : 0;
         return acc;
       },
       { week1: 0, week2: 0, week3: 0, week4: 0, total: 0 },
@@ -380,16 +298,15 @@ export default function DataTableMonthly() {
         ? `<div style="margin-bottom:10px; color:#6b7685;">Loading...</div>`
         : '';
 
-    const monthLabel =
-      months.length === 0 ? '-' : months.map((m) => MONTH_LABELS[m] ?? `Bulan ${String(m + 1)}`).join(', ');
+    const yearLabel = yearIsValid ? String(filterYear) : '-';
 
     summaryEl.innerHTML = `
       ${headerNote}
       <div style="display:flex; flex-direction:column; gap:10px;">
         <div>Summary</div>
         <div style="display:grid; grid-template-columns: 1fr auto; gap:6px 10px; font-size:13px;">
-          <div>Bulan terpilih</div>
-          <div style="text-align:right;">${escapeHTML(monthLabel)}</div>
+          <div>Tahun</div>
+          <div style="text-align:right;">${escapeHTML(yearLabel)}</div>
 
           <div>Jumlah customer</div>
           <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTML(
@@ -413,7 +330,7 @@ export default function DataTableMonthly() {
         </div>
       </div>
     `;
-  }, [MAIN_SUMMARY_ID, escapeHTML, formatNumber, isLoading, loadError]);
+  }, [MAIN_SUMMARY_ID, escapeHTML, formatNumber, filters.year, isLoading, loadError]);
 
   const renderJsonTab = React.useCallback(() => {
     const jsonEl = document.getElementById(MAIN_JSON_ID);
@@ -421,7 +338,6 @@ export default function DataTableMonthly() {
 
     const payload = {
       filters,
-      visibleMonths: Array.isArray(latestVisibleMonthsRef.current) ? latestVisibleMonthsRef.current : [],
       data: Array.isArray(latestSummaryDataRef.current) ? latestSummaryDataRef.current : [],
     };
 
@@ -507,12 +423,6 @@ export default function DataTableMonthly() {
       const dataHost = document.getElementById(MAIN_DATA_ID);
       if (!dataHost) return;
 
-      const initialVisibleMonths = Array.from(new Set(getDefaultMonthSelection()))
-        .map((m) => Number(m))
-        .filter((m) => Number.isInteger(m) && m >= 0 && m <= 11)
-        .sort((a, b) => a - b)
-        .slice(0, 3);
-
       gridRef.current = new w2grid({
         name: GRID_NAME,
         box: dataHost,
@@ -524,8 +434,7 @@ export default function DataTableMonthly() {
           toolbarReload: false,
         },
         sortData: [{ field: 'wilayah', direction: 'asc' }],
-        columnGroups: buildColumnGroups(initialVisibleMonths),
-        columns: buildColumns(initialVisibleMonths),
+        columns: buildColumns(),
         records: [],
       });
 
@@ -545,13 +454,6 @@ export default function DataTableMonthly() {
             `,
           },
           { type: 'break', id: 'tbBreak1' },
-          {
-            type: 'menu-check',
-            id: 'tbMonth',
-            icon: TOOLBAR_ICONS.month,
-            text: 'Bulan: -',
-            items: MONTH_LABELS.map((label, monthIndex) => ({ id: monthIndex, text: label, checked: false })),
-          },
           {
             type: 'menu-radio',
             id: 'tbYear',
@@ -581,7 +483,6 @@ export default function DataTableMonthly() {
               query: '',
               wilayah: 'ALL',
               year: new Date().getFullYear(),
-              months: getDefaultMonthSelection(),
             });
             const input = document.getElementById(`${GRID_NAME}__query`);
             if (input) input.value = '';
@@ -598,24 +499,6 @@ export default function DataTableMonthly() {
             const year = Number(subId);
             if (!Number.isInteger(year)) return;
             setFilters((prev) => ({ ...prev, year }));
-          } else if (parentId === 'tbMonth') {
-            const monthIndex = Number(subId);
-            if (!Number.isInteger(monthIndex) || monthIndex < 0 || monthIndex > 11) return;
-
-            setFilters((prev) => {
-              const current = Array.from(new Set(Array.isArray(prev.months) ? prev.months : []))
-                .map((m) => Number(m))
-                .filter((m) => Number.isInteger(m) && m >= 0 && m <= 11);
-
-              const exists = current.includes(monthIndex);
-              let next = exists ? current.filter((m) => m !== monthIndex) : current.concat(monthIndex);
-              next = Array.from(new Set(next)).sort((a, b) => a - b);
-
-              if (next.length === 0) next = [new Date().getMonth()];
-              if (!exists && next.length > 3) return prev;
-
-              return { ...prev, months: next.slice(0, 3) };
-            });
           }
         });
 
@@ -660,42 +543,26 @@ export default function DataTableMonthly() {
     const tabId = String(activeMainTabRef.current || 'data');
     if (tabId === 'summary') renderSummaryTab();
     if (tabId === 'json') renderJsonTab();
-  }, [filteredRows, visibleMonths, filters, isLoading, loadError, summaryData, renderSummaryTab, renderJsonTab]);
+  }, [filteredRows, filters, isLoading, loadError, summaryData, renderSummaryTab, renderJsonTab]);
 
   React.useEffect(() => {
     const grid = gridRef.current ?? w2ui[GRID_NAME];
     if (!grid) return;
 
-    const nextGroups = buildColumnGroups(visibleMonths);
-    const nextColumns = buildColumns(visibleMonths);
-
-    grid.columnGroups = nextGroups;
-    grid.columns = nextColumns.map((col) => w2utils.extend({}, grid.colTemplate, col));
-    grid.refresh();
-    grid.resize();
-  }, [visibleMonths, gridReadyTick]);
-
-  React.useEffect(() => {
-    const grid = gridRef.current ?? w2ui[GRID_NAME];
-    if (!grid) return;
-
-    const selectedSet = new Set(visibleMonths);
+    const filterYear = Number(filters.year);
+    const yearIsValid = Number.isInteger(filterYear);
     const records = filteredRows.map((row) => {
+      const yd = yearIsValid ? row.weeksByYear?.[filterYear] : null;
       const record = {
         recid: row.id,
         wilayah: row.wilayah,
         customer: row.customer,
+        week1: yd ? String(yd.week1) : '',
+        week2: yd ? String(yd.week2) : '',
+        week3: yd ? String(yd.week3) : '',
+        week4: yd ? String(yd.week4) : '',
+        total: yd ? String(yd.total) : '',
       };
-
-      for (const monthIndex of selectedSet) {
-        const monthData = row.monthsByIndex?.[monthIndex] ?? null;
-        for (let weekIndex = 0; weekIndex < WEEK_COLUMNS.length; weekIndex += 1) {
-          const field = `m${monthIndex}_w${weekIndex}`;
-          const weekKey = `week${weekIndex + 1}`;
-          const value = monthData ? monthData[weekKey] : null;
-          record[field] = value == null ? '' : String(value);
-        }
-      }
 
       return record;
     });
@@ -704,7 +571,7 @@ export default function DataTableMonthly() {
     grid.add(records);
     grid.total = records.length;
     grid.refresh();
-  }, [filteredRows, visibleMonths, gridReadyTick]);
+  }, [filteredRows, filters.year, gridReadyTick]);
 
   React.useEffect(() => {
     const grid = gridRef.current ?? w2ui[GRID_NAME];
@@ -735,16 +602,6 @@ export default function DataTableMonthly() {
     const grid = gridRef.current ?? w2ui[GRID_NAME];
     if (!grid?.toolbar) return;
 
-    const selectedMonths = Array.from(new Set(visibleMonths)).sort((a, b) => a - b);
-    const monthLabel =
-      selectedMonths.length === 0 ? '-' : selectedMonths.map((m) => MONTH_LABELS[m] ?? String(m)).join(', ');
-
-    const monthItems = MONTH_LABELS.map((label, monthIndex) => {
-      const checked = selectedMonths.includes(monthIndex);
-      const disabled = !checked && selectedMonths.length >= 3;
-      return { id: monthIndex, text: label, checked, disabled };
-    });
-
     const yearItems =
       yearOptions.length === 0
         ? [{ id: String(filters.year), text: String(filters.year), checked: true }]
@@ -753,13 +610,6 @@ export default function DataTableMonthly() {
     const stateItems = [{ id: 'ALL', text: 'Semua', checked: filters.wilayah === 'ALL' }].concat(
       stateOptions.map((opt) => ({ id: opt, text: opt, checked: filters.wilayah === opt })),
     );
-
-    const tbMonth = grid.toolbar.get('tbMonth');
-    if (tbMonth) {
-      tbMonth.items = monthItems;
-      tbMonth.text = `Bulan: ${monthLabel}`;
-      grid.toolbar.refresh('tbMonth');
-    }
 
     const yearLabel = String(filters.year);
     const tbYear = grid.toolbar.get('tbYear');
@@ -778,7 +628,7 @@ export default function DataTableMonthly() {
       tbState.text = `Wilayah: ${stateLabel}`;
       grid.toolbar.refresh('tbState');
     }
-  }, [filters.year, filters.wilayah, visibleMonths, stateOptions, yearOptions, gridReadyTick]);
+  }, [filters.year, filters.wilayah, stateOptions, yearOptions, gridReadyTick]);
 
   return (
     <Box
@@ -887,10 +737,6 @@ export default function DataTableMonthly() {
           .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-wilayah {
             -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%202a7%207%200%200%200-7%207c0%205.2%207%2013%207%2013s7-7.8%207-13a7%207%200%200%200-7-7Zm0%209.5A2.5%202.5%200%201%201%2014.5%209A2.5%202.5%200%200%201%2012%2011.5Z'%2F%3E%3C%2Fsvg%3E");
             mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%202a7%207%200%200%200-7%207c0%205.2%207%2013%207%2013s7-7.8%207-13a7%207%200%200%200-7-7Zm0%209.5A2.5%202.5%200%201%201%2014.5%209A2.5%202.5%200%200%201%2012%2011.5Z'%2F%3E%3C%2Fsvg%3E");
-          }
-          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-month {
-            -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M7%202h2v2h6V2h2v2h3v18H4V4h3V2Zm13%208H6v10h14V10Z'%2F%3E%3C%2Fsvg%3E");
-            mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M7%202h2v2h6V2h2v2h3v18H4V4h3V2Zm13%208H6v10h14V10Z'%2F%3E%3C%2Fsvg%3E");
           }
           .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-year {
             -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M7%202h2v2h6V2h2v2h3v18H4V4h3V2Zm13%206H6v12h14V8Z'%2F%3E%3C%2Fsvg%3E");
