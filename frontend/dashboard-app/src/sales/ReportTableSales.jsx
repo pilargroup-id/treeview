@@ -1,262 +1,378 @@
 import * as React from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
-import { isValid, parseISO } from 'date-fns';
-import { w2grid, w2ui } from 'w2ui';
+import TablePagination from '@mui/material/TablePagination';
+import { w2grid, w2layout, w2ui } from 'w2ui';
 import 'w2ui/w2ui-2.0.min.css';
-import dummyTableSales from './dummyTableSales.json';
-
-const MONTH_LABELS = [
-  'Januari',
-  'Februari',
-  'Maret',
-  'April',
-  'Mei',
-  'Juni',
-  'Juli',
-  'Agustus',
-  'September',
-  'Oktober',
-  'November',
-  'Desember',
-];
+import { API_URL } from '../config/api';
 
 const GRID_NAME = 'reportSalesGrid';
-const DEFAULT_FILTERS = {
-  query: '',
-  sales: 'ALL',
-  wilayah: 'ALL',
-  month: 'ALL',
-  year: 'ALL',
-};
-const TOOLBAR_SVGS = {
-  search: `
-    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
-      <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79L19 20.49L20.49 19l-4.99-5Zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14Z"/>
-    </svg>
-  `,
-};
+const LAYOUT_NAME = 'reportSalesLayout';
+
+const MAIN_DATA_ID = `${LAYOUT_NAME}__tab_data`;
+const MAIN_SUMMARY_ID = `${LAYOUT_NAME}__tab_summary`;
+const MAIN_JSON_ID = `${LAYOUT_NAME}__tab_json`;
 
 const TOOLBAR_ICONS = {
-  sales: 'tv-w2-icon tv-w2-icon-sales',
+  bulan: 'tv-w2-icon tv-w2-icon-bulan',      // ← TAMBAH ini
+  tahun: 'tv-w2-icon tv-w2-icon-tahun',  
   wilayah: 'tv-w2-icon tv-w2-icon-wilayah',
-  month: 'tv-w2-icon tv-w2-icon-month',
-  year: 'tv-w2-icon tv-w2-icon-year',
+  sales: 'tv-w2-icon tv-w2-icon-sales',
   reset: 'tv-w2-icon tv-w2-icon-reset',
 };
 
-export default function DataTableSales() {
-  const gridBoxRef = React.useRef(null);
+
+
+function escapeHTML(value) {
+  return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+}
+
+export default function ReportTableSales() {
+  const layoutBoxRef = React.useRef(null);
+  const layoutRef = React.useRef(null);
   const gridRef = React.useRef(null);
-  const queryInputRef = React.useRef(null);
-  const [filters, setFilters] = React.useState(DEFAULT_FILTERS);
+  const activeMainTabRef = React.useRef('data');
+  const latestFilteredRowsRef = React.useRef([]);
+  const abortRef = React.useRef(null);
+  const requestIdRef = React.useRef(0);
+  const [gridReadyTick, setGridReadyTick] = React.useState(0);
+  const [activeMainTab, setActiveMainTab] = React.useState('data');
 
-  const rows = React.useMemo(() => {
-    const todayISO = new Date().toISOString().slice(0, 10);
-    return (Array.isArray(dummyTableSales) ? dummyTableSales : []).map((item, index) => {
-      const tujuan = String(item?.tujuan ?? '').toLowerCase();
-      const status = String(item?.status ?? '').toLowerCase();
+  const [page, setPage] = React.useState(0);
+  const [rowsPerPage, setRowsPerPage] = React.useState(25);
 
-      return {
-        id: index + 1,
-        sales: item?.sales_name ?? '-',
-        wilayah: item?.state ?? '-',
-        customer: item?.customer_name ?? '-',
-        visit: tujuan.includes('visit') ? 1 : 0,
-        followUp: tujuan.includes('follow') ? 1 : 0,
-        missed: status.includes('miss') ? 1 : 0,
-        planDate: item?.plan_date ?? todayISO,
-        planMonth: (() => {
-          const parsed = parseISO(String(item?.plan_date ?? todayISO));
-          if (!isValid(parsed)) return null;
-          return parsed.getMonth();
-        })(),
-        planYear: (() => {
-          const parsed = parseISO(String(item?.plan_date ?? todayISO));
-          if (!isValid(parsed)) return null;
-          return parsed.getFullYear();
-        })(),
-      };
-    });
+  const [filters, setFilters] = React.useState(() => ({
+    wilayah: 'ALL',
+    sales: 'ALL',
+  }));
+
+  const [sourceData, setSourceData] = React.useState([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [loadError, setLoadError] = React.useState(null);
+
+  const escapeHTMLCallback = React.useCallback((value) => {
+    return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
   }, []);
 
-  const salesOptions = React.useMemo(() => {
-    const unique = new Set();
-    for (const row of rows) {
-      if (row.sales && row.sales !== '-') unique.add(row.sales);
-    }
-    return Array.from(unique).sort((a, b) => a.localeCompare(b));
-  }, [rows]);
+  const formatNumber = React.useCallback((value) => {
+    const num = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(num)) return '-';
+    return new Intl.NumberFormat('id-ID').format(num);
+  }, []);
+
+  React.useEffect(() => {
+    const nextRequestId = requestIdRef.current + 1;
+    requestIdRef.current = nextRequestId;
+
+    abortRef.current?.abort?.();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    const url = `${API_URL}/activity-plans/missed-summary`;
+    const grid = gridRef.current ?? w2ui[GRID_NAME];
+
+    setIsLoading(true);
+    setLoadError(null);
+    grid?.lock?.('Loading...', true);
+
+    fetch(url, { signal: controller.signal })
+      .then(async (response) => {
+        const body = await response.json().catch(() => null);
+        if (!response.ok) {
+          const message = body?.message || `Request failed (${response.status})`;
+          throw new Error(message);
+        }
+        return body;
+      })
+      .then((body) => {
+        if (requestIdRef.current !== nextRequestId) return;
+        if (body?.success !== true || !Array.isArray(body?.data)) {
+          throw new Error(body?.message || 'Invalid response from server');
+        }
+        setSourceData(body.data);
+      })
+      .catch((err) => {
+        if (controller.signal.aborted) return;
+        console.error('Failed to load missed summary:', err);
+        if (requestIdRef.current !== nextRequestId) return;
+        setSourceData([]);
+        setLoadError(err?.message || 'Failed to load data');
+      })
+      .finally(() => {
+        if (controller.signal.aborted) return;
+        if (requestIdRef.current !== nextRequestId) return;
+        setIsLoading(false);
+        grid?.unlock?.();
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  React.useEffect(() => {
+    const grid = gridRef.current ?? w2ui[GRID_NAME];
+    if (!grid) return;
+    if (isLoading) grid?.lock?.('Loading...', true);
+    else grid?.unlock?.();
+  }, [gridReadyTick, isLoading]);
+
+  const rows = React.useMemo(() => {
+    const list = Array.isArray(sourceData) ? sourceData : [];
+    return list.map((item, index) => ({
+      recid: index + 1,
+      customer_name: item?.customer_name ?? '-',
+      wilayah: item?.wilayah ?? item?.state ?? '-',
+      sales_name: item?.sales_name ?? '-',
+      visit_count: item?.visit_count ?? 0,
+      follow_up_count: item?.follow_up_count ?? 0,
+      tujuan: item?.tujuan ?? '-',
+      status: item?.status ?? '-',
+      plan_date: item?.plan_date ?? '-',
+    }));
+  }, [sourceData]);
 
   const stateOptions = React.useMemo(() => {
     const unique = new Set();
-    for (const row of rows) {
-      if (row.wilayah && row.wilayah !== '-') unique.add(row.wilayah);
+    for (const record of rows) {
+      if (record.wilayah && record.wilayah !== '-') unique.add(record.wilayah);
     }
     return Array.from(unique).sort((a, b) => a.localeCompare(b));
   }, [rows]);
 
-  const yearOptions = React.useMemo(() => {
+  const salesOptions = React.useMemo(() => {
     const unique = new Set();
-
-    for (const row of rows) {
-      if (row.planYear == null) continue;
-      unique.add(row.planYear);
+    for (const record of rows) {
+      if (record.sales_name && record.sales_name !== '-') unique.add(record.sales_name);
     }
-
-    return Array.from(unique).sort((a, b) => b - a);
+    return Array.from(unique).sort((a, b) => a.localeCompare(b));
   }, [rows]);
 
-  const filteredRows = React.useMemo(() => {
-    const normalizedQuery = String(filters.query ?? '').trim().toLowerCase();
-
-    return rows.filter((row) => {
-      if (filters.sales !== 'ALL' && row.sales !== filters.sales) return false;
-      if (filters.wilayah !== 'ALL' && row.wilayah !== filters.wilayah) return false;
-
-      if (filters.year !== 'ALL' || filters.month !== 'ALL') {
-        if (row.planYear == null || row.planMonth == null) return false;
-        if (filters.year !== 'ALL' && row.planYear !== Number(filters.year)) return false;
-        if (filters.month !== 'ALL' && row.planMonth !== Number(filters.month)) return false;
-      }
-
-      if (!normalizedQuery) return true;
-      const haystack = `${row.sales} ${row.wilayah} ${row.customer}`.toLowerCase();
-      return haystack.includes(normalizedQuery);
+  const filteredRecords = React.useMemo(() => {
+    return rows.filter((record) => {
+      if (filters.wilayah !== 'ALL' && record.wilayah !== filters.wilayah) return false;
+      if (filters.sales !== 'ALL' && record.sales_name !== filters.sales) return false;
+      return true;
     });
-  }, [rows, filters]);
+  }, [filters, rows]);
 
   React.useEffect(() => {
-    if (!gridBoxRef.current) return;
+    latestFilteredRowsRef.current = filteredRecords;
+  }, [filteredRecords]);
 
-    if (w2ui[GRID_NAME]) {
-      w2ui[GRID_NAME].destroy();
-    }
+  const renderSummaryTab = React.useCallback(() => {
+    const summaryEl = document.getElementById(MAIN_SUMMARY_ID);
+    if (!summaryEl) return;
 
-    gridRef.current = new w2grid({
-      name: GRID_NAME,
-      box: gridBoxRef.current,
-      show: {
-        footer: true,
-        toolbar: true,
-        toolbarSearch: false,
-        toolbarColumns: true,
-        toolbarReload: false,
-        lineNumbers: true,
-      },
-      sortData: [{ field: 'sales', direction: 'asc' }],
-      columnGroups: [
-        { text: '', span: 3 },
-        { text: 'Tujuan', span: 2 },
-        { text: '', span: 3 },
-      ],
-      columns: [
-        { field: 'sales', text: 'sales', size: '140px', sortable: true, resizable: true },
-        { field: 'wilayah', text: 'wilayah', size: '140px', sortable: true, resizable: true },
-        { field: 'customer', text: 'customer', size: '40%', sortable: true, resizable: true },
-        { field: 'visit', text: 'visit', size: '90px', sortable: true, resizable: true, attr: 'align=center' },
+    const currentRows = Array.isArray(latestFilteredRowsRef.current) ? latestFilteredRowsRef.current : [];
+    const totalVisit = currentRows.reduce((sum, row) => sum + (Number(row?.visit_count) || 0), 0);
+    const totalFollowUp = currentRows.reduce((sum, row) => sum + (Number(row?.follow_up_count) || 0), 0);
+
+    summaryEl.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div>Summary</div>
+        ${
+          loadError
+            ? `<div style="color:#b42318; font-size:13px;">${escapeHTMLCallback(loadError)}</div>`
+            : isLoading
+              ? `<div style="color:#5b6775; font-size:13px;">Loading...</div>`
+              : ''
+        }
+        <div style="display:grid; grid-template-columns: 1fr auto; gap:6px 10px; font-size:13px;">
+          <div>Jumlah baris</div>
+          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTMLCallback(
+            formatNumber(currentRows.length),
+          )}</div>
+          <div>Total Visit</div>
+          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTMLCallback(
+            formatNumber(totalVisit),
+          )}</div>
+          <div>Total Follow Up</div>
+          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTMLCallback(
+            formatNumber(totalFollowUp),
+          )}</div>
+        </div>
+      </div>
+    `;
+  }, [escapeHTMLCallback, formatNumber, isLoading, loadError]);
+
+  const renderJsonTab = React.useCallback(() => {
+    const jsonEl = document.getElementById(MAIN_JSON_ID);
+    if (!jsonEl) return;
+
+    const payload = {
+      filters,
+      isLoading,
+      loadError,
+      totalLoaded: Array.isArray(sourceData) ? sourceData.length : 0,
+      data: Array.isArray(latestFilteredRowsRef.current) ? latestFilteredRowsRef.current : [],
+    };
+
+    jsonEl.innerHTML = `
+      <pre style="margin:0; white-space:pre-wrap; word-break:break-word; font-size:12px; line-height:1.45; color:#111827;">${escapeHTMLCallback(
+        JSON.stringify(payload, null, 2),
+      )}</pre>
+    `;
+  }, [escapeHTMLCallback, filters, isLoading, loadError, sourceData]);
+
+  const setMainTab = React.useCallback(
+    (nextTabId) => {
+      const tabId = String(nextTabId || 'data');
+      if (activeMainTabRef.current === tabId) return;
+      activeMainTabRef.current = tabId;
+      setActiveMainTab(tabId);
+
+      const dataEl = document.getElementById(MAIN_DATA_ID);
+      const summaryEl = document.getElementById(MAIN_SUMMARY_ID);
+      const jsonEl = document.getElementById(MAIN_JSON_ID);
+      if (!dataEl || !summaryEl || !jsonEl) return;
+
+      dataEl.style.display = tabId === 'data' ? 'block' : 'none';
+      summaryEl.style.display = tabId === 'summary' ? 'block' : 'none';
+      jsonEl.style.display = tabId === 'json' ? 'block' : 'none';
+
+      if (tabId === 'summary') renderSummaryTab();
+      if (tabId === 'json') renderJsonTab();
+
+      if (tabId === 'data') {
+        setTimeout(() => {
+          const grid = gridRef.current ?? w2ui[GRID_NAME];
+          grid?.resize?.();
+          grid?.refresh?.();
+        }, 0);
+      }
+    },
+    [renderJsonTab, renderSummaryTab],
+  );
+
+  React.useEffect(() => {
+    if (!layoutBoxRef.current) return;
+    let disposed = false;
+    let initialMountTimeoutId = null;
+
+    if (w2ui[GRID_NAME]) w2ui[GRID_NAME].destroy();
+    if (w2ui[LAYOUT_NAME]) w2ui[LAYOUT_NAME].destroy();
+
+    activeMainTabRef.current = 'data';
+    setActiveMainTab('data');
+
+    layoutRef.current = new w2layout({
+      box: layoutBoxRef.current,
+      name: LAYOUT_NAME,
+      panels: [
         {
-          field: 'followUp',
-          text: 'follow up',
-          size: '110px',
-          sortable: true,
-          resizable: true,
-          attr: 'align=center',
-        },
-        { field: 'missed', text: 'missed', size: '90px', sortable: true, resizable: true, attr: 'align=center' },
-        { field: 'planDate', text: 'plan date', size: '120px', sortable: true, resizable: true },
-      ],
-      records: [],
-    });
-
-    const grid = gridRef.current;
-    if (grid?.toolbar) {
-      grid.toolbar.add([
-        {
-          type: 'html',
-          id: 'tbQuery',
+          type: 'main',
+          style: 'border: 1px solid #efefef; padding: 0',
           html: `
-            <div class="tv-sales-toolbar-search" title="Cari sales / wilayah / customer...">
-              <span class="tv-sales-toolbar-search__icon" aria-hidden="true">${TOOLBAR_SVGS.search}</span>
-              <input id="${GRID_NAME}__query" class="w2ui-input tv-sales-toolbar-search__input" placeholder="Cari sales / wilayah / customer..." />
+            <div style="height:100%; display:flex; flex-direction:column;">
+              <div id="${MAIN_DATA_ID}" style="flex:1; min-height:0;"></div>
+              <div id="${MAIN_SUMMARY_ID}" style="flex:1; min-height:0; display:none; overflow:auto; padding:12px;"></div>
+              <div id="${MAIN_JSON_ID}" style="flex:1; min-height:0; display:none; overflow:auto; padding:12px;"></div>
             </div>
           `,
+          tabs: {
+            active: 'data',
+            tabs: [
+              { id: 'data', text: 'Data' },
+              { id: 'summary', text: 'Summary' },
+              { id: 'json', text: 'JSON' },
+            ],
+            onClick(event) {
+              setMainTab(String(event.target));
+            },
+          },
         },
-        { type: 'break', id: 'tbBreak1' },
-        {
-          type: 'menu-radio',
-          id: 'tbSales',
-          icon: TOOLBAR_ICONS.sales,
-          text: 'Sales: Semua',
-          selected: 'ALL',
-          items: [{ id: 'ALL', text: 'Semua', checked: true }],
-        },
-        {
-          type: 'menu-radio',
-          id: 'tbMonth',
-          icon: TOOLBAR_ICONS.month,
-          text: 'Bulan: Semua',
-          selected: 'ALL',
-          items: [{ id: 'ALL', text: 'Semua', checked: true }],
-        },
-        {
-          type: 'menu-radio',
-          id: 'tbYear',
-          icon: TOOLBAR_ICONS.year,
-          text: 'Tahun: Semua',
-          selected: 'ALL',
-          items: [{ id: 'ALL', text: 'Semua', checked: true }],
-        },
-        {
-          type: 'menu-radio',
-          id: 'tbState',
-          icon: TOOLBAR_ICONS.wilayah,
-          text: 'Wilayah: Semua',
-          selected: 'ALL',
-          items: [{ id: 'ALL', text: 'Semua', checked: true }],
-        },
-        { type: 'spacer', id: 'tbSpacer1' },
-        { type: 'button', id: 'tbReset', icon: TOOLBAR_ICONS.reset, text: 'Reset' },
-      ]);
+      ],
+    });
 
-      grid.toolbar.on('click', (event) => {
-        const target = String(event.target ?? '');
-        if (!target) return;
+    initialMountTimeoutId = setTimeout(() => {
+      if (disposed) return;
+      const dataHost = document.getElementById(MAIN_DATA_ID);
+      if (!dataHost) return;
 
-        if (target === 'tbReset') {
-          setFilters(DEFAULT_FILTERS);
-          const input = document.getElementById(`${GRID_NAME}__query`);
-          if (input) input.value = '';
-          return;
-        }
-
-        if (!target.includes(':')) return;
-        const [parentId, subIdRaw] = target.split(':');
-        const subId = subIdRaw ?? 'ALL';
-
-        if (parentId === 'tbSales') {
-          setFilters((prev) => ({ ...prev, sales: subId === 'ALL' ? 'ALL' : subId }));
-        } else if (parentId === 'tbState') {
-          setFilters((prev) => ({ ...prev, wilayah: subId === 'ALL' ? 'ALL' : subId }));
-        } else if (parentId === 'tbMonth') {
-          setFilters((prev) => ({ ...prev, month: subId === 'ALL' ? 'ALL' : Number(subId) }));
-        } else if (parentId === 'tbYear') {
-          setFilters((prev) => ({ ...prev, year: subId === 'ALL' ? 'ALL' : Number(subId) }));
-        }
+      gridRef.current = new w2grid({
+        name: GRID_NAME,
+        box: dataHost,
+        show: {
+          footer: false,
+          toolbar: true,
+          toolbarSearch: true,
+          toolbarColumns: true,
+          toolbarReload: false,
+        },
+        searches: [
+          { field: 'customer_name', text: 'Customer', type: 'text' },
+          { field: 'wilayah', text: 'Wilayah', type: 'text' },
+          { field: 'sales_name', text: 'Sales', type: 'text' },
+        ],
+        sortData: [{ field: 'recid', direction: 'asc' }],
+        columnGroups: [
+          { text: 'General Information', span: 3 },
+          { text: 'Tujuan', span: 2 },
+        ],
+        columns: [
+          { field: 'customer_name', text: 'Customer', size: '20%', sortable: true, resizable: true },
+          { field: 'wilayah', text: 'Wilayah', size: '20%', sortable: true, resizable: true },
+          { field: 'sales_name', text: 'Sales', size: '20%', sortable: true, resizable: true },
+          { field: 'visit_count', text: 'Visit', size: '90px', sortable: true, resizable: true, attr: 'align=right' },
+          { field: 'follow_up_count', text: 'Follow Up', size: '90px', sortable: true, resizable: true, attr: 'align=right' },
+          { field: 'status', text: 'Status', size: '150px', sortable: true, resizable: true },
+          { field: 'plan_date', text: 'Plan Date', size: '150px', sortable: true, resizable: true },
+        ],
+        records: [],
       });
 
-      setTimeout(() => {
-        const input = document.getElementById(`${GRID_NAME}__query`);
-        if (!input) return;
+      setGridReadyTick((v) => v + 1);
 
-        const handler = (e) => {
-          setFilters((prev) => ({ ...prev, query: e.target.value }));
-        };
+      const grid = gridRef.current;
+      if (grid?.toolbar) {
+        grid.toolbar.add([
+          {
+            type: 'menu-radio',
+            id: 'tbState',
+            icon: TOOLBAR_ICONS.wilayah,
+            text: 'Wilayah: Semua',
+            selected: 'ALL',
+            items: [{ id: 'ALL', text: 'Semua', checked: true }],
+          },
+          {
+            type: 'menu-radio',
+            id: 'tbSales',
+            icon: TOOLBAR_ICONS.sales,
+            text: 'Sales: Semua',
+            selected: 'ALL',
+            items: [{ id: 'ALL', text: 'Semua', checked: true }],
+          },
+          { type: 'spacer', id: 'tbSpacer1' },
+          { type: 'button', id: 'tbReset', icon: TOOLBAR_ICONS.reset, hint: 'Reset Filter' },
+        ]);
 
-        input.addEventListener('input', handler);
-        queryInputRef.current = { el: input, handler };
-      }, 0);
-    }
+        grid.toolbar.on('click', (event) => {
+          const target = String(event.target ?? '');
+          if (!target) return;
+
+          if (target === 'tbReset') {
+            setFilters({
+              wilayah: 'ALL',
+              sales: 'ALL',
+            });
+            // Reset built-in search
+            if (grid.searchData && grid.searchData.length > 0) {
+              grid.searchReset();
+            }
+            return;
+          }
+
+          if (!target.includes(':')) return;
+          const [parentId, subIdRaw] = target.split(':');
+          const subId = subIdRaw ?? '';
+
+          if (parentId === 'tbState') {
+            setFilters((prev) => ({ ...prev, wilayah: subId === 'ALL' ? 'ALL' : subId }));
+          } else if (parentId === 'tbSales') {
+            setFilters((prev) => ({ ...prev, sales: subId === 'ALL' ? 'ALL' : subId }));
+          }
+        });
+      }
+    }, 0);
 
     const handleResize = () => {
       const grid = gridRef.current ?? w2ui[GRID_NAME];
@@ -266,74 +382,83 @@ export default function DataTableSales() {
     window.addEventListener('resize', handleResize);
 
     return () => {
+      disposed = true;
+      if (initialMountTimeoutId) clearTimeout(initialMountTimeoutId);
+
       window.removeEventListener('resize', handleResize);
-      if (queryInputRef.current?.el && queryInputRef.current?.handler) {
-        queryInputRef.current.el.removeEventListener('input', queryInputRef.current.handler);
-      }
-      queryInputRef.current = null;
       if (w2ui[GRID_NAME]) w2ui[GRID_NAME].destroy();
+      if (w2ui[LAYOUT_NAME]) w2ui[LAYOUT_NAME].destroy();
       gridRef.current = null;
+      layoutRef.current = null;
     };
-  }, []);
+  }, [setMainTab]);
+
+  React.useEffect(() => {
+    const tabId = String(activeMainTabRef.current || 'data');
+    if (tabId === 'summary') renderSummaryTab();
+    if (tabId === 'json') renderJsonTab();
+  }, [filteredRecords, filters, renderSummaryTab, renderJsonTab]);
 
   React.useEffect(() => {
     const grid = gridRef.current ?? w2ui[GRID_NAME];
     if (!grid) return;
 
-    const records = filteredRows.map((row) => ({
-      recid: row.id,
-      sales: row.sales,
-      wilayah: row.wilayah,
-      customer: row.customer,
-      visit: row.visit,
-      followUp: row.followUp,
-      missed: row.missed,
-      planDate: row.planDate,
+    const records = filteredRecords.map((record) => ({
+      recid: record.recid,
+      customer_name: record.customer_name,
+      wilayah: record.wilayah,
+      sales_name: record.sales_name,
+      visit_count: record.visit_count,
+      follow_up_count: record.follow_up_count,
+      tujuan: record.tujuan,
+      status: record.status,
+      plan_date: record.plan_date,
     }));
 
     grid.clear();
     grid.add(records);
+    grid.total = records.length;
     grid.refresh();
-  }, [filteredRows]);
+  }, [filteredRecords, gridReadyTick]);
+
+  React.useEffect(() => {
+    const grid = gridRef.current ?? w2ui[GRID_NAME];
+    if (!grid) return;
+
+    grid.limit = rowsPerPage;
+    grid.offset = page * rowsPerPage;
+    grid.refresh();
+  }, [gridReadyTick, page, rowsPerPage]);
+
+  React.useEffect(() => {
+    const total = filteredRecords.length;
+    const maxPage = Math.max(0, Math.ceil(total / rowsPerPage) - 1);
+    if (page > maxPage) setPage(0);
+  }, [filteredRecords.length, page, rowsPerPage]);
+
+  const handleChangePage = React.useCallback((event, nextPage) => {
+    setPage(nextPage);
+  }, []);
+
+  const handleChangeRowsPerPage = React.useCallback((event) => {
+    const next = Number.parseInt(event.target.value, 10);
+    setRowsPerPage(Number.isFinite(next) && next > 0 ? next : 25);
+    setPage(0);
+  }, []);
 
   React.useEffect(() => {
     const grid = gridRef.current ?? w2ui[GRID_NAME];
     if (!grid?.toolbar) return;
 
-    const monthItems = [{ id: 'ALL', text: 'Semua', checked: filters.month === 'ALL' }].concat(
-      MONTH_LABELS.map((label, monthIndex) => ({
-        id: monthIndex,
-        text: label,
-        checked: Number(filters.month) === monthIndex,
-      })),
+    const stateItems = [{ id: 'ALL', text: 'Semua', checked: filters.wilayah === 'ALL' }].concat(
+      stateOptions.map((opt) => ({ id: opt, text: opt, checked: filters.wilayah === opt })),
     );
 
     const salesItems = [{ id: 'ALL', text: 'Semua', checked: filters.sales === 'ALL' }].concat(
       salesOptions.map((opt) => ({ id: opt, text: opt, checked: filters.sales === opt })),
     );
 
-    const stateItems = [{ id: 'ALL', text: 'Semua', checked: filters.wilayah === 'ALL' }].concat(
-      stateOptions.map((opt) => ({ id: opt, text: opt, checked: filters.wilayah === opt })),
-    );
-
-    const yearItems = [{ id: 'ALL', text: 'Semua', checked: filters.year === 'ALL' }].concat(
-      yearOptions.map((year) => ({ id: year, text: String(year), checked: Number(filters.year) === year })),
-    );
-
-    const salesLabel = filters.sales === 'ALL' ? 'Semua' : String(filters.sales);
     const stateLabel = filters.wilayah === 'ALL' ? 'Semua' : String(filters.wilayah);
-    const monthLabel =
-      filters.month === 'ALL' ? 'Semua' : MONTH_LABELS[Number(filters.month)] ?? String(filters.month);
-    const yearLabel = filters.year === 'ALL' ? 'Semua' : String(filters.year);
-
-    const tbSales = grid.toolbar.get('tbSales');
-    if (tbSales) {
-      tbSales.items = salesItems;
-      tbSales.selected = filters.sales;
-      tbSales.text = `Sales: ${salesLabel}`;
-      grid.toolbar.refresh('tbSales');
-    }
-
     const tbState = grid.toolbar.get('tbState');
     if (tbState) {
       tbState.items = stateItems;
@@ -342,54 +467,63 @@ export default function DataTableSales() {
       grid.toolbar.refresh('tbState');
     }
 
-    const tbMonth = grid.toolbar.get('tbMonth');
-    if (tbMonth) {
-      tbMonth.items = monthItems;
-      tbMonth.selected = filters.month;
-      tbMonth.text = `Bulan: ${monthLabel}`;
-      grid.toolbar.refresh('tbMonth');
+    const salesLabel = filters.sales === 'ALL' ? 'Semua' : String(filters.sales);
+    const tbSales = grid.toolbar.get('tbSales');
+    if (tbSales) {
+      tbSales.items = salesItems;
+      tbSales.selected = filters.sales;
+      tbSales.text = `Sales: ${salesLabel}`;
+      grid.toolbar.refresh('tbSales');
     }
-
-    const tbYear = grid.toolbar.get('tbYear');
-    if (tbYear) {
-      tbYear.items = yearItems;
-      tbYear.selected = filters.year;
-      tbYear.text = `Tahun: ${yearLabel}`;
-      grid.toolbar.refresh('tbYear');
-    }
-  }, [filters.sales, filters.wilayah, filters.month, filters.year, salesOptions, stateOptions, yearOptions]);
+  }, [filters.wilayah, filters.sales, stateOptions, salesOptions, gridReadyTick]);
 
   return (
-    <Box sx={{ width: '100%' }}>
+    <Box
+      sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}
+      className="tv-report-sales"
+    >
+      {isLoading && !loadError ? (
+        <Box sx={{ mb: 1, color: 'text.secondary', fontSize: 13 }}>Loading...</Box>
+      ) : null}
+      {loadError ? (
+        <Box sx={{ mb: 1, color: 'error.main', fontSize: 13 }}>
+          {loadError}
+        </Box>
+      ) : null}
       <style>
         {`
-          .tv-sales-toolbar-search {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            height: 30px;
-            padding: 0 6px;
-            white-space: nowrap;
-            transform: translateY(-2px);
+          .tv-report-sales .w2ui-panel-tabs,
+          .tv-report-sales .w2ui-tabs {
+            background: transparent;
           }
-          .tv-sales-toolbar-search__icon {
-            display: inline-flex;
-            align-items: center;
-            line-height: 1;
+
+          /* Override w2ui default active blue (#0175ff) */
+          .tv-report-sales .w2ui-tabs .w2ui-scroll-wrapper .w2ui-tab {
+            color: #5b6775;
+            font-weight: 400 !important;
           }
-          .tv-sales-toolbar-search__icon svg {
-            display: block;
-            width: 14px;
-            height: 14px;
-            color: #8d99a7;
+
+          .tv-report-sales .w2ui-tabs .w2ui-scroll-wrapper .w2ui-tab:hover {
+            background-color: rgba(107, 163, 208, 0.08);
+            color: #6BA3D0;
           }
-          .tv-sales-toolbar-search__input {
-            height: 26px;
-            line-height: 26px;
-            padding: 0 8px;
-            width: min(280px, 42vw);
-            box-sizing: border-box;
+
+          .tv-report-sales .w2ui-tabs .w2ui-scroll-wrapper .w2ui-tab.active {
+            background-color: rgba(107, 163, 208, 0.12);
+            color: #6BA3D0 !important;
+            border-bottom: 2px solid #6BA3D0 !important;
+            font-weight: 400 !important;
           }
+
+          .tv-report-sales .w2ui-tabs.w2ui-tabs-up .w2ui-scroll-wrapper .w2ui-tab.active {
+            border-top: 2px solid #6BA3D0 !important;
+          }
+
+          .tv-report-sales .w2ui-tabs .w2ui-scroll-wrapper .w2ui-tab:focus {
+            outline: 2px solid rgba(107, 163, 208, 0.45);
+            outline-offset: 2px;
+          }
+
           .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon {
             background-color: #8d99a7;
             -webkit-mask-position: center;
@@ -403,21 +537,21 @@ export default function DataTableSales() {
           .w2ui-toolbar .w2ui-tb-button.checked .w2ui-tb-icon.tv-w2-icon {
             background-color: #5b6775;
           }
-          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-sales {
-            -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%2012a4%204%200%201%200-4-4a4%204%200%200%200%204%204Zm0%202c-4.4%200-8%202.2-8%205v1h16v-1c0-2.8-3.6-5-8-5Z'%2F%3E%3C%2Fsvg%3E");
-            mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%2012a4%204%200%201%200-4-4a4%204%200%200%200%204%204Zm0%202c-4.4%200-8%202.2-8%205v1h16v-1c0-2.8-3.6-5-8-5Z'%2F%3E%3C%2Fsvg%3E");
+          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-bulan {
+            -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%202a7%207%200%200%200-7%207c0%205.2%207%2013%207%2013s7-7.8%207-13a7%207%200%200%200-7-7Zm0%209.5A2.5%202.5%200%201%201%2014.5%209A2.5%202.5%200%200%201%2012%2011.5Z'%2F%3E%3C%2Fsvg%3E");
+            mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%202a7%207%200%200%200-7%207c0%205.2%207%2013%207%2013s7-7.8%207-13a7%207%200%200%200-7-7Zm0%209.5A2.5%202.5%200%201%201%2014.5%209A2.5%202.5%200%200%201%2012%2011.5Z'%2F%3E%3C%2Fsvg%3E");
+          }
+          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-tahun {
+            -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%202a7%207%200%200%200-7%207c0%205.2%207%2013%207%2013s7-7.8%207-13a7%207%200%200%200-7-7Zm0%209.5A2.5%202.5%200%201%201%2014.5%209A2.5%202.5%200%200%201%2012%2011.5Z'%2F%3E%3C%2Fsvg%3E");
+            mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%202a7%207%200%200%200-7%207c0%205.2%207%2013%207%2013s7-7.8%207-13a7%207%200%200%200-7-7Zm0%209.5A2.5%202.5%200%201%201%2014.5%209A2.5%202.5%200%200%201%2012%2011.5Z'%2F%3E%3C%2Fsvg%3E");
           }
           .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-wilayah {
             -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%202a7%207%200%200%200-7%207c0%205.2%207%2013%207%2013s7-7.8%207-13a7%207%200%200%200-7-7Zm0%209.5A2.5%202.5%200%201%201%2014.5%209A2.5%202.5%200%200%201%2012%2011.5Z'%2F%3E%3C%2Fsvg%3E");
             mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%202a7%207%200%200%200-7%207c0%205.2%207%2013%207%2013s7-7.8%207-13a7%207%200%200%200-7-7Zm0%209.5A2.5%202.5%200%201%201%2014.5%209A2.5%202.5%200%200%201%2012%2011.5Z'%2F%3E%3C%2Fsvg%3E");
           }
-          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-month {
-            -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M7%202h2v2h6V2h2v2h3v18H4V4h3V2Zm13%208H6v10h14V10Z'%2F%3E%3C%2Fsvg%3E");
-            mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M7%202h2v2h6V2h2v2h3v18H4V4h3V2Zm13%208H6v10h14V10Z'%2F%3E%3C%2Fsvg%3E");
-          }
-          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-year {
-            -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M7%202h2v2h6V2h2v2h3v18H4V4h3V2Zm13%206H6v12h14V8Z'%2F%3E%3C%2Fsvg%3E");
-            mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M7%202h2v2h6V2h2v2h3v18H4V4h3V2Zm13%206H6v12h14V8Z'%2F%3E%3C%2Fsvg%3E");
+          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-sales {
+            -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%2012c2.21%200%204-1.79%204-4s-1.79-4-4-4-4%201.79-4%204%201.79%204%204%204zm0%202c-2.67%200-8%201.34-8%204v2h16v-2c0-2.66-5.33-4-8-4z'%2F%3E%3C%2Fsvg%3E");
+            mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%2012c2.21%200%204-1.79%204-4s-1.79-4-4-4-4%201.79-4%204%201.79%204%204%204zm0%202c-2.67%200-8%201.34-8%204v2h16v-2c0-2.66-5.33-4-8-4z'%2F%3E%3C%2Fsvg%3E");
           }
           .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-reset {
             -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%206V3l-4%204l4%204V8a4%204%200%201%201-4%204H6a6%206%200%201%200%206-6Z'%2F%3E%3C%2Fsvg%3E");
@@ -425,8 +559,20 @@ export default function DataTableSales() {
           }
         `}
       </style>
-      <Paper sx={{ width: '100%', height: 560, overflow: 'hidden' }}>
-        <Box ref={gridBoxRef} sx={{ width: '100%', height: '100%' }} />
+      <Paper sx={{ width: '100%', flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <Box ref={layoutBoxRef} sx={{ width: '100%', flex: 1, minHeight: 0 }} />
+        {activeMainTab === 'data' ? (
+          <TablePagination
+            component="div"
+            count={filteredRecords.length}
+            page={page}
+            onPageChange={handleChangePage}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            rowsPerPageOptions={[10, 25, 50, 100]}
+            sx={{ flex: '0 0 auto', borderTop: 1, borderColor: 'divider' }}
+          />
+        ) : null}
       </Paper>
     </Box>
   );
