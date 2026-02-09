@@ -322,7 +322,6 @@ export default function DataTableMonthly() {
 
   const MAIN_DATA_ID = `${LAYOUT_NAME}__tab_data`;
   const MAIN_SUMMARY_ID = `${LAYOUT_NAME}__tab_summary`;
-  const MAIN_JSON_ID = `${LAYOUT_NAME}__tab_json`;
 
   const escapeHTML = React.useCallback((value) => {
     return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
@@ -415,23 +414,6 @@ export default function DataTableMonthly() {
     `;
   }, [MAIN_SUMMARY_ID, escapeHTML, formatNumber, isLoading, loadError]);
 
-  const renderJsonTab = React.useCallback(() => {
-    const jsonEl = document.getElementById(MAIN_JSON_ID);
-    if (!jsonEl) return;
-
-    const payload = {
-      filters,
-      visibleMonths: Array.isArray(latestVisibleMonthsRef.current) ? latestVisibleMonthsRef.current : [],
-      data: Array.isArray(latestSummaryDataRef.current) ? latestSummaryDataRef.current : [],
-    };
-
-    jsonEl.innerHTML = `
-      <pre style="margin:0; white-space:pre-wrap; word-break:break-word; font-size:12px; line-height:1.45; color:#111827;">${escapeHTML(
-        JSON.stringify(payload, null, 2),
-      )}</pre>
-    `;
-  }, [MAIN_JSON_ID, escapeHTML, filters]);
-
   const setMainTab = React.useCallback(
     (nextTabId) => {
       const tabId = String(nextTabId || 'data');
@@ -441,15 +423,12 @@ export default function DataTableMonthly() {
 
       const dataEl = document.getElementById(MAIN_DATA_ID);
       const summaryEl = document.getElementById(MAIN_SUMMARY_ID);
-      const jsonEl = document.getElementById(MAIN_JSON_ID);
-      if (!dataEl || !summaryEl || !jsonEl) return;
+      if (!dataEl || !summaryEl) return;
 
       dataEl.style.display = tabId === 'data' ? 'block' : 'none';
       summaryEl.style.display = tabId === 'summary' ? 'block' : 'none';
-      jsonEl.style.display = tabId === 'json' ? 'block' : 'none';
 
       if (tabId === 'summary') renderSummaryTab();
-      if (tabId === 'json') renderJsonTab();
 
       if (tabId === 'data') {
         setTimeout(() => {
@@ -459,7 +438,7 @@ export default function DataTableMonthly() {
         }, 0);
       }
     },
-    [renderJsonTab, renderSummaryTab, MAIN_DATA_ID, MAIN_SUMMARY_ID, MAIN_JSON_ID],
+    [renderSummaryTab, MAIN_DATA_ID, MAIN_SUMMARY_ID],
   );
 
   React.useEffect(() => {
@@ -484,7 +463,6 @@ export default function DataTableMonthly() {
             <div style="height:100%; display:flex; flex-direction:column;">
               <div id="${MAIN_DATA_ID}" style="flex:1; min-height:0;"></div>
               <div id="${MAIN_SUMMARY_ID}" style="flex:1; min-height:0; display:none; overflow:auto; padding:12px;"></div>
-              <div id="${MAIN_JSON_ID}" style="flex:1; min-height:0; display:none; overflow:auto; padding:12px;"></div>
             </div>
           `,
           tabs: {
@@ -492,7 +470,6 @@ export default function DataTableMonthly() {
             tabs: [
               { id: 'data', text: 'Data' },
               { id: 'summary', text: 'Summary' },
-              { id: 'json', text: 'JSON' },
             ],
             onClick(event) {
               setMainTab(String(event.target));
@@ -659,8 +636,7 @@ export default function DataTableMonthly() {
   React.useEffect(() => {
     const tabId = String(activeMainTabRef.current || 'data');
     if (tabId === 'summary') renderSummaryTab();
-    if (tabId === 'json') renderJsonTab();
-  }, [filteredRows, visibleMonths, filters, isLoading, loadError, summaryData, renderSummaryTab, renderJsonTab]);
+  }, [filteredRows, visibleMonths, filters, isLoading, loadError, summaryData, renderSummaryTab]);
 
   React.useEffect(() => {
     const grid = gridRef.current ?? w2ui[GRID_NAME];

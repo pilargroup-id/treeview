@@ -11,7 +11,6 @@ const LAYOUT_NAME = 'reportSalesLayout';
 
 const MAIN_DATA_ID = `${LAYOUT_NAME}__tab_data`;
 const MAIN_SUMMARY_ID = `${LAYOUT_NAME}__tab_summary`;
-const MAIN_JSON_ID = `${LAYOUT_NAME}__tab_json`;
 
 const TOOLBAR_ICONS = {
   bulan: 'tv-w2-icon tv-w2-icon-bulan',      // ← TAMBAH ini
@@ -194,25 +193,6 @@ export default function ReportTableSales() {
     `;
   }, [escapeHTMLCallback, formatNumber, isLoading, loadError]);
 
-  const renderJsonTab = React.useCallback(() => {
-    const jsonEl = document.getElementById(MAIN_JSON_ID);
-    if (!jsonEl) return;
-
-    const payload = {
-      filters,
-      isLoading,
-      loadError,
-      totalLoaded: Array.isArray(sourceData) ? sourceData.length : 0,
-      data: Array.isArray(latestFilteredRowsRef.current) ? latestFilteredRowsRef.current : [],
-    };
-
-    jsonEl.innerHTML = `
-      <pre style="margin:0; white-space:pre-wrap; word-break:break-word; font-size:12px; line-height:1.45; color:#111827;">${escapeHTMLCallback(
-        JSON.stringify(payload, null, 2),
-      )}</pre>
-    `;
-  }, [escapeHTMLCallback, filters, isLoading, loadError, sourceData]);
-
   const setMainTab = React.useCallback(
     (nextTabId) => {
       const tabId = String(nextTabId || 'data');
@@ -222,15 +202,12 @@ export default function ReportTableSales() {
 
       const dataEl = document.getElementById(MAIN_DATA_ID);
       const summaryEl = document.getElementById(MAIN_SUMMARY_ID);
-      const jsonEl = document.getElementById(MAIN_JSON_ID);
-      if (!dataEl || !summaryEl || !jsonEl) return;
+      if (!dataEl || !summaryEl) return;
 
       dataEl.style.display = tabId === 'data' ? 'block' : 'none';
       summaryEl.style.display = tabId === 'summary' ? 'block' : 'none';
-      jsonEl.style.display = tabId === 'json' ? 'block' : 'none';
 
       if (tabId === 'summary') renderSummaryTab();
-      if (tabId === 'json') renderJsonTab();
 
       if (tabId === 'data') {
         setTimeout(() => {
@@ -240,7 +217,7 @@ export default function ReportTableSales() {
         }, 0);
       }
     },
-    [renderJsonTab, renderSummaryTab],
+    [renderSummaryTab],
   );
 
   React.useEffect(() => {
@@ -265,7 +242,6 @@ export default function ReportTableSales() {
             <div style="height:100%; display:flex; flex-direction:column;">
               <div id="${MAIN_DATA_ID}" style="flex:1; min-height:0;"></div>
               <div id="${MAIN_SUMMARY_ID}" style="flex:1; min-height:0; display:none; overflow:auto; padding:12px;"></div>
-              <div id="${MAIN_JSON_ID}" style="flex:1; min-height:0; display:none; overflow:auto; padding:12px;"></div>
             </div>
           `,
           tabs: {
@@ -273,7 +249,6 @@ export default function ReportTableSales() {
             tabs: [
               { id: 'data', text: 'Data' },
               { id: 'summary', text: 'Summary' },
-              { id: 'json', text: 'JSON' },
             ],
             onClick(event) {
               setMainTab(String(event.target));
@@ -396,8 +371,7 @@ export default function ReportTableSales() {
   React.useEffect(() => {
     const tabId = String(activeMainTabRef.current || 'data');
     if (tabId === 'summary') renderSummaryTab();
-    if (tabId === 'json') renderJsonTab();
-  }, [filteredRecords, filters, renderSummaryTab, renderJsonTab]);
+  }, [filteredRecords, filters, renderSummaryTab]);
 
   React.useEffect(() => {
     const grid = gridRef.current ?? w2ui[GRID_NAME];

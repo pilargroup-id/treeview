@@ -6,41 +6,84 @@ import { w2grid, w2layout, w2ui, w2utils } from 'w2ui';
 import 'w2ui/w2ui-2.0.min.css';
 import { API_URL } from '../config/api';
 
-const WEEK_COLUMNS = ['Week1', 'Week2', 'Week3', 'Week4'];
-
-const GRID_NAME = 'reportCustomersGrid';
-const LAYOUT_NAME = 'reportCustomersLayout';
+const GRID_NAME = 'reportResultGrid';
+const LAYOUT_NAME = 'reportResultLayout';
 const TOOLBAR_SVGS = {
   search: `
     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
       <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79L19 20.49L20.49 19l-4.99-5Zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14Z"/>
     </svg>
   `,
+  photo: `
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M21 19V5c0-1.1-.9-2-2-2H5C3.9 3 3 3.9 3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2ZM5 5h14v10.17l-3.5-4.5-3.01 3.87-2.16-2.6L5 18.5V5Zm0 14 5.25-6.75 2.2 2.65 3.05-3.92L19 15.83V19H5Z"/>
+    </svg>
+  `,
 };
 
 const TOOLBAR_ICONS = {
   wilayah: 'tv-w2-icon tv-w2-icon-wilayah',
-  year: 'tv-w2-icon tv-w2-icon-year',
   reset: 'tv-w2-icon tv-w2-icon-reset',
 };
 
-function toFiniteNumberOrNull(value) {
-  if (value == null || value === '') return null;
-  const n = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(n) ? n : null;
+const ID_NUMBER = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 });
+
+function toDateInputValue(date) {
+  if (!(date instanceof Date)) return '';
+  if (Number.isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
-function mergeWeek4(week4, week5, week6) {
-  const n4 = toFiniteNumberOrNull(week4);
-  const n5 = toFiniteNumberOrNull(week5);
-  const n6 = toFiniteNumberOrNull(week6);
+function formatMaybeNumber(value) {
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n)) return '';
+  return ID_NUMBER.format(n);
+}
 
-  if (n4 == null && n5 == null && n6 == null) return null;
-  return (n4 ?? 0) + (n5 ?? 0) + (n6 ?? 0);
+function normalizeHttpUrl(value) {
+  if (!value) return null;
+  try {
+    const url = new URL(String(value));
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function escapeAttr(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
+function buildApiUrl(pathname) {
+  const base = String(API_URL ?? '').replace(/\/+$/, '');
+  const cleanPath = String(pathname ?? '').replace(/^\/+/, '');
+  if (!base) return `/${cleanPath}`;
+
+  // Make this component tolerant when API_URL is configured with or without "/api".
+  const baseHasApi = /\/api$/i.test(base);
+  const prefix = baseHasApi ? base : `${base}/api`;
+  return `${prefix}/${cleanPath}`;
 }
 
 function buildColumns() {
   const base = [
+    {
+      field: 'sales_name',
+      text: 'Sales',
+      size: '140px',
+      sortable: true,
+      resizable: true,
+      attr: 'style="white-space:nowrap;"',
+    },
     {
       field: 'wilayah',
       text: 'Wilayah',
@@ -50,45 +93,72 @@ function buildColumns() {
       attr: 'style="white-space:nowrap;"',
     },
     {
-      field: 'customer',
+      field: 'customer_name',
       text: 'Customer',
       size: '450px',
       sortable: true,
       resizable: true,
       attr: 'style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"',
     },
+    {
+      field: 'plan_date',
+      text: 'Tanggal Visit',
+      size: '220px',
+      sortable: true,
+      resizable: true,
+      attr: 'style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"',
+    },
+    {
+      field: 'result_location_accuracy',
+      text: 'Radius',
+      size: '120px',
+      sortable: true,
+      resizable: true,
+      attr: 'align=right style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"',
+      render(record) {
+        return formatMaybeNumber(record?.result_location_accuracy ?? null);
+      },
+    },
+    {
+      field: 'result',
+      text: 'Result',
+      size: '450px',
+      sortable: true,
+      resizable: true,
+      attr: 'style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"',
+    },
+    {
+      field: 'user_photo',
+      text: 'Foto',
+      size: '100px',
+      sortable: true,
+      resizable: true,
+      attr: 'style="text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"',
+      render(record) {
+        const safe = normalizeHttpUrl(record?.user_photo ?? null);
+        if (!safe) return '';
+        const href = escapeAttr(safe);
+        return `
+          <button type="button" class="tv-photo-btn" data-url="${href}" title="Lihat foto" aria-label="Lihat foto">
+            <span class="tv-photo-btn__icon" aria-hidden="true">${TOOLBAR_SVGS.photo}</span>
+            <span class="tv-photo-btn__text">Foto</span>
+          </button>
+        `.trim();
+      },
+    },
   ];
 
-  const weekCols = WEEK_COLUMNS.map((label, weekIndex) => ({
-    field: `week${weekIndex + 1}`,
-    text: label,
-    size: '92px',
-    sortable: false,
-    resizable: true,
-    attr: 'align=right class=tv-week-cell style="white-space:nowrap;"',
-  }));
-
-  const totalCol = {
-    field: 'total',
-    text: 'Total (week1-4)',
-    size: '120px',
-    sortable: false,
-    resizable: true,
-    attr: 'align=right class=tv-week-cell style="white-space:nowrap;"',
-  };
-
-  return base.concat(weekCols, totalCol);
+  return base;
 }
 
-export default function DataTableMonthly() {
+export default function ReportTableResult() {
   const layoutBoxRef = React.useRef(null);
   const lockBoxRef = React.useRef(null);
   const layoutRef = React.useRef(null);
   const gridRef = React.useRef(null);
-  const queryInputRef = React.useRef(null);
+  const toolbarInputsRef = React.useRef([]);
   const activeMainTabRef = React.useRef('data');
   const latestFilteredRowsRef = React.useRef([]);
-  const latestSummaryDataRef = React.useRef([]);
   const abortRef = React.useRef(null);
   const requestIdRef = React.useRef(0);
   const [gridReadyTick, setGridReadyTick] = React.useState(0);
@@ -100,10 +170,11 @@ export default function DataTableMonthly() {
   const [filters, setFilters] = React.useState(() => ({
     query: '',
     wilayah: 'ALL',
-    year: new Date().getFullYear(),
+    start_date: toDateInputValue(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
+    end_date: toDateInputValue(new Date()),
   }));
 
-  const [summaryData, setSummaryData] = React.useState([]);
+  const [sourceData, setSourceData] = React.useState([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState(null);
 
@@ -116,18 +187,22 @@ export default function DataTableMonthly() {
     abortRef.current = controller;
 
     const params = new URLSearchParams();
-    const year = Number(filters.year);
-    const yearIsValid = Number.isInteger(year);
+    const startDate = String(filters.start_date ?? '').trim();
+    const endDate = String(filters.end_date ?? '').trim();
 
     if (filters.wilayah && filters.wilayah !== 'ALL') {
       params.set('state', String(filters.wilayah));
     }
 
-    if (yearIsValid) {
-      params.set('year', String(year));
+    if (startDate) {
+      params.set('start_date', startDate);
     }
 
-    const url = `${API_URL}/activity-plans/weekly-summary?${params.toString()}`;
+    if (endDate) {
+      params.set('end_date', endDate);
+    }
+
+    const url = `${buildApiUrl('activity-plans/details')}?${params.toString()}`;
 
     setIsLoading(true);
     setLoadError(null);
@@ -137,7 +212,15 @@ export default function DataTableMonthly() {
         const body = await response.json().catch(() => null);
         if (!response.ok) {
           const message = body?.message || `Request failed (${response.status})`;
-          throw new Error(message);
+          const extraErrors = body?.errors
+            ? Object.values(body.errors)
+                .flat()
+                .filter(Boolean)
+                .join(' ')
+            : null;
+          const extra = extraErrors || body?.error || null;
+          const baseMsg = extra ? `${message}: ${extra}` : message;
+          throw new Error(`${baseMsg} | ${url}`);
         }
         return body;
       })
@@ -148,13 +231,13 @@ export default function DataTableMonthly() {
           throw new Error(body?.message || 'Invalid response from server');
         }
 
-        setSummaryData(body.data);
+        setSourceData(body.data);
       })
       .catch((err) => {
         if (controller.signal.aborted) return;
-        console.error('Failed to load weekly summary:', err);
+        console.error('Failed to load activity details:', err);
         if (requestIdRef.current !== nextRequestId) return;
-        setSummaryData([]);
+        setSourceData([]);
         setLoadError(err?.message || 'Failed to load data');
       })
       .finally(() => {
@@ -164,7 +247,7 @@ export default function DataTableMonthly() {
       });
 
     return () => controller.abort();
-  }, [filters.year, filters.wilayah]);
+  }, [filters.start_date, filters.end_date, filters.wilayah]);
 
   React.useEffect(() => {
     const lockTarget = lockBoxRef.current;
@@ -180,39 +263,18 @@ export default function DataTableMonthly() {
   }, [isLoading, loadError]);
 
   const rows = React.useMemo(() => {
-    return (Array.isArray(summaryData) ? summaryData : []).map((item, index) => {
-      const years = new Set();
-      const weeksByYear = {};
-
-      const months = Array.isArray(item?.months) ? item.months : [];
-      for (const m of months) {
-        const year = Number(m?.year);
-        if (!Number.isInteger(year)) continue;
-
-        years.add(year);
-        const acc = (weeksByYear[year] ??= { week1: 0, week2: 0, week3: 0, week4: 0, total: 0 });
-
-        const week4 = mergeWeek4(m?.week4 ?? null, m?.week5 ?? null, m?.week6 ?? null);
-        acc.week1 += toFiniteNumberOrNull(m?.week1) ?? 0;
-        acc.week2 += toFiniteNumberOrNull(m?.week2) ?? 0;
-        acc.week3 += toFiniteNumberOrNull(m?.week3) ?? 0;
-        acc.week4 += (typeof week4 === 'number' ? week4 : toFiniteNumberOrNull(week4) ?? 0);
-      }
-
-      for (const yearKey of Object.keys(weeksByYear)) {
-        const acc = weeksByYear[yearKey];
-        acc.total = acc.week1 + acc.week2 + acc.week3 + acc.week4;
-      }
-
-      return {
-        id: index + 1,
-        wilayah: item?.wilayah ?? '-',
-        customer: item?.customer ?? '-',
-        weeksByYear,
-        years,
-      };
-    });
-  }, [summaryData]);
+    const list = Array.isArray(sourceData) ? sourceData : [];
+    return list.map((item, index) => ({
+      id: index + 1,
+      sales_name: item?.sales_name ?? '-',
+      wilayah: item?.wilayah ?? item?.state ?? '-',
+      customer_name: item?.customer_name ?? '-',
+      plan_date: item?.plan_date ?? '-',
+      result_location_accuracy: item?.result_location_accuracy ?? null,
+      result: item?.result == null || item?.result === '' ? '-' : item.result,
+      user_photo: item?.user_photo ?? null,
+    }));
+  }, [sourceData]);
 
   const stateOptions = React.useMemo(() => {
     const unique = new Set();
@@ -222,35 +284,18 @@ export default function DataTableMonthly() {
     return Array.from(unique).sort((a, b) => a.localeCompare(b));
   }, [rows]);
 
-  const yearOptions = React.useMemo(() => {
-    const unique = new Set();
-
-    for (const row of rows) {
-      for (const y of row.years) unique.add(y);
-    }
-
-    return Array.from(unique).sort((a, b) => b - a);
-  }, [rows]);
-
   const filteredRows = React.useMemo(() => {
     const normalizedQuery = String(filters.query ?? '').trim().toLowerCase();
 
     return rows.filter((row) => {
       if (filters.wilayah !== 'ALL' && row.wilayah !== filters.wilayah) return false;
 
-      const filterYear = Number(filters.year);
-      if (Number.isInteger(filterYear) && row.years.size > 0 && !row.years.has(filterYear)) return false;
-
       if (!normalizedQuery) return true;
 
-      const haystack = `${row.wilayah} ${row.customer}`.toLowerCase();
+      const haystack = `${row.sales_name} ${row.wilayah} ${row.customer_name} ${row.plan_date} ${row.result}`.toLowerCase();
       return haystack.includes(normalizedQuery);
     });
   }, [rows, filters]);
-
-  React.useEffect(() => {
-    latestSummaryDataRef.current = Array.isArray(summaryData) ? summaryData : [];
-  }, [summaryData]);
 
   React.useEffect(() => {
     latestFilteredRowsRef.current = filteredRows;
@@ -258,7 +303,6 @@ export default function DataTableMonthly() {
 
   const MAIN_DATA_ID = `${LAYOUT_NAME}__tab_data`;
   const MAIN_SUMMARY_ID = `${LAYOUT_NAME}__tab_summary`;
-  const MAIN_JSON_ID = `${LAYOUT_NAME}__tab_json`;
 
   const escapeHTML = React.useCallback((value) => {
     return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
@@ -275,22 +319,20 @@ export default function DataTableMonthly() {
     if (!summaryEl) return;
 
     const currentRows = Array.isArray(latestFilteredRowsRef.current) ? latestFilteredRowsRef.current : [];
-    const filterYear = Number(filters.year);
-    const yearIsValid = Number.isInteger(filterYear);
 
-    const grand = currentRows.reduce(
+    const radiusStats = currentRows.reduce(
       (acc, row) => {
-        const yd = yearIsValid ? row?.weeksByYear?.[filterYear] : null;
-        if (!yd) return acc;
-        acc.week1 += typeof yd.week1 === 'number' ? yd.week1 : 0;
-        acc.week2 += typeof yd.week2 === 'number' ? yd.week2 : 0;
-        acc.week3 += typeof yd.week3 === 'number' ? yd.week3 : 0;
-        acc.week4 += typeof yd.week4 === 'number' ? yd.week4 : 0;
-        acc.total += typeof yd.total === 'number' ? yd.total : 0;
+        const n = typeof row?.result_location_accuracy === 'number' ? row.result_location_accuracy : Number(row?.result_location_accuracy);
+        if (Number.isFinite(n)) {
+          acc.sum += n;
+          acc.count += 1;
+        }
         return acc;
       },
-      { week1: 0, week2: 0, week3: 0, week4: 0, total: 0 },
+      { sum: 0, count: 0 },
     );
+
+    const photoCount = currentRows.reduce((acc, row) => (row?.user_photo ? acc + 1 : acc), 0);
 
     const headerNote = loadError
       ? `<div style="margin-bottom:10px; color:#b42318;">${escapeHTML(loadError)}</div>`
@@ -298,55 +340,40 @@ export default function DataTableMonthly() {
         ? `<div style="margin-bottom:10px; color:#6b7685;">Loading...</div>`
         : '';
 
-    const yearLabel = yearIsValid ? String(filterYear) : '-';
+    const startDate = String(filters.start_date ?? '').trim();
+    const endDate = String(filters.end_date ?? '').trim();
+    const periodLabel =
+      startDate && endDate ? `${startDate} s/d ${endDate}` : startDate ? `Dari ${startDate}` : endDate ? `Sampai ${endDate}` : 'Semua';
+    const stateLabel = filters.wilayah === 'ALL' ? 'Semua' : String(filters.wilayah);
+    const avgRadius = radiusStats.count > 0 ? radiusStats.sum / radiusStats.count : null;
 
     summaryEl.innerHTML = `
       ${headerNote}
       <div style="display:flex; flex-direction:column; gap:10px;">
         <div>Summary</div>
         <div style="display:grid; grid-template-columns: 1fr auto; gap:6px 10px; font-size:13px;">
-          <div>Tahun</div>
-          <div style="text-align:right;">${escapeHTML(yearLabel)}</div>
+          <div>Periode</div>
+          <div style="text-align:right;">${escapeHTML(periodLabel)}</div>
 
-          <div>Jumlah customer</div>
+          <div>Wilayah</div>
+          <div style="text-align:right;">${escapeHTML(stateLabel)}</div>
+
+          <div>Jumlah baris</div>
           <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTML(
             formatNumber(currentRows.length),
           )}</div>
 
-          <div>Total week1</div>
-          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTML(formatNumber(grand.week1))}</div>
+          <div>Rata-rata radius</div>
+          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTML(
+            avgRadius == null ? '-' : formatMaybeNumber(avgRadius),
+          )}</div>
 
-          <div>Total week2</div>
-          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTML(formatNumber(grand.week2))}</div>
-
-          <div>Total week3</div>
-          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTML(formatNumber(grand.week3))}</div>
-
-          <div>Total week4</div>
-          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTML(formatNumber(grand.week4))}</div>
-
-          <div>Total (week1-4)</div>
-          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTML(formatNumber(grand.total))}</div>
+          <div>Foto tersedia</div>
+          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTML(formatNumber(photoCount))}</div>
         </div>
       </div>
     `;
-  }, [MAIN_SUMMARY_ID, escapeHTML, formatNumber, filters.year, isLoading, loadError]);
-
-  const renderJsonTab = React.useCallback(() => {
-    const jsonEl = document.getElementById(MAIN_JSON_ID);
-    if (!jsonEl) return;
-
-    const payload = {
-      filters,
-      data: Array.isArray(latestSummaryDataRef.current) ? latestSummaryDataRef.current : [],
-    };
-
-    jsonEl.innerHTML = `
-      <pre style="margin:0; white-space:pre-wrap; word-break:break-word; font-size:12px; line-height:1.45; color:#111827;">${escapeHTML(
-        JSON.stringify(payload, null, 2),
-      )}</pre>
-    `;
-  }, [MAIN_JSON_ID, escapeHTML, filters]);
+  }, [MAIN_SUMMARY_ID, escapeHTML, formatNumber, filters.end_date, filters.start_date, filters.wilayah, isLoading, loadError]);
 
   const setMainTab = React.useCallback(
     (nextTabId) => {
@@ -357,15 +384,12 @@ export default function DataTableMonthly() {
 
       const dataEl = document.getElementById(MAIN_DATA_ID);
       const summaryEl = document.getElementById(MAIN_SUMMARY_ID);
-      const jsonEl = document.getElementById(MAIN_JSON_ID);
-      if (!dataEl || !summaryEl || !jsonEl) return;
+      if (!dataEl || !summaryEl) return;
 
       dataEl.style.display = tabId === 'data' ? 'block' : 'none';
       summaryEl.style.display = tabId === 'summary' ? 'block' : 'none';
-      jsonEl.style.display = tabId === 'json' ? 'block' : 'none';
 
       if (tabId === 'summary') renderSummaryTab();
-      if (tabId === 'json') renderJsonTab();
 
       if (tabId === 'data') {
         setTimeout(() => {
@@ -375,13 +399,15 @@ export default function DataTableMonthly() {
         }, 0);
       }
     },
-    [renderJsonTab, renderSummaryTab, MAIN_DATA_ID, MAIN_SUMMARY_ID, MAIN_JSON_ID],
+    [renderSummaryTab, MAIN_DATA_ID, MAIN_SUMMARY_ID],
   );
 
   React.useEffect(() => {
     if (!layoutBoxRef.current) return;
     let disposed = false;
     let initialMountTimeoutId = null;
+    let gridHostEl = null;
+    let gridHostClickHandler = null;
 
     if (w2ui[GRID_NAME]) w2ui[GRID_NAME].destroy();
     if (w2ui[LAYOUT_NAME]) w2ui[LAYOUT_NAME].destroy();
@@ -400,7 +426,6 @@ export default function DataTableMonthly() {
             <div style="height:100%; display:flex; flex-direction:column;">
               <div id="${MAIN_DATA_ID}" style="flex:1; min-height:0;"></div>
               <div id="${MAIN_SUMMARY_ID}" style="flex:1; min-height:0; display:none; overflow:auto; padding:12px;"></div>
-              <div id="${MAIN_JSON_ID}" style="flex:1; min-height:0; display:none; overflow:auto; padding:12px;"></div>
             </div>
           `,
           tabs: {
@@ -408,7 +433,6 @@ export default function DataTableMonthly() {
             tabs: [
               { id: 'data', text: 'Data' },
               { id: 'summary', text: 'Summary' },
-              { id: 'json', text: 'JSON' },
             ],
             onClick(event) {
               setMainTab(String(event.target));
@@ -438,6 +462,19 @@ export default function DataTableMonthly() {
         records: [],
       });
 
+      gridHostEl = dataHost;
+      gridHostClickHandler = (e) => {
+        const target = e?.target;
+        if (!(target instanceof HTMLElement)) return;
+        const btn = target.closest?.('button.tv-photo-btn');
+        if (!btn) return;
+        const url = btn.getAttribute('data-url');
+        const safe = normalizeHttpUrl(url);
+        if (!safe) return;
+        window.open(safe, '_blank', 'noopener,noreferrer');
+      };
+      gridHostEl.addEventListener('click', gridHostClickHandler);
+
       setGridReadyTick((v) => v + 1);
 
       const grid = gridRef.current;
@@ -447,21 +484,25 @@ export default function DataTableMonthly() {
             type: 'html',
             id: 'tbQuery',
             html: `
-              <div class="tv-sales-toolbar-search" title="Cari wilayah / customer...">
+              <div class="tv-sales-toolbar-search" title="Cari sales / customer / result...">
                 <span class="tv-sales-toolbar-search__icon" aria-hidden="true">${TOOLBAR_SVGS.search}</span>
-                <input id="${GRID_NAME}__query" class="w2ui-input tv-sales-toolbar-search__input" placeholder="Cari wilayah / customer..." />
+                <input id="${GRID_NAME}__query" class="w2ui-input tv-sales-toolbar-search__input" placeholder="Cari sales / customer / result..." />
+              </div>
+            `,
+          },
+          {
+            type: 'html',
+            id: 'tbDates',
+            html: `
+              <div class="tv-sales-toolbar-dates" title="Filter tanggal (maks 31 hari)">
+                <span class="tv-sales-toolbar-dates__label">Dari</span>
+                <input id="${GRID_NAME}__start_date" type="date" class="w2ui-input tv-sales-toolbar-dates__input" />
+                <span class="tv-sales-toolbar-dates__label">Sampai</span>
+                <input id="${GRID_NAME}__end_date" type="date" class="w2ui-input tv-sales-toolbar-dates__input" />
               </div>
             `,
           },
           { type: 'break', id: 'tbBreak1' },
-          {
-            type: 'menu-radio',
-            id: 'tbYear',
-            icon: TOOLBAR_ICONS.year,
-            text: `Tahun: ${new Date().getFullYear()}`,
-            selected: String(new Date().getFullYear()),
-            items: [{ id: String(new Date().getFullYear()), text: String(new Date().getFullYear()), checked: true }],
-          },
           {
             type: 'menu-radio',
             id: 'tbState',
@@ -479,13 +520,19 @@ export default function DataTableMonthly() {
           if (!target) return;
 
           if (target === 'tbReset') {
+            const now = new Date();
             setFilters({
               query: '',
               wilayah: 'ALL',
-              year: new Date().getFullYear(),
+              start_date: toDateInputValue(new Date(now.getFullYear(), now.getMonth(), 1)),
+              end_date: toDateInputValue(now),
             });
-            const input = document.getElementById(`${GRID_NAME}__query`);
-            if (input) input.value = '';
+            const queryEl = document.getElementById(`${GRID_NAME}__query`);
+            if (queryEl) queryEl.value = '';
+            const startEl = document.getElementById(`${GRID_NAME}__start_date`);
+            if (startEl) startEl.value = toDateInputValue(new Date(now.getFullYear(), now.getMonth(), 1));
+            const endEl = document.getElementById(`${GRID_NAME}__end_date`);
+            if (endEl) endEl.value = toDateInputValue(now);
             return;
           }
 
@@ -495,23 +542,38 @@ export default function DataTableMonthly() {
 
           if (parentId === 'tbState') {
             setFilters((prev) => ({ ...prev, wilayah: subId === 'ALL' ? 'ALL' : subId }));
-          } else if (parentId === 'tbYear') {
-            const year = Number(subId);
-            if (!Number.isInteger(year)) return;
-            setFilters((prev) => ({ ...prev, year }));
           }
         });
 
         setTimeout(() => {
-          const input = document.getElementById(`${GRID_NAME}__query`);
-          if (!input) return;
-
-          const handler = (e) => {
-            setFilters((prev) => ({ ...prev, query: e.target.value }));
+          const listeners = [];
+          const attach = (id, eventName, handler) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener(eventName, handler);
+            listeners.push({ el, eventName, handler });
           };
 
-          input.addEventListener('input', handler);
-          queryInputRef.current = { el: input, handler };
+          const queryEl = document.getElementById(`${GRID_NAME}__query`);
+          if (queryEl) queryEl.value = String(filters.query ?? '');
+          const startEl = document.getElementById(`${GRID_NAME}__start_date`);
+          if (startEl) startEl.value = String(filters.start_date ?? '');
+          const endEl = document.getElementById(`${GRID_NAME}__end_date`);
+          if (endEl) endEl.value = String(filters.end_date ?? '');
+
+          attach(`${GRID_NAME}__query`, 'input', (e) => {
+            setFilters((prev) => ({ ...prev, query: e.target.value }));
+          });
+
+          attach(`${GRID_NAME}__start_date`, 'change', (e) => {
+            setFilters((prev) => ({ ...prev, start_date: e.target.value }));
+          });
+
+          attach(`${GRID_NAME}__end_date`, 'change', (e) => {
+            setFilters((prev) => ({ ...prev, end_date: e.target.value }));
+          });
+
+          toolbarInputsRef.current = listeners;
         }, 0);
       }
     }, 0);
@@ -528,10 +590,13 @@ export default function DataTableMonthly() {
       if (initialMountTimeoutId) clearTimeout(initialMountTimeoutId);
 
       window.removeEventListener('resize', handleResize);
-      if (queryInputRef.current?.el && queryInputRef.current?.handler) {
-        queryInputRef.current.el.removeEventListener('input', queryInputRef.current.handler);
+      if (gridHostEl && gridHostClickHandler) {
+        gridHostEl.removeEventListener('click', gridHostClickHandler);
       }
-      queryInputRef.current = null;
+      for (const { el, eventName, handler } of toolbarInputsRef.current) {
+        el.removeEventListener(eventName, handler);
+      }
+      toolbarInputsRef.current = [];
       if (w2ui[GRID_NAME]) w2ui[GRID_NAME].destroy();
       if (w2ui[LAYOUT_NAME]) w2ui[LAYOUT_NAME].destroy();
       gridRef.current = null;
@@ -542,36 +607,30 @@ export default function DataTableMonthly() {
   React.useEffect(() => {
     const tabId = String(activeMainTabRef.current || 'data');
     if (tabId === 'summary') renderSummaryTab();
-    if (tabId === 'json') renderJsonTab();
-  }, [filteredRows, filters, isLoading, loadError, summaryData, renderSummaryTab, renderJsonTab]);
+  }, [filteredRows, filters, isLoading, loadError, sourceData, renderSummaryTab]);
 
   React.useEffect(() => {
     const grid = gridRef.current ?? w2ui[GRID_NAME];
     if (!grid) return;
 
-    const filterYear = Number(filters.year);
-    const yearIsValid = Number.isInteger(filterYear);
     const records = filteredRows.map((row) => {
-      const yd = yearIsValid ? row.weeksByYear?.[filterYear] : null;
-      const record = {
+      return {
         recid: row.id,
+        sales_name: row.sales_name,
         wilayah: row.wilayah,
-        customer: row.customer,
-        week1: yd ? String(yd.week1) : '',
-        week2: yd ? String(yd.week2) : '',
-        week3: yd ? String(yd.week3) : '',
-        week4: yd ? String(yd.week4) : '',
-        total: yd ? String(yd.total) : '',
+        customer_name: row.customer_name,
+        plan_date: row.plan_date,
+        result_location_accuracy: row.result_location_accuracy,
+        result: row.result,
+        user_photo: row.user_photo,
       };
-
-      return record;
     });
 
     grid.clear();
     grid.add(records);
     grid.total = records.length;
     grid.refresh();
-  }, [filteredRows, filters.year, gridReadyTick]);
+  }, [filteredRows, gridReadyTick]);
 
   React.useEffect(() => {
     const grid = gridRef.current ?? w2ui[GRID_NAME];
@@ -602,23 +661,9 @@ export default function DataTableMonthly() {
     const grid = gridRef.current ?? w2ui[GRID_NAME];
     if (!grid?.toolbar) return;
 
-    const yearItems =
-      yearOptions.length === 0
-        ? [{ id: String(filters.year), text: String(filters.year), checked: true }]
-        : yearOptions.map((year) => ({ id: String(year), text: String(year), checked: Number(filters.year) === year }));
-
     const stateItems = [{ id: 'ALL', text: 'Semua', checked: filters.wilayah === 'ALL' }].concat(
       stateOptions.map((opt) => ({ id: opt, text: opt, checked: filters.wilayah === opt })),
     );
-
-    const yearLabel = String(filters.year);
-    const tbYear = grid.toolbar.get('tbYear');
-    if (tbYear) {
-      tbYear.items = yearItems;
-      tbYear.selected = String(filters.year);
-      tbYear.text = `Tahun: ${yearLabel}`;
-      grid.toolbar.refresh('tbYear');
-    }
 
     const stateLabel = filters.wilayah === 'ALL' ? 'Semua' : String(filters.wilayah);
     const tbState = grid.toolbar.get('tbState');
@@ -628,7 +673,21 @@ export default function DataTableMonthly() {
       tbState.text = `Wilayah: ${stateLabel}`;
       grid.toolbar.refresh('tbState');
     }
-  }, [filters.year, filters.wilayah, stateOptions, yearOptions, gridReadyTick]);
+  }, [filters.wilayah, stateOptions, gridReadyTick]);
+
+  React.useEffect(() => {
+    const queryEl = document.getElementById(`${GRID_NAME}__query`);
+    const nextQuery = String(filters.query ?? '');
+    if (queryEl && queryEl.value !== nextQuery) queryEl.value = nextQuery;
+
+    const startEl = document.getElementById(`${GRID_NAME}__start_date`);
+    const nextStart = String(filters.start_date ?? '');
+    if (startEl && startEl.value !== nextStart) startEl.value = nextStart;
+
+    const endEl = document.getElementById(`${GRID_NAME}__end_date`);
+    const nextEnd = String(filters.end_date ?? '');
+    if (endEl && endEl.value !== nextEnd) endEl.value = nextEnd;
+  }, [filters.end_date, filters.query, filters.start_date, gridReadyTick]);
 
   return (
     <Box
@@ -720,6 +779,62 @@ export default function DataTableMonthly() {
             padding: 0 8px;
             width: min(280px, 42vw);
             box-sizing: border-box;
+          }
+
+          .tv-sales-toolbar-dates {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            height: 30px;
+            padding: 0 6px;
+            white-space: nowrap;
+            transform: translateY(-2px);
+          }
+          .tv-sales-toolbar-dates__label {
+            font-size: 12px;
+            color: #5b6775;
+          }
+          .tv-sales-toolbar-dates__input {
+            height: 26px;
+            line-height: 26px;
+            padding: 0 6px;
+            width: 140px;
+            box-sizing: border-box;
+          }
+
+          .tv-photo-btn {
+            height: 24px;
+            padding: 0 10px;
+            border: 1px solid #cfd6de;
+            border-radius: 6px;
+            background: #fff;
+            color: #5b6775;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            line-height: 1;
+          }
+          .tv-photo-btn__icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+          }
+          .tv-photo-btn svg {
+            display: block;
+            width: 16px;
+            height: 16px;
+          }
+          .tv-photo-btn__text {
+            font-size: 12px;
+            line-height: 1;
+          }
+          .tv-photo-btn:hover {
+            background: rgba(107, 163, 208, 0.08);
+            border-color: rgba(107, 163, 208, 0.6);
+            color: #1f2937;
           }
           .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon {
             background-color: #8d99a7;
