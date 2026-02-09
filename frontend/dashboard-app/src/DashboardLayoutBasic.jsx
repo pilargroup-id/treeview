@@ -7,6 +7,7 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
 import LayersIcon from '@mui/icons-material/Layers';
 import CategoryIcon from '@mui/icons-material/Category';
 import { AppProvider } from '@toolpad/core/AppProvider';
@@ -16,7 +17,11 @@ import ChartInvoice from './chart/ChartInvoice';
 import ItemTes from './chart/TestItemCategory';
 import ReportTableSales from './sales/ReportTableSales';
 import ReportTableCustomers from './sales/ReportTableCustomers';
+import ReportTableResult from './sales/ReportTableResult';
 import { API_URL } from './config/api';
+
+const DASHBOARD_BACKGROUND_LIGHT =
+  'linear-gradient(135deg, #F5F7FA 0%, #F8F9FA 50%, #FAFBFC 100%)';
 
 const NAVIGATION = [
   { kind: 'header', title: 'Main items' },
@@ -39,6 +44,7 @@ const NAVIGATION = [
     children: [
       { segment: 'sales', title: 'Sales', icon: <PointOfSaleIcon /> },
       { segment: 'customers', title: 'Customers', icon: <PeopleAltIcon /> },
+      { segment: 'result', title: 'Result', icon: <FactCheckIcon /> },
     ],
   },
   { segment: 'integrations', title: 'Integrations', icon: <LayersIcon /> },
@@ -54,6 +60,10 @@ const demoTheme = createTheme({
           light: '#89B7DC',
           dark: '#5A9FD0',
           contrastText: '#FFFFFF',
+        },
+        background: {
+          default: '#F5F7FA',
+          paper: '#FFFFFF',
         },
       },
     }
@@ -144,10 +154,6 @@ function DemoPageContent({ pathname }) {
         width: '100%',
         height: '100%',
         overflow: 'hidden',
-        backgroundColor: (theme) => 
-          theme.palette.mode === 'dark' 
-            ? 'rgba(18, 18, 18, 0.8)' 
-            : 'rgba(250, 250, 250, 1)',
       }}>
         <ItemTes />
       </Box>
@@ -166,6 +172,14 @@ function DemoPageContent({ pathname }) {
     return (
       <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
         <ReportTableCustomers />
+      </Box>
+    );
+  }
+
+  if (currentPathname.includes('reports/result')) {
+    return (
+      <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
+        <ReportTableResult />
       </Box>
     );
   }
@@ -389,8 +403,35 @@ export default function DashboardLayoutBasic() {
         }}
       >
         <LastUpdateHeader />
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-          <Box sx={{ flex: 1, overflow: 'hidden' }}>
+        <Box
+          sx={(theme) => ({
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100vh',
+            overflow: 'hidden',
+            position: 'relative',
+            background:
+              theme.palette.mode === 'dark'
+                ? 'linear-gradient(135deg, rgba(18, 18, 18, 0.95) 0%, rgba(24, 24, 24, 0.98) 50%, rgba(30, 30, 30, 1) 100%)'
+                : DASHBOARD_BACKGROUND_LIGHT,
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundImage:
+                theme.palette.mode === 'dark'
+                  ? 'radial-gradient(circle at 1px 1px, rgba(107, 163, 208, 0.06) 1px, transparent 0)'
+                  : 'radial-gradient(circle at 1px 1px, rgba(107, 163, 208, 0.03) 1px, transparent 0)',
+              backgroundSize: '24px 24px',
+              pointerEvents: 'none',
+              zIndex: 0,
+            },
+          })}
+        >
+          <Box sx={{ position: 'relative', zIndex: 1, flex: 1, overflow: 'hidden' }}>
             <DemoPageContent pathname={router.pathname} />
           </Box>
         </Box>
