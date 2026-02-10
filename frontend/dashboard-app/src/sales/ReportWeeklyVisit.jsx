@@ -120,17 +120,17 @@ function buildColumnGroups(visibleMonths) {
 function buildColumns(visibleMonths) {
   const base = [
     {
-      field: 'wilayah',
-      text: 'Wilayah',
-      size: '140px',
+      field: 'sales_name',
+      text: 'Sales',
+      size: '180px',
       sortable: true,
       resizable: true,
       attr: 'style="white-space:nowrap;"',
     },
     {
-      field: 'sales_name',
-      text: 'Sales',
-      size: '180px',
+      field: 'wilayah',
+      text: 'Wilayah',
+      size: '140px',
       sortable: true,
       resizable: true,
       attr: 'style="white-space:nowrap;"',
