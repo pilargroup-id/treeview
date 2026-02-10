@@ -8,7 +8,7 @@ import { createRoot } from 'react-dom/client';
 import { w2grid, w2layout, w2ui, w2utils } from 'w2ui';
 import 'w2ui/w2ui-2.0.min.css';
 import { API_URL } from '../config/api';
-import SummaryCustomer from './SummaryCustomer';
+import SummaryCustomer from './SummaryWeeklyVisit';
 
 const WEEK_COLUMNS = ['Week1', 'Week2', 'Week3', 'Week4'];
 const MONTH_LABELS = [
