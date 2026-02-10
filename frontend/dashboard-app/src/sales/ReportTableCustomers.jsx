@@ -2,9 +2,13 @@ import * as React from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import TablePagination from '@mui/material/TablePagination';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import EventIcon from '@mui/icons-material/Event';
+import { createRoot } from 'react-dom/client';
 import { w2grid, w2layout, w2ui, w2utils } from 'w2ui';
 import 'w2ui/w2ui-2.0.min.css';
 import { API_URL } from '../config/api';
+import SummaryCustomer from './SummaryCustomer';
 
 const WEEK_COLUMNS = ['Week1', 'Week2', 'Week3', 'Week4'];
 const MONTH_LABELS = [
@@ -44,13 +48,24 @@ const TOOLBAR_SVGS = {
       <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79L19 20.49L20.49 19l-4.99-5Zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14Z"/>
     </svg>
   `,
+  wilayah: `
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7m0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5"/>
+    </svg>
+  `,
+  reset: `
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6 0 2.97-2.17 5.43-5 5.91v2.02c3.95-.49 7-3.85 7-7.93 0-4.42-3.58-8-8-8m-6 8c0-1.65.67-3.15 1.76-4.24L6.34 7.34C4.9 8.79 4 10.79 4 13c0 4.08 3.05 7.44 7 7.93v-2.02c-2.83-.48-5-2.94-5-5.91"/>
+    </svg>
+  `,
 };
 
 const TOOLBAR_ICONS = {
-  wilayah: 'tv-w2-icon tv-w2-icon-wilayah',
-  month: 'tv-w2-icon tv-w2-icon-month',
-  year: 'tv-w2-icon tv-w2-icon-year',
-  reset: 'tv-w2-icon tv-w2-icon-reset',
+  wilayah: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.wilayah}</span>`,
+  // Rendered via React (see mountToolbarReactIcons)
+  month: '<span class="tv-w2ui-svg tv-w2ui-react-icon tv-w2ui-svg--compact" data-tv-icon="month" aria-hidden="true"></span>',
+  year: '<span class="tv-w2ui-svg tv-w2ui-react-icon tv-w2ui-svg--compact" data-tv-icon="year" aria-hidden="true"></span>',
+  reset: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.reset}</span>`,
 };
 
 function monthNameToIndex(monthNameRaw) {
@@ -136,10 +151,11 @@ export default function DataTableMonthly() {
   const layoutRef = React.useRef(null);
   const gridRef = React.useRef(null);
   const queryInputRef = React.useRef(null);
+  const toolbarIconRootsRef = React.useRef(new Map());
+  const summaryRootRef = React.useRef(null);
   const activeMainTabRef = React.useRef('data');
   const latestFilteredRowsRef = React.useRef([]);
   const latestVisibleMonthsRef = React.useRef([]);
-  const latestSummaryDataRef = React.useRef([]);
   const abortRef = React.useRef(null);
   const requestIdRef = React.useRef(0);
   const [gridReadyTick, setGridReadyTick] = React.useState(0);
@@ -168,6 +184,34 @@ export default function DataTableMonthly() {
     if (unique.length === 0) return [new Date().getMonth()];
     return unique.slice(0, 3);
   }, [filters.months]);
+
+  const mountToolbarReactIcons = React.useCallback(() => {
+    const gridEl = document.getElementById(`grid_${GRID_NAME}`);
+    if (!gridEl) return;
+
+    // Prune unmounted hosts to avoid leaking roots
+    for (const [hostEl, root] of toolbarIconRootsRef.current.entries()) {
+      if (!hostEl.isConnected) {
+        root.unmount();
+        toolbarIconRootsRef.current.delete(hostEl);
+      }
+    }
+
+    const iconHosts = gridEl.querySelectorAll('.tv-w2ui-react-icon[data-tv-icon]');
+    iconHosts.forEach((hostEl) => {
+      const iconKey = hostEl.getAttribute('data-tv-icon');
+      const IconComponent = iconKey === 'month' ? CalendarMonthIcon : iconKey === 'year' ? EventIcon : null;
+      if (!IconComponent) return;
+
+      let root = toolbarIconRootsRef.current.get(hostEl);
+      if (!root) {
+        root = createRoot(hostEl);
+        toolbarIconRootsRef.current.set(hostEl, root);
+      }
+
+      root.render(<IconComponent />);
+    });
+  }, []);
 
   React.useEffect(() => {
     const nextRequestId = requestIdRef.current + 1;
@@ -309,10 +353,6 @@ export default function DataTableMonthly() {
   }, [rows, filters]);
 
   React.useEffect(() => {
-    latestSummaryDataRef.current = Array.isArray(summaryData) ? summaryData : [];
-  }, [summaryData]);
-
-  React.useEffect(() => {
     latestFilteredRowsRef.current = filteredRows;
   }, [filteredRows]);
 
@@ -323,16 +363,6 @@ export default function DataTableMonthly() {
   const MAIN_DATA_ID = `${LAYOUT_NAME}__tab_data`;
   const MAIN_SUMMARY_ID = `${LAYOUT_NAME}__tab_summary`;
 
-  const escapeHTML = React.useCallback((value) => {
-    return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-  }, []);
-
-  const formatNumber = React.useCallback((value) => {
-    const num = typeof value === 'number' ? value : Number(value);
-    if (!Number.isFinite(num)) return '-';
-    return new Intl.NumberFormat('id-ID').format(num);
-  }, []);
-
   const renderSummaryTab = React.useCallback(() => {
     const summaryEl = document.getElementById(MAIN_SUMMARY_ID);
     if (!summaryEl) return;
@@ -340,79 +370,20 @@ export default function DataTableMonthly() {
     const currentRows = Array.isArray(latestFilteredRowsRef.current) ? latestFilteredRowsRef.current : [];
     const months = Array.isArray(latestVisibleMonthsRef.current) ? latestVisibleMonthsRef.current : [];
 
-    const safeNum = (v) => {
-      const n = typeof v === 'number' ? v : Number(v);
-      return Number.isFinite(n) ? n : 0;
-    };
+    if (!summaryRootRef.current) {
+      summaryRootRef.current = createRoot(summaryEl);
+    }
 
-    const totals = months.map((monthIndex) => {
-      const acc = { monthIndex, week1: 0, week2: 0, week3: 0, week4: 0, total: 0 };
-
-      for (const row of currentRows) {
-        const md = row?.monthsByIndex?.[monthIndex];
-        if (!md) continue;
-        acc.week1 += safeNum(md.week1);
-        acc.week2 += safeNum(md.week2);
-        acc.week3 += safeNum(md.week3);
-        acc.week4 += safeNum(md.week4);
-      }
-
-      acc.total = acc.week1 + acc.week2 + acc.week3 + acc.week4;
-      return acc;
-    });
-
-    const grand = totals.reduce(
-      (acc, t) => {
-        acc.week1 += t.week1;
-        acc.week2 += t.week2;
-        acc.week3 += t.week3;
-        acc.week4 += t.week4;
-        acc.total += t.total;
-        return acc;
-      },
-      { week1: 0, week2: 0, week3: 0, week4: 0, total: 0 },
+    summaryRootRef.current.render(
+      <SummaryCustomer
+        rows={currentRows}
+        visibleMonths={months}
+        monthLabels={MONTH_LABELS}
+        isLoading={isLoading}
+        loadError={loadError}
+      />,
     );
-
-    const headerNote = loadError
-      ? `<div style="margin-bottom:10px; color:#b42318;">${escapeHTML(loadError)}</div>`
-      : isLoading
-        ? `<div style="margin-bottom:10px; color:#6b7685;">Loading...</div>`
-        : '';
-
-    const monthLabel =
-      months.length === 0 ? '-' : months.map((m) => MONTH_LABELS[m] ?? `Bulan ${String(m + 1)}`).join(', ');
-
-    summaryEl.innerHTML = `
-      ${headerNote}
-      <div style="display:flex; flex-direction:column; gap:10px;">
-        <div>Summary</div>
-        <div style="display:grid; grid-template-columns: 1fr auto; gap:6px 10px; font-size:13px;">
-          <div>Bulan terpilih</div>
-          <div style="text-align:right;">${escapeHTML(monthLabel)}</div>
-
-          <div>Jumlah customer</div>
-          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTML(
-            formatNumber(currentRows.length),
-          )}</div>
-
-          <div>Total week1</div>
-          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTML(formatNumber(grand.week1))}</div>
-
-          <div>Total week2</div>
-          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTML(formatNumber(grand.week2))}</div>
-
-          <div>Total week3</div>
-          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTML(formatNumber(grand.week3))}</div>
-
-          <div>Total week4</div>
-          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTML(formatNumber(grand.week4))}</div>
-
-          <div>Total (week1-4)</div>
-          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTML(formatNumber(grand.total))}</div>
-        </div>
-      </div>
-    `;
-  }, [MAIN_SUMMARY_ID, escapeHTML, formatNumber, isLoading, loadError]);
+  }, [MAIN_SUMMARY_ID, isLoading, loadError]);
 
   const setMainTab = React.useCallback(
     (nextTabId) => {
@@ -446,6 +417,9 @@ export default function DataTableMonthly() {
     let disposed = false;
     let initialMountTimeoutId = null;
 
+    summaryRootRef.current?.unmount?.();
+    summaryRootRef.current = null;
+
     if (w2ui[GRID_NAME]) w2ui[GRID_NAME].destroy();
     if (w2ui[LAYOUT_NAME]) w2ui[LAYOUT_NAME].destroy();
 
@@ -462,7 +436,7 @@ export default function DataTableMonthly() {
           html: `
             <div style="height:100%; display:flex; flex-direction:column;">
               <div id="${MAIN_DATA_ID}" style="flex:1; min-height:0;"></div>
-              <div id="${MAIN_SUMMARY_ID}" style="flex:1; min-height:0; display:none; overflow:auto; padding:12px;"></div>
+              <div id="${MAIN_SUMMARY_ID}" style="flex:1; min-height:0; display:none; overflow:auto; padding:20px;"></div>
             </div>
           `,
           tabs: {
@@ -527,6 +501,8 @@ export default function DataTableMonthly() {
             id: 'tbMonth',
             icon: TOOLBAR_ICONS.month,
             text: 'Bulan: -',
+            selected: getDefaultMonthSelection(),
+            overlay: { class: 'w2ui-white tv-report-customers__month-menu' },
             items: MONTH_LABELS.map((label, monthIndex) => ({ id: monthIndex, text: label, checked: false })),
           },
           {
@@ -546,8 +522,13 @@ export default function DataTableMonthly() {
             items: [{ id: 'ALL', text: 'Semua', checked: true }],
           },
           { type: 'spacer', id: 'tbSpacer1' },
-          { type: 'button', id: 'tbReset', icon: TOOLBAR_ICONS.reset, text: 'Reset' },
+          { type: 'button', id: 'tbReset', icon: TOOLBAR_ICONS.reset},
         ]);
+
+        setTimeout(() => {
+          if (disposed) return;
+          mountToolbarReactIcons();
+        }, 0);
 
         grid.toolbar.on('click', (event) => {
           const target = String(event.target ?? '');
@@ -626,6 +607,10 @@ export default function DataTableMonthly() {
         queryInputRef.current.el.removeEventListener('input', queryInputRef.current.handler);
       }
       queryInputRef.current = null;
+      for (const [, root] of toolbarIconRootsRef.current.entries()) root.unmount();
+      toolbarIconRootsRef.current.clear();
+      summaryRootRef.current?.unmount?.();
+      summaryRootRef.current = null;
       if (w2ui[GRID_NAME]) w2ui[GRID_NAME].destroy();
       if (w2ui[LAYOUT_NAME]) w2ui[LAYOUT_NAME].destroy();
       gridRef.current = null;
@@ -733,6 +718,7 @@ export default function DataTableMonthly() {
     const tbMonth = grid.toolbar.get('tbMonth');
     if (tbMonth) {
       tbMonth.items = monthItems;
+      tbMonth.selected = selectedMonths;
       tbMonth.text = `Bulan: ${monthLabel}`;
       grid.toolbar.refresh('tbMonth');
     }
@@ -754,6 +740,11 @@ export default function DataTableMonthly() {
       tbState.text = `Wilayah: ${stateLabel}`;
       grid.toolbar.refresh('tbState');
     }
+
+    // w2ui refresh can recreate DOM nodes, so re-mount React icons afterwards
+    setTimeout(() => {
+      mountToolbarReactIcons();
+    }, 0);
   }, [filters.year, filters.wilayah, visibleMonths, stateOptions, yearOptions, gridReadyTick]);
 
   return (
@@ -847,34 +838,135 @@ export default function DataTableMonthly() {
             width: min(280px, 42vw);
             box-sizing: border-box;
           }
-          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon {
-            background-color: #8d99a7;
-            -webkit-mask-position: center;
-            -webkit-mask-repeat: no-repeat;
-            -webkit-mask-size: 14px 14px;
-            mask-position: center;
-            mask-repeat: no-repeat;
-            mask-size: 14px 14px;
+          
+          /* Make w2ui toolbar icon/text align consistently (override float-based default layout). */
+          .tv-report-customers .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button,
+          #grid_${GRID_NAME} .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
           }
-          .w2ui-toolbar .w2ui-tb-button.over .w2ui-tb-icon.tv-w2-icon,
-          .w2ui-toolbar .w2ui-tb-button.checked .w2ui-tb-icon.tv-w2-icon {
-            background-color: #5b6775;
+          
+          .tv-report-customers .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button .w2ui-tb-icon,
+          #grid_${GRID_NAME} .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button .w2ui-tb-icon {
+            float: none;
+            width: auto !important;
+            margin: 0 0 0 2px !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
           }
-          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-wilayah {
-            -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%202a7%207%200%200%200-7%207c0%205.2%207%2013%207%2013s7-7.8%207-13a7%207%200%200%200-7-7Zm0%209.5A2.5%202.5%200%201%201%2014.5%209A2.5%202.5%200%200%201%2012%2011.5Z'%2F%3E%3C%2Fsvg%3E");
-            mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%202a7%207%200%200%200-7%207c0%205.2%207%2013%207%2013s7-7.8%207-13a7%207%200%200%200-7-7Zm0%209.5A2.5%202.5%200%201%201%2014.5%209A2.5%202.5%200%200%201%2012%2011.5Z'%2F%3E%3C%2Fsvg%3E");
+          
+          .tv-report-customers .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button .w2ui-tb-text,
+          #grid_${GRID_NAME} .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button .w2ui-tb-text {
+            margin-left: 0 !important;
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 6px 5px 0;
           }
-          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-month {
-            -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M7%202h2v2h6V2h2v2h3v18H4V4h3V2Zm13%208H6v10h14V10Z'%2F%3E%3C%2Fsvg%3E");
-            mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M7%202h2v2h6V2h2v2h3v18H4V4h3V2Zm13%208H6v10h14V10Z'%2F%3E%3C%2Fsvg%3E");
+
+          /* Fixed icon container with proper sizing */
+          .tv-report-customers .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button .w2ui-tb-icon .tv-w2ui-svg,
+          #grid_${GRID_NAME} .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button .w2ui-tb-icon .tv-w2ui-svg {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            min-width: 20px;
+            min-height: 20px;
+            color: #8d99a7;
+            line-height: 1;
+            overflow: visible;
+            flex-shrink: 0;
           }
-          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-year {
-            -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M7%202h2v2h6V2h2v2h3v18H4V4h3V2Zm13%206H6v12h14V8Z'%2F%3E%3C%2Fsvg%3E");
-            mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M7%202h2v2h6V2h2v2h3v18H4V4h3V2Zm13%206H6v12h14V8Z'%2F%3E%3C%2Fsvg%3E");
+          
+          .tv-report-customers .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button .w2ui-tb-icon .tv-w2ui-svg svg,
+          #grid_${GRID_NAME} .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button .w2ui-tb-icon .tv-w2ui-svg svg {
+            display: block;
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
           }
-          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-reset {
-            -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%206V3l-4%204l4%204V8a4%204%200%201%201-4%204H6a6%206%200%201%200%206-6Z'%2F%3E%3C%2Fsvg%3E");
-            mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%206V3l-4%204l4%204V8a4%204%200%201%201-4%204H6a6%206%200%201%200%206-6Z'%2F%3E%3C%2Fsvg%3E");
+
+          .tv-report-customers .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button .w2ui-tb-icon .tv-w2ui-svg--compact,
+          #grid_${GRID_NAME} .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button .w2ui-tb-icon .tv-w2ui-svg--compact {
+            width: 16px;
+            height: 16px;
+            min-width: 16px;
+            min-height: 16px;
+          }
+          
+          .tv-report-customers .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button .w2ui-tb-icon .tv-w2ui-svg--compact svg,
+          #grid_${GRID_NAME} .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button .w2ui-tb-icon .tv-w2ui-svg--compact svg {
+            width: 16px;
+            height: 16px;
+          }
+          
+          .tv-report-customers .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button.over .w2ui-tb-icon .tv-w2ui-svg,
+          .tv-report-customers .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button.checked .w2ui-tb-icon .tv-w2ui-svg,
+          #grid_${GRID_NAME} .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button.over .w2ui-tb-icon .tv-w2ui-svg,
+          #grid_${GRID_NAME} .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button.checked .w2ui-tb-icon .tv-w2ui-svg {
+            color: #5b6775;
+          }
+
+          /* Keep dropdown arrow vertically centered (w2ui default offsets it). */
+          .tv-report-customers .w2ui-toolbar .w2ui-tb-text .w2ui-tb-down,
+          #grid_${GRID_NAME} .w2ui-toolbar .w2ui-tb-text .w2ui-tb-down {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 6px;
+          }
+
+          .tv-report-customers .w2ui-toolbar .w2ui-tb-text .w2ui-tb-down > span,
+          #grid_${GRID_NAME} .w2ui-toolbar .w2ui-tb-text .w2ui-tb-down > span {
+            position: static !important;
+            top: auto !important;
+            left: auto !important;
+          }
+
+          /* Month dropdown: show checkbox UI for menu-check items. */
+          .tv-report-customers__month-menu .menu-icon .w2ui-icon.w2ui-icon-empty,
+          .tv-report-customers__month-menu .menu-icon .w2ui-icon.w2ui-icon-check {
+            position: relative;
+            width: 16px;
+            height: 16px;
+            display: inline-block;
+            line-height: 16px;
+          }
+
+          .tv-report-customers__month-menu .menu-icon .w2ui-icon.w2ui-icon-empty:before,
+          .tv-report-customers__month-menu .menu-icon .w2ui-icon.w2ui-icon-check:before {
+            content: "";
+            display: block;
+            width: 16px;
+            height: 16px;
+            box-sizing: border-box;
+            border: 1px solid #9aa4b2;
+            border-radius: 3px;
+            background: #fff;
+          }
+
+          .tv-report-customers__month-menu .menu-icon .w2ui-icon.w2ui-icon-check:after {
+            content: "";
+            position: absolute;
+            left: 4px;
+            top: 5px;
+            width: 7px;
+            height: 4px;
+            border-left: 2px solid #6BA3D0;
+            border-bottom: 2px solid #6BA3D0;
+            transform: rotate(-45deg);
+          }
+
+          .tv-report-customers__month-menu .w2ui-menu-item.w2ui-disabled .menu-text {
+            opacity: 0.55;
+          }
+
+          .tv-report-customers__month-menu .w2ui-menu-item.w2ui-disabled .menu-icon .w2ui-icon:before {
+            background: #f3f4f6;
+            border-color: #c9cfd7;
           }
         `}
       </style>

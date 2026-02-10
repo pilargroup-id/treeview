@@ -2,9 +2,11 @@ import * as React from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import TablePagination from '@mui/material/TablePagination';
-import { w2grid, w2layout, w2ui, w2utils } from 'w2ui';
+import { createRoot } from 'react-dom/client';
+import { w2grid, w2layout, w2popup, w2ui, w2utils } from 'w2ui';
 import 'w2ui/w2ui-2.0.min.css';
 import { API_URL } from '../config/api';
+import SummaryResult from './SummaryResult';
 
 const GRID_NAME = 'reportResultGrid';
 const LAYOUT_NAME = 'reportResultLayout';
@@ -14,19 +16,42 @@ const TOOLBAR_SVGS = {
       <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79L19 20.49L20.49 19l-4.99-5Zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14Z"/>
     </svg>
   `,
+  radius: `
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M12 2a10 10 0 1 0 .001 20.001A10 10 0 0 0 12 2Zm0 2a8 8 0 1 1-.001 16.001A8 8 0 0 1 12 4Zm0 3a5 5 0 1 0 .001 10.001A5 5 0 0 0 12 7Zm0 2a3 3 0 1 1-.001 6.001A3 3 0 0 1 12 9Z"/>
+    </svg>
+  `,
   photo: `
     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path fill="currentColor" d="M21 19V5c0-1.1-.9-2-2-2H5C3.9 3 3 3.9 3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2ZM5 5h14v10.17l-3.5-4.5-3.01 3.87-2.16-2.6L5 18.5V5Zm0 14 5.25-6.75 2.2 2.65 3.05-3.92L19 15.83V19H5Z"/>
     </svg>
   `,
+  sales: `
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4m0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4"/>
+    </svg>
+  `,
+  wilayah: `
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7m0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5"/>
+    </svg>
+  `,
+  reset: `
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6 0 2.97-2.17 5.43-5 5.91v2.02c3.95-.49 7-3.85 7-7.93 0-4.42-3.58-8-8-8m-6 8c0-1.65.67-3.15 1.76-4.24L6.34 7.34C4.9 8.79 4 10.79 4 13c0 4.08 3.05 7.44 7 7.93v-2.02c-2.83-.48-5-2.94-5-5.91"/>
+    </svg>
+  `,
 };
 
 const TOOLBAR_ICONS = {
-  wilayah: 'tv-w2-icon tv-w2-icon-wilayah',
-  reset: 'tv-w2-icon tv-w2-icon-reset',
+  sales: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.sales}</span>`,
+  wilayah: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.wilayah}</span>`,
+  radius: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.radius}</span>`,
+  reset: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.reset}</span>`,
 };
 
 const ID_NUMBER = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 });
+const RADIUS_THRESHOLD_METERS = 200;
 
 function toDateInputValue(date) {
   if (!(date instanceof Date)) return '';
@@ -41,6 +66,18 @@ function formatMaybeNumber(value) {
   const n = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(n)) return '';
   return ID_NUMBER.format(n);
+}
+
+function parseMaybeNumber(value) {
+  if (value == null) return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+  const normalized = raw.includes('.') ? raw : raw.replace(',', '.');
+  const match = normalized.match(/-?\d+(?:\.\d+)?/);
+  if (!match) return null;
+  const n = Number(match[0]);
+  return Number.isFinite(n) ? n : null;
 }
 
 function normalizeHttpUrl(value) {
@@ -89,15 +126,15 @@ function buildColumns() {
       text: 'Wilayah',
       size: '140px',
       sortable: true,
-      resizable: true,
-      attr: 'style="white-space:nowrap;"',
-    },
-    {
-      field: 'customer_name',
-      text: 'Customer',
-      size: '450px',
-      sortable: true,
-      resizable: true,
+        resizable: true,
+        attr: 'style="white-space:nowrap;"',
+      },
+      {
+        field: 'customer_name',
+        text: 'Customer',
+        size: '450px',
+        sortable: true,
+        resizable: true,
       attr: 'style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"',
     },
     {
@@ -156,6 +193,7 @@ export default function ReportTableResult() {
   const lockBoxRef = React.useRef(null);
   const layoutRef = React.useRef(null);
   const gridRef = React.useRef(null);
+  const summaryRootRef = React.useRef(null);
   const toolbarInputsRef = React.useRef([]);
   const activeMainTabRef = React.useRef('data');
   const latestFilteredRowsRef = React.useRef([]);
@@ -169,7 +207,9 @@ export default function ReportTableResult() {
 
   const [filters, setFilters] = React.useState(() => ({
     query: '',
+    sales: 'ALL',
     wilayah: 'ALL',
+    radius: 'ALL', // ALL | IN_200 | OUT_200
     start_date: toDateInputValue(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
     end_date: toDateInputValue(new Date()),
   }));
@@ -284,11 +324,29 @@ export default function ReportTableResult() {
     return Array.from(unique).sort((a, b) => a.localeCompare(b));
   }, [rows]);
 
+  const salesOptions = React.useMemo(() => {
+    const unique = new Set();
+    for (const row of rows) {
+      const value = String(row?.sales_name ?? '').trim();
+      if (value && value !== '-') unique.add(value);
+    }
+    return Array.from(unique).sort((a, b) => a.localeCompare(b));
+  }, [rows]);
+
   const filteredRows = React.useMemo(() => {
     const normalizedQuery = String(filters.query ?? '').trim().toLowerCase();
+    const radiusFilter = String(filters.radius ?? 'ALL');
 
     return rows.filter((row) => {
+      if (filters.sales !== 'ALL' && row.sales_name !== filters.sales) return false;
       if (filters.wilayah !== 'ALL' && row.wilayah !== filters.wilayah) return false;
+
+      if (radiusFilter !== 'ALL') {
+        const radius = parseMaybeNumber(row.result_location_accuracy);
+        if (radius == null) return false;
+        if (radiusFilter === 'IN_200' && !(radius <= RADIUS_THRESHOLD_METERS)) return false;
+        if (radiusFilter === 'OUT_200' && !(radius > RADIUS_THRESHOLD_METERS)) return false;
+      }
 
       if (!normalizedQuery) return true;
 
@@ -304,76 +362,20 @@ export default function ReportTableResult() {
   const MAIN_DATA_ID = `${LAYOUT_NAME}__tab_data`;
   const MAIN_SUMMARY_ID = `${LAYOUT_NAME}__tab_summary`;
 
-  const escapeHTML = React.useCallback((value) => {
-    return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-  }, []);
-
-  const formatNumber = React.useCallback((value) => {
-    const num = typeof value === 'number' ? value : Number(value);
-    if (!Number.isFinite(num)) return '-';
-    return new Intl.NumberFormat('id-ID').format(num);
-  }, []);
-
   const renderSummaryTab = React.useCallback(() => {
     const summaryEl = document.getElementById(MAIN_SUMMARY_ID);
     if (!summaryEl) return;
 
     const currentRows = Array.isArray(latestFilteredRowsRef.current) ? latestFilteredRowsRef.current : [];
 
-    const radiusStats = currentRows.reduce(
-      (acc, row) => {
-        const n = typeof row?.result_location_accuracy === 'number' ? row.result_location_accuracy : Number(row?.result_location_accuracy);
-        if (Number.isFinite(n)) {
-          acc.sum += n;
-          acc.count += 1;
-        }
-        return acc;
-      },
-      { sum: 0, count: 0 },
+    if (!summaryRootRef.current) {
+      summaryRootRef.current = createRoot(summaryEl);
+    }
+
+    summaryRootRef.current.render(
+      <SummaryResult rows={currentRows} filters={filters} isLoading={isLoading} loadError={loadError} />,
     );
-
-    const photoCount = currentRows.reduce((acc, row) => (row?.user_photo ? acc + 1 : acc), 0);
-
-    const headerNote = loadError
-      ? `<div style="margin-bottom:10px; color:#b42318;">${escapeHTML(loadError)}</div>`
-      : isLoading
-        ? `<div style="margin-bottom:10px; color:#6b7685;">Loading...</div>`
-        : '';
-
-    const startDate = String(filters.start_date ?? '').trim();
-    const endDate = String(filters.end_date ?? '').trim();
-    const periodLabel =
-      startDate && endDate ? `${startDate} s/d ${endDate}` : startDate ? `Dari ${startDate}` : endDate ? `Sampai ${endDate}` : 'Semua';
-    const stateLabel = filters.wilayah === 'ALL' ? 'Semua' : String(filters.wilayah);
-    const avgRadius = radiusStats.count > 0 ? radiusStats.sum / radiusStats.count : null;
-
-    summaryEl.innerHTML = `
-      ${headerNote}
-      <div style="display:flex; flex-direction:column; gap:10px;">
-        <div>Summary</div>
-        <div style="display:grid; grid-template-columns: 1fr auto; gap:6px 10px; font-size:13px;">
-          <div>Periode</div>
-          <div style="text-align:right;">${escapeHTML(periodLabel)}</div>
-
-          <div>Wilayah</div>
-          <div style="text-align:right;">${escapeHTML(stateLabel)}</div>
-
-          <div>Jumlah baris</div>
-          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTML(
-            formatNumber(currentRows.length),
-          )}</div>
-
-          <div>Rata-rata radius</div>
-          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTML(
-            avgRadius == null ? '-' : formatMaybeNumber(avgRadius),
-          )}</div>
-
-          <div>Foto tersedia</div>
-          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTML(formatNumber(photoCount))}</div>
-        </div>
-      </div>
-    `;
-  }, [MAIN_SUMMARY_ID, escapeHTML, formatNumber, filters.end_date, filters.start_date, filters.wilayah, isLoading, loadError]);
+  }, [MAIN_SUMMARY_ID, filters, isLoading, loadError]);
 
   const setMainTab = React.useCallback(
     (nextTabId) => {
@@ -408,6 +410,9 @@ export default function ReportTableResult() {
     let initialMountTimeoutId = null;
     let gridHostEl = null;
     let gridHostClickHandler = null;
+
+    summaryRootRef.current?.unmount?.();
+    summaryRootRef.current = null;
 
     if (w2ui[GRID_NAME]) w2ui[GRID_NAME].destroy();
     if (w2ui[LAYOUT_NAME]) w2ui[LAYOUT_NAME].destroy();
@@ -471,7 +476,28 @@ export default function ReportTableResult() {
         const url = btn.getAttribute('data-url');
         const safe = normalizeHttpUrl(url);
         if (!safe) return;
-        window.open(safe, '_blank', 'noopener,noreferrer');
+        const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
+        const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 768;
+        const width = Math.max(420, Math.min(960, viewportWidth - 40));
+        const height = Math.max(320, Math.min(720, viewportHeight - 80));
+        const src = escapeAttr(safe);
+
+        w2popup.open({
+          title: 'Foto',
+          showMax: true,
+          width,
+          height,
+          body: `
+            <div class="tv-photo-popup">
+              <img class="tv-photo-popup__img" src="${src}" alt="Foto" loading="lazy" />
+            </div>
+          `.trim(),
+          actions: {
+            Tutup() {
+              w2popup.close();
+            },
+          },
+        });
       };
       gridHostEl.addEventListener('click', gridHostClickHandler);
 
@@ -491,6 +517,34 @@ export default function ReportTableResult() {
             `,
           },
           {
+            type: 'menu-radio',
+            id: 'tbSales',
+            icon: TOOLBAR_ICONS.sales,
+            text: 'Sales: Semua',
+            selected: 'ALL',
+            items: [{ id: 'ALL', text: 'Semua', checked: true }],
+          },
+          {
+            type: 'menu-radio',
+            id: 'tbState',
+            icon: TOOLBAR_ICONS.wilayah,
+            text: 'Wilayah: Semua',
+            selected: 'ALL',
+            items: [{ id: 'ALL', text: 'Semua', checked: true }],
+          },
+          {
+            type: 'menu-radio',
+            id: 'tbRadius',
+            icon: TOOLBAR_ICONS.radius,
+            text: 'Radius: Semua',
+            selected: 'ALL',
+            items: [
+              { id: 'ALL', text: 'Semua', checked: true },
+              { id: 'IN_200', text: `Dalam \u2264 ${RADIUS_THRESHOLD_METERS} m`, checked: false },
+              { id: 'OUT_200', text: `Luar > ${RADIUS_THRESHOLD_METERS} m`, checked: false },
+            ],
+          },
+          {
             type: 'html',
             id: 'tbDates',
             html: `
@@ -502,17 +556,8 @@ export default function ReportTableResult() {
               </div>
             `,
           },
-          { type: 'break', id: 'tbBreak1' },
-          {
-            type: 'menu-radio',
-            id: 'tbState',
-            icon: TOOLBAR_ICONS.wilayah,
-            text: 'Wilayah: Semua',
-            selected: 'ALL',
-            items: [{ id: 'ALL', text: 'Semua', checked: true }],
-          },
           { type: 'spacer', id: 'tbSpacer1' },
-          { type: 'button', id: 'tbReset', icon: TOOLBAR_ICONS.reset, text: 'Reset' },
+          { type: 'button', id: 'tbReset', icon: TOOLBAR_ICONS.reset},
         ]);
 
         grid.toolbar.on('click', (event) => {
@@ -523,7 +568,9 @@ export default function ReportTableResult() {
             const now = new Date();
             setFilters({
               query: '',
+              sales: 'ALL',
               wilayah: 'ALL',
+              radius: 'ALL',
               start_date: toDateInputValue(new Date(now.getFullYear(), now.getMonth(), 1)),
               end_date: toDateInputValue(now),
             });
@@ -540,8 +587,20 @@ export default function ReportTableResult() {
           const [parentId, subIdRaw] = target.split(':');
           const subId = subIdRaw ?? '';
 
+          if (parentId === 'tbSales') {
+            setFilters((prev) => ({ ...prev, sales: subId === 'ALL' ? 'ALL' : subId }));
+          }
+
           if (parentId === 'tbState') {
             setFilters((prev) => ({ ...prev, wilayah: subId === 'ALL' ? 'ALL' : subId }));
+          }
+
+          if (parentId === 'tbRadius') {
+            const next =
+              subId === 'IN_200' || subId === 'OUT_200'
+                ? subId
+                : 'ALL';
+            setFilters((prev) => ({ ...prev, radius: next }));
           }
         });
 
@@ -597,8 +656,11 @@ export default function ReportTableResult() {
         el.removeEventListener(eventName, handler);
       }
       toolbarInputsRef.current = [];
+      summaryRootRef.current?.unmount?.();
+      summaryRootRef.current = null;
       if (w2ui[GRID_NAME]) w2ui[GRID_NAME].destroy();
       if (w2ui[LAYOUT_NAME]) w2ui[LAYOUT_NAME].destroy();
+      w2popup.close?.();
       gridRef.current = null;
       layoutRef.current = null;
     };
@@ -661,6 +723,19 @@ export default function ReportTableResult() {
     const grid = gridRef.current ?? w2ui[GRID_NAME];
     if (!grid?.toolbar) return;
 
+    const salesItems = [{ id: 'ALL', text: 'Semua', checked: filters.sales === 'ALL' }].concat(
+      salesOptions.map((opt) => ({ id: opt, text: opt, checked: filters.sales === opt })),
+    );
+
+    const salesLabel = filters.sales === 'ALL' ? 'Semua' : String(filters.sales);
+    const tbSales = grid.toolbar.get('tbSales');
+    if (tbSales) {
+      tbSales.items = salesItems;
+      tbSales.selected = filters.sales;
+      tbSales.text = `Sales: ${salesLabel}`;
+      grid.toolbar.refresh('tbSales');
+    }
+
     const stateItems = [{ id: 'ALL', text: 'Semua', checked: filters.wilayah === 'ALL' }].concat(
       stateOptions.map((opt) => ({ id: opt, text: opt, checked: filters.wilayah === opt })),
     );
@@ -673,7 +748,25 @@ export default function ReportTableResult() {
       tbState.text = `Wilayah: ${stateLabel}`;
       grid.toolbar.refresh('tbState');
     }
-  }, [filters.wilayah, stateOptions, gridReadyTick]);
+
+    const radiusLabel =
+      filters.radius === 'IN_200'
+        ? `Dalam \u2264 ${RADIUS_THRESHOLD_METERS} m`
+        : filters.radius === 'OUT_200'
+          ? `Luar > ${RADIUS_THRESHOLD_METERS} m`
+          : 'Semua';
+    const tbRadius = grid.toolbar.get('tbRadius');
+    if (tbRadius) {
+      tbRadius.selected = filters.radius;
+      tbRadius.items = [
+        { id: 'ALL', text: 'Semua', checked: filters.radius === 'ALL' },
+        { id: 'IN_200', text: `Dalam \u2264 ${RADIUS_THRESHOLD_METERS} m`, checked: filters.radius === 'IN_200' },
+        { id: 'OUT_200', text: `Luar > ${RADIUS_THRESHOLD_METERS} m`, checked: filters.radius === 'OUT_200' },
+      ];
+      tbRadius.text = `Radius: ${radiusLabel}`;
+      grid.toolbar.refresh('tbRadius');
+    }
+  }, [filters.sales, filters.wilayah, filters.radius, salesOptions, stateOptions, gridReadyTick]);
 
   React.useEffect(() => {
     const queryEl = document.getElementById(`${GRID_NAME}__query`);
@@ -836,30 +929,41 @@ export default function ReportTableResult() {
             border-color: rgba(107, 163, 208, 0.6);
             color: #1f2937;
           }
-          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon {
-            background-color: #8d99a7;
-            -webkit-mask-position: center;
-            -webkit-mask-repeat: no-repeat;
-            -webkit-mask-size: 14px 14px;
-            mask-position: center;
-            mask-repeat: no-repeat;
-            mask-size: 14px 14px;
+          .tv-photo-popup {
+            width: 100%;
+            height: 100%;
+            padding: 12px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0b1220;
           }
-          .w2ui-toolbar .w2ui-tb-button.over .w2ui-tb-icon.tv-w2-icon,
-          .w2ui-toolbar .w2ui-tb-button.checked .w2ui-tb-icon.tv-w2-icon {
-            background-color: #5b6775;
+          .tv-photo-popup__img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 10px;
+            background: #111827;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
           }
-          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-wilayah {
-            -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%202a7%207%200%200%200-7%207c0%205.2%207%2013%207%2013s7-7.8%207-13a7%207%200%200%200-7-7Zm0%209.5A2.5%202.5%200%201%201%2014.5%209A2.5%202.5%200%200%201%2012%2011.5Z'%2F%3E%3C%2Fsvg%3E");
-            mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%202a7%207%200%200%200-7%207c0%205.2%207%2013%207%2013s7-7.8%207-13a7%207%200%200%200-7-7Zm0%209.5A2.5%202.5%200%201%201%2014.5%209A2.5%202.5%200%200%201%2012%2011.5Z'%2F%3E%3C%2Fsvg%3E");
+          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon .tv-w2ui-svg {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            color: #8d99a7;
+            line-height: 1;
           }
-          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-year {
-            -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M7%202h2v2h6V2h2v2h3v18H4V4h3V2Zm13%206H6v12h14V8Z'%2F%3E%3C%2Fsvg%3E");
-            mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M7%202h2v2h6V2h2v2h3v18H4V4h3V2Zm13%206H6v12h14V8Z'%2F%3E%3C%2Fsvg%3E");
+          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon .tv-w2ui-svg svg {
+            display: block;
+            width: 16px;
+            height: 16px;
           }
-          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-reset {
-            -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%206V3l-4%204l4%204V8a4%204%200%201%201-4%204H6a6%206%200%201%200%206-6Z'%2F%3E%3C%2Fsvg%3E");
-            mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%206V3l-4%204l4%204V8a4%204%200%201%201-4%204H6a6%206%200%201%200%206-6Z'%2F%3E%3C%2Fsvg%3E");
+          .w2ui-toolbar .w2ui-tb-button.over .w2ui-tb-icon .tv-w2ui-svg,
+          .w2ui-toolbar .w2ui-tb-button.checked .w2ui-tb-icon .tv-w2ui-svg {
+            color: #5b6775;
           }
         `}
       </style>

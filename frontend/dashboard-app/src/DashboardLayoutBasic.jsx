@@ -42,9 +42,9 @@ const NAVIGATION = [
     title: 'Reports',
     icon: <BarChartIcon />,
     children: [
-      { segment: 'sales', title: 'Sales', icon: <PointOfSaleIcon /> },
-      { segment: 'customers', title: 'Customers', icon: <PeopleAltIcon /> },
-      { segment: 'result', title: 'Result', icon: <FactCheckIcon /> },
+      { segment: 'sales', title: 'Monthly Visit', icon: <PointOfSaleIcon /> },
+      { segment: 'customers', title: 'Weekly Summary', icon: <PeopleAltIcon /> },
+      { segment: 'result', title: 'Monitor Radius', icon: <FactCheckIcon /> },
     ],
   },
   { segment: 'integrations', title: 'Integrations', icon: <LayersIcon /> },

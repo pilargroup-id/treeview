@@ -2,9 +2,11 @@ import * as React from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import TablePagination from '@mui/material/TablePagination';
-import { w2grid, w2layout, w2ui } from 'w2ui';
+import { createRoot } from 'react-dom/client';
+import { w2grid, w2layout, w2ui, w2utils } from 'w2ui';
 import 'w2ui/w2ui-2.0.min.css';
 import { API_URL } from '../config/api';
+import SummarySales from './SummarySales';
 
 const GRID_NAME = 'reportSalesGrid';
 const LAYOUT_NAME = 'reportSalesLayout';
@@ -12,26 +14,61 @@ const LAYOUT_NAME = 'reportSalesLayout';
 const MAIN_DATA_ID = `${LAYOUT_NAME}__tab_data`;
 const MAIN_SUMMARY_ID = `${LAYOUT_NAME}__tab_summary`;
 
+const TOOLBAR_SVGS = {
+  search: `
+    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79L19 20.49L20.49 19l-4.99-5Zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14Z"/>
+    </svg>
+  `,
+  bulan: `
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M7 2h2v2h6V2h2v2h3v18H4V4h3V2Zm13 8H6v10h14V10Z"/>
+    </svg>
+  `,
+  tahun: `
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M7 2h2v2h6V2h2v2h3v18H4V4h3V2Zm13 6H6v12h14V8Z"/>
+    </svg>
+  `,
+  wilayah: `
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7m0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5"/>
+    </svg>
+  `,
+  sales: `
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4m0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4"/>
+    </svg>
+  `,
+  reset: `
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6 0 2.97-2.17 5.43-5 5.91v2.02c3.95-.49 7-3.85 7-7.93 0-4.42-3.58-8-8-8m-6 8c0-1.65.67-3.15 1.76-4.24L6.34 7.34C4.9 8.79 4 10.79 4 13c0 4.08 3.05 7.44 7 7.93v-2.02c-2.83-.48-5-2.94-5-5.91"/>
+    </svg>
+  `,
+};
+
 const TOOLBAR_ICONS = {
-  bulan: 'tv-w2-icon tv-w2-icon-bulan',      // ← TAMBAH ini
-  tahun: 'tv-w2-icon tv-w2-icon-tahun',  
-  wilayah: 'tv-w2-icon tv-w2-icon-wilayah',
-  sales: 'tv-w2-icon tv-w2-icon-sales',
-  reset: 'tv-w2-icon tv-w2-icon-reset',
+  bulan: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.bulan}</span>`,
+  tahun: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.tahun}</span>`,
+  wilayah: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.wilayah}</span>`,
+  sales: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.sales}</span>`,
+  reset: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.reset}</span>`,
 };
 
 
 
-function escapeHTML(value) {
-  return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-}
-
 export default function ReportTableSales() {
   const layoutBoxRef = React.useRef(null);
+  const lockBoxRef = React.useRef(null);
   const layoutRef = React.useRef(null);
   const gridRef = React.useRef(null);
+  const summaryRootRef = React.useRef(null);
+  const toolbarInputsRef = React.useRef([]);
   const activeMainTabRef = React.useRef('data');
   const latestFilteredRowsRef = React.useRef([]);
+  const latestFiltersRef = React.useRef(null);
+  const latestIsLoadingRef = React.useRef(true);
+  const latestLoadErrorRef = React.useRef(null);
   const abortRef = React.useRef(null);
   const requestIdRef = React.useRef(0);
   const [gridReadyTick, setGridReadyTick] = React.useState(0);
@@ -41,6 +78,7 @@ export default function ReportTableSales() {
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
 
   const [filters, setFilters] = React.useState(() => ({
+    query: '',
     wilayah: 'ALL',
     sales: 'ALL',
   }));
@@ -48,16 +86,6 @@ export default function ReportTableSales() {
   const [sourceData, setSourceData] = React.useState([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState(null);
-
-  const escapeHTMLCallback = React.useCallback((value) => {
-    return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-  }, []);
-
-  const formatNumber = React.useCallback((value) => {
-    const num = typeof value === 'number' ? value : Number(value);
-    if (!Number.isFinite(num)) return '-';
-    return new Intl.NumberFormat('id-ID').format(num);
-  }, []);
 
   React.useEffect(() => {
     const nextRequestId = requestIdRef.current + 1;
@@ -68,11 +96,9 @@ export default function ReportTableSales() {
     abortRef.current = controller;
 
     const url = `${API_URL}/activity-plans/missed-summary`;
-    const grid = gridRef.current ?? w2ui[GRID_NAME];
 
     setIsLoading(true);
     setLoadError(null);
-    grid?.lock?.('Loading...', true);
 
     fetch(url, { signal: controller.signal })
       .then(async (response) => {
@@ -101,18 +127,23 @@ export default function ReportTableSales() {
         if (controller.signal.aborted) return;
         if (requestIdRef.current !== nextRequestId) return;
         setIsLoading(false);
-        grid?.unlock?.();
       });
 
     return () => controller.abort();
   }, []);
 
   React.useEffect(() => {
-    const grid = gridRef.current ?? w2ui[GRID_NAME];
-    if (!grid) return;
-    if (isLoading) grid?.lock?.('Loading...', true);
-    else grid?.unlock?.();
-  }, [gridReadyTick, isLoading]);
+    const lockTarget = lockBoxRef.current;
+    if (!lockTarget) return;
+
+    if (isLoading && !loadError) {
+      w2utils.lock(lockTarget, 'Loading...', true);
+    } else {
+      w2utils.unlock(lockTarget);
+    }
+
+    return () => w2utils.unlock(lockTarget);
+  }, [isLoading, loadError]);
 
   const rows = React.useMemo(() => {
     const list = Array.isArray(sourceData) ? sourceData : [];
@@ -146,10 +177,16 @@ export default function ReportTableSales() {
   }, [rows]);
 
   const filteredRecords = React.useMemo(() => {
+    const normalizedQuery = String(filters.query ?? '').trim().toLowerCase();
     return rows.filter((record) => {
       if (filters.wilayah !== 'ALL' && record.wilayah !== filters.wilayah) return false;
       if (filters.sales !== 'ALL' && record.sales_name !== filters.sales) return false;
-      return true;
+
+      if (!normalizedQuery) return true;
+
+      const haystack =
+        `${record.customer_name} ${record.wilayah} ${record.sales_name} ${record.tujuan} ${record.status} ${record.plan_date}`.toLowerCase();
+      return haystack.includes(normalizedQuery);
     });
   }, [filters, rows]);
 
@@ -157,41 +194,35 @@ export default function ReportTableSales() {
     latestFilteredRowsRef.current = filteredRecords;
   }, [filteredRecords]);
 
+  React.useEffect(() => {
+    latestFiltersRef.current = filters;
+  }, [filters]);
+
+  React.useEffect(() => {
+    latestIsLoadingRef.current = isLoading;
+  }, [isLoading]);
+
+  React.useEffect(() => {
+    latestLoadErrorRef.current = loadError;
+  }, [loadError]);
+
   const renderSummaryTab = React.useCallback(() => {
     const summaryEl = document.getElementById(MAIN_SUMMARY_ID);
     if (!summaryEl) return;
 
     const currentRows = Array.isArray(latestFilteredRowsRef.current) ? latestFilteredRowsRef.current : [];
-    const totalVisit = currentRows.reduce((sum, row) => sum + (Number(row?.visit_count) || 0), 0);
-    const totalFollowUp = currentRows.reduce((sum, row) => sum + (Number(row?.follow_up_count) || 0), 0);
+    const currentFilters = latestFiltersRef.current ?? { query: '', wilayah: 'ALL', sales: 'ALL' };
+    const currentIsLoading = Boolean(latestIsLoadingRef.current);
+    const currentLoadError = latestLoadErrorRef.current;
 
-    summaryEl.innerHTML = `
-      <div style="display:flex; flex-direction:column; gap:10px;">
-        <div>Summary</div>
-        ${
-          loadError
-            ? `<div style="color:#b42318; font-size:13px;">${escapeHTMLCallback(loadError)}</div>`
-            : isLoading
-              ? `<div style="color:#5b6775; font-size:13px;">Loading...</div>`
-              : ''
-        }
-        <div style="display:grid; grid-template-columns: 1fr auto; gap:6px 10px; font-size:13px;">
-          <div>Jumlah baris</div>
-          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTMLCallback(
-            formatNumber(currentRows.length),
-          )}</div>
-          <div>Total Visit</div>
-          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTMLCallback(
-            formatNumber(totalVisit),
-          )}</div>
-          <div>Total Follow Up</div>
-          <div style="text-align:right; font-variant-numeric: tabular-nums;">${escapeHTMLCallback(
-            formatNumber(totalFollowUp),
-          )}</div>
-        </div>
-      </div>
-    `;
-  }, [escapeHTMLCallback, formatNumber, isLoading, loadError]);
+    if (!summaryRootRef.current) {
+      summaryRootRef.current = createRoot(summaryEl);
+    }
+
+    summaryRootRef.current.render(
+      <SummarySales rows={currentRows} filters={currentFilters} isLoading={currentIsLoading} loadError={currentLoadError} />,
+    );
+  }, []);
 
   const setMainTab = React.useCallback(
     (nextTabId) => {
@@ -224,6 +255,9 @@ export default function ReportTableSales() {
     if (!layoutBoxRef.current) return;
     let disposed = false;
     let initialMountTimeoutId = null;
+
+    summaryRootRef.current?.unmount?.();
+    summaryRootRef.current = null;
 
     if (w2ui[GRID_NAME]) w2ui[GRID_NAME].destroy();
     if (w2ui[LAYOUT_NAME]) w2ui[LAYOUT_NAME].destroy();
@@ -269,19 +303,14 @@ export default function ReportTableSales() {
         show: {
           footer: false,
           toolbar: true,
-          toolbarSearch: true,
+          toolbarSearch: false,
           toolbarColumns: true,
           toolbarReload: false,
         },
-        searches: [
-          { field: 'customer_name', text: 'Customer', type: 'text' },
-          { field: 'wilayah', text: 'Wilayah', type: 'text' },
-          { field: 'sales_name', text: 'Sales', type: 'text' },
-        ],
         sortData: [{ field: 'recid', direction: 'asc' }],
         columnGroups: [
           { text: 'General Information', span: 3 },
-          { text: 'Tujuan', span: 2 },
+          { text: 'Done', span: 2 },
         ],
         columns: [
           { field: 'customer_name', text: 'Customer', size: '20%', sortable: true, resizable: true },
@@ -289,7 +318,7 @@ export default function ReportTableSales() {
           { field: 'sales_name', text: 'Sales', size: '20%', sortable: true, resizable: true },
           { field: 'visit_count', text: 'Visit', size: '90px', sortable: true, resizable: true, attr: 'align=right' },
           { field: 'follow_up_count', text: 'Follow Up', size: '90px', sortable: true, resizable: true, attr: 'align=right' },
-          { field: 'status', text: 'Status', size: '150px', sortable: true, resizable: true },
+          { field: 'status', text: 'Missed', size: '150px', sortable: true, resizable: true },
           { field: 'plan_date', text: 'Plan Date', size: '150px', sortable: true, resizable: true },
         ],
         records: [],
@@ -301,18 +330,28 @@ export default function ReportTableSales() {
       if (grid?.toolbar) {
         grid.toolbar.add([
           {
-            type: 'menu-radio',
-            id: 'tbState',
-            icon: TOOLBAR_ICONS.wilayah,
-            text: 'Wilayah: Semua',
-            selected: 'ALL',
-            items: [{ id: 'ALL', text: 'Semua', checked: true }],
+            type: 'html',
+            id: 'tbQuery',
+            html: `
+              <div class="tv-sales-toolbar-search" title="Cari sales / customer / tujuan / status...">
+                <span class="tv-sales-toolbar-search__icon" aria-hidden="true">${TOOLBAR_SVGS.search}</span>
+                <input id="${GRID_NAME}__query" class="w2ui-input tv-sales-toolbar-search__input" placeholder="Cari sales / customer / tujuan / status..." />
+              </div>
+            `,
           },
           {
             type: 'menu-radio',
             id: 'tbSales',
             icon: TOOLBAR_ICONS.sales,
             text: 'Sales: Semua',
+            selected: 'ALL',
+            items: [{ id: 'ALL', text: 'Semua', checked: true }],
+          },
+          {
+            type: 'menu-radio',
+            id: 'tbState',
+            icon: TOOLBAR_ICONS.wilayah,
+            text: 'Wilayah: Semua',
             selected: 'ALL',
             items: [{ id: 'ALL', text: 'Semua', checked: true }],
           },
@@ -326,13 +365,12 @@ export default function ReportTableSales() {
 
           if (target === 'tbReset') {
             setFilters({
+              query: '',
               wilayah: 'ALL',
               sales: 'ALL',
             });
-            // Reset built-in search
-            if (grid.searchData && grid.searchData.length > 0) {
-              grid.searchReset();
-            }
+            const queryEl = document.getElementById(`${GRID_NAME}__query`);
+            if (queryEl) queryEl.value = '';
             return;
           }
 
@@ -346,6 +384,25 @@ export default function ReportTableSales() {
             setFilters((prev) => ({ ...prev, sales: subId === 'ALL' ? 'ALL' : subId }));
           }
         });
+
+        setTimeout(() => {
+          const listeners = [];
+          const attach = (id, eventName, handler) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener(eventName, handler);
+            listeners.push({ el, eventName, handler });
+          };
+
+          const queryEl = document.getElementById(`${GRID_NAME}__query`);
+          if (queryEl) queryEl.value = '';
+
+          attach(`${GRID_NAME}__query`, 'input', (e) => {
+            setFilters((prev) => ({ ...prev, query: e.target.value }));
+          });
+
+          toolbarInputsRef.current = listeners;
+        }, 0);
       }
     }, 0);
 
@@ -361,6 +418,12 @@ export default function ReportTableSales() {
       if (initialMountTimeoutId) clearTimeout(initialMountTimeoutId);
 
       window.removeEventListener('resize', handleResize);
+      for (const { el, eventName, handler } of toolbarInputsRef.current) {
+        el.removeEventListener(eventName, handler);
+      }
+      toolbarInputsRef.current = [];
+      summaryRootRef.current?.unmount?.();
+      summaryRootRef.current = null;
       if (w2ui[GRID_NAME]) w2ui[GRID_NAME].destroy();
       if (w2ui[LAYOUT_NAME]) w2ui[LAYOUT_NAME].destroy();
       gridRef.current = null;
@@ -371,7 +434,7 @@ export default function ReportTableSales() {
   React.useEffect(() => {
     const tabId = String(activeMainTabRef.current || 'data');
     if (tabId === 'summary') renderSummaryTab();
-  }, [filteredRecords, filters, renderSummaryTab]);
+  }, [filteredRecords, filters, isLoading, loadError, renderSummaryTab]);
 
   React.useEffect(() => {
     const grid = gridRef.current ?? w2ui[GRID_NAME];
@@ -456,9 +519,6 @@ export default function ReportTableSales() {
       sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}
       className="tv-report-sales"
     >
-      {isLoading && !loadError ? (
-        <Box sx={{ mb: 1, color: 'text.secondary', fontSize: 13 }}>Loading...</Box>
-      ) : null}
       {loadError ? (
         <Box sx={{ mb: 1, color: 'error.main', fontSize: 13 }}>
           {loadError}
@@ -498,43 +558,58 @@ export default function ReportTableSales() {
             outline-offset: 2px;
           }
 
-          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon {
-            background-color: #8d99a7;
-            -webkit-mask-position: center;
-            -webkit-mask-repeat: no-repeat;
-            -webkit-mask-size: 14px 14px;
-            mask-position: center;
-            mask-repeat: no-repeat;
-            mask-size: 14px 14px;
+          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon .tv-w2ui-svg {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            color: #8d99a7;
+            line-height: 1;
           }
-          .w2ui-toolbar .w2ui-tb-button.over .w2ui-tb-icon.tv-w2-icon,
-          .w2ui-toolbar .w2ui-tb-button.checked .w2ui-tb-icon.tv-w2-icon {
-            background-color: #5b6775;
+          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon .tv-w2ui-svg svg {
+            display: block;
+            width: 16px;
+            height: 16px;
           }
-          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-bulan {
-            -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%202a7%207%200%200%200-7%207c0%205.2%207%2013%207%2013s7-7.8%207-13a7%207%200%200%200-7-7Zm0%209.5A2.5%202.5%200%201%201%2014.5%209A2.5%202.5%200%200%201%2012%2011.5Z'%2F%3E%3C%2Fsvg%3E");
-            mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%202a7%207%200%200%200-7%207c0%205.2%207%2013%207%2013s7-7.8%207-13a7%207%200%200%200-7-7Zm0%209.5A2.5%202.5%200%201%201%2014.5%209A2.5%202.5%200%200%201%2012%2011.5Z'%2F%3E%3C%2Fsvg%3E");
+          .w2ui-toolbar .w2ui-tb-button.over .w2ui-tb-icon .tv-w2ui-svg,
+          .w2ui-toolbar .w2ui-tb-button.checked .w2ui-tb-icon .tv-w2ui-svg {
+            color: #5b6775;
           }
-          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-tahun {
-            -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%202a7%207%200%200%200-7%207c0%205.2%207%2013%207%2013s7-7.8%207-13a7%207%200%200%200-7-7Zm0%209.5A2.5%202.5%200%201%201%2014.5%209A2.5%202.5%200%200%201%2012%2011.5Z'%2F%3E%3C%2Fsvg%3E");
-            mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%202a7%207%200%200%200-7%207c0%205.2%207%2013%207%2013s7-7.8%207-13a7%207%200%200%200-7-7Zm0%209.5A2.5%202.5%200%201%201%2014.5%209A2.5%202.5%200%200%201%2012%2011.5Z'%2F%3E%3C%2Fsvg%3E");
+
+          .tv-sales-toolbar-search {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            height: 30px;
+            padding: 0 6px;
+            white-space: nowrap;
+            transform: translateY(-2px);
           }
-          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-wilayah {
-            -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%202a7%207%200%200%200-7%207c0%205.2%207%2013%207%2013s7-7.8%207-13a7%207%200%200%200-7-7Zm0%209.5A2.5%202.5%200%201%201%2014.5%209A2.5%202.5%200%200%201%2012%2011.5Z'%2F%3E%3C%2Fsvg%3E");
-            mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%202a7%207%200%200%200-7%207c0%205.2%207%2013%207%2013s7-7.8%207-13a7%207%200%200%200-7-7Zm0%209.5A2.5%202.5%200%201%201%2014.5%209A2.5%202.5%200%200%201%2012%2011.5Z'%2F%3E%3C%2Fsvg%3E");
+          .tv-sales-toolbar-search__icon {
+            display: inline-flex;
+            align-items: center;
+            line-height: 1;
           }
-          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-sales {
-            -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%2012c2.21%200%204-1.79%204-4s-1.79-4-4-4-4%201.79-4%204%201.79%204%204%204zm0%202c-2.67%200-8%201.34-8%204v2h16v-2c0-2.66-5.33-4-8-4z'%2F%3E%3C%2Fsvg%3E");
-            mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%2012c2.21%200%204-1.79%204-4s-1.79-4-4-4-4%201.79-4%204%201.79%204%204%204zm0%202c-2.67%200-8%201.34-8%204v2h16v-2c0-2.66-5.33-4-8-4z'%2F%3E%3C%2Fsvg%3E");
+          .tv-sales-toolbar-search__icon svg {
+            display: block;
+            width: 14px;
+            height: 14px;
+            color: #8d99a7;
           }
-          .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon.tv-w2-icon-reset {
-            -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%206V3l-4%204l4%204V8a4%204%200%201%201-4%204H6a6%206%200%201%200%206-6Z'%2F%3E%3C%2Fsvg%3E");
-            mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20d%3D'M12%206V3l-4%204l4%204V8a4%204%200%201%201-4%204H6a6%206%200%201%200%206-6Z'%2F%3E%3C%2Fsvg%3E");
+          .tv-sales-toolbar-search__input {
+            height: 26px;
+            line-height: 26px;
+            padding: 0 8px;
+            width: min(280px, 42vw);
+            box-sizing: border-box;
           }
         `}
       </style>
       <Paper sx={{ width: '100%', flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <Box ref={layoutBoxRef} sx={{ width: '100%', flex: 1, minHeight: 0 }} />
+        <Box ref={lockBoxRef} sx={{ width: '100%', flex: 1, minHeight: 0, position: 'relative' }}>
+          <Box ref={layoutBoxRef} sx={{ width: '100%', height: '100%' }} />
+        </Box>
         {activeMainTab === 'data' ? (
           <TablePagination
             component="div"
