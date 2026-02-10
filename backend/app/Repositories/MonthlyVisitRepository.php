@@ -5,7 +5,7 @@ namespace App\Repositories;
 use App\Services\BigQueryService;
 use Illuminate\Support\Facades\Log;
 
-class MissedActivityRepository
+class MonthlyVisitRepository
 {
     protected $bigQueryService;
     protected $projectId;
@@ -19,16 +19,16 @@ class MissedActivityRepository
     }
 
     /**
-     * Get missed activities list
+     * Get monthly visit summary
      * 
      * @param array $filters
      * @return array
      */
-    public function getMissedActivities(array $filters = [])
+    public function getMonthlyVisitSummary(array $filters = [])
     {
-        $query = $this->buildMissedActivitiesQuery($filters);
+        $query = $this->buildMonthlyVisitQuery($filters);
         
-        Log::info('BigQuery Missed Activities Query', ['query' => $query]);
+        Log::info('BigQuery Monthly Visit Summary Query', ['query' => $query]);
         
         $result = $this->bigQueryService->runQuery($query);
         
@@ -42,28 +42,27 @@ class MissedActivityRepository
 
         return [
             'success' => true,
-            'data' => $this->transformMissedActivities($result['data'])
+            'data' => $this->transformMonthlyVisitData($result['data'])
         ];
     }
 
     /**
-     * Build SQL query for missed activities (aggregated by customer & month)
+     * Build SQL query for monthly visit summary
      * 
      * @param array $filters
      * @return string
      */
-    protected function buildMissedActivitiesQuery(array $filters)
+    protected function buildMonthlyVisitQuery(array $filters)
     {
         $projectDataset = "`{$this->projectId}.{$this->dataset}`";
         
         // Base conditions
         $conditions = [
             "ap.customer_id IS NOT NULL",
-            "ap.deleted_at IS NULL",
-            "LOWER(ap.status) = 'missed'"
+            "ap.deleted_at IS NULL"
         ];
 
-        // Filter by month and year (REQUIRED now)
+        // Filter by month and year
         if (!empty($filters['month']) && !empty($filters['year'])) {
             $month = intval($filters['month']);
             $year = intval($filters['year']);
@@ -130,9 +129,9 @@ class MissedActivityRepository
                 wilayah,
                 year,
                 month,
-                SUM(CASE WHEN LOWER(tujuan) = 'visit' THEN 1 ELSE 0 END) as visit_count,
-                SUM(CASE WHEN LOWER(tujuan) = 'follow up' THEN 1 ELSE 0 END) as follow_up_count,
-                COUNT(*) as missed_count
+                SUM(CASE WHEN LOWER(status) = 'done' AND LOWER(tujuan) = 'visit' THEN 1 ELSE 0 END) as done_visit_count,
+                SUM(CASE WHEN LOWER(status) = 'done' AND LOWER(tujuan) = 'follow up' THEN 1 ELSE 0 END) as done_follow_up_count,
+                SUM(CASE WHEN LOWER(status) = 'missed' THEN 1 ELSE 0 END) as missed_count
             FROM filtered_plans
             GROUP BY customer_name, sales_name, wilayah, year, month
             ORDER BY customer_name ASC, year DESC, month DESC
@@ -147,7 +146,7 @@ class MissedActivityRepository
      * @param array $data
      * @return array
      */
-    protected function transformMissedActivities(array $data)
+    protected function transformMonthlyVisitData(array $data)
     {
         $result = [];
         
@@ -162,8 +161,8 @@ class MissedActivityRepository
                 'year' => (int) $row['year'],
                 'month' => (int) $row['month'],
                 'month_name' => $monthName,
-                'visit_count' => (int) $row['visit_count'],
-                'follow_up_count' => (int) $row['follow_up_count'],
+                'done_visit_count' => (int) $row['done_visit_count'],
+                'done_follow_up_count' => (int) $row['done_follow_up_count'],
                 'missed_count' => (int) $row['missed_count'],
             ];
         }

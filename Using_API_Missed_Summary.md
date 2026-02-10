@@ -1,72 +1,79 @@
-# Missed Activities API Documentation
+# Monthly Visit Summary API Documentation
 
 ## Routes Setup
 
 ### Tambahkan di file: routes/api.php
 
 ```php
-use App\Http\Controllers\Api\MissedActivityController;
+use App\Http\Controllers\Api\MonthlyVisitController;
 
 Route::prefix('activity-plans')->group(function () {
     Route::get('/weekly-summary', [ActivityPlanController::class, 'weeklySummary']);
-    Route::get('/missed-summary', [MissedActivityController::class, 'index']);
+    Route::get('/monthly-visit', [MonthlyVisitController::class, 'index']);
+    Route::get('/details', [ActivityDetailController::class, 'index']);
 });
 ```
+
+**NOTE:** URL berubah dari `/missed-summary` menjadi `/monthly-visit`
 
 ---
 
 ## Endpoint Details
 
-### GET /api/activity-plans/missed-summary
+### GET /api/activity-plans/monthly-visit
 
-**URL:** `http://your-domain.com/api/activity-plans/missed-summary`
+**URL:** `http://your-domain.com/api/activity-plans/monthly-visit`
 
 **Method:** GET
 
-**Description:** Menampilkan list activity dengan status 'missed' per activity (1 row = 1 activity)
+**Description:** Menampilkan summary aktivitas per customer per bulan dengan breakdown:
+- Done Visit count (status = done, tujuan = Visit)
+- Done Follow Up count (status = done, tujuan = Follow Up)
+- Missed count (status = missed, semua tujuan)
 
 **Query Parameters:**
 
-| Parameter   | Type    | Required | Description                              | Example              |
-|------------|---------|----------|------------------------------------------|----------------------|
-| sales_name | string  | No       | Search sales name (partial, case-insensitive) | `sales_name=John`    |
-| month      | integer | No       | Filter by month (1-12), only 1 month    | `month=2`            |
-| year       | integer | No       | Filter by year (2000-2100)              | `year=2026`          |
-| state      | string  | No       | Filter by wilayah from master_customer  | `state=Banten`       |
+| Parameter   | Type    | Required | Description                                      | Example              |
+|------------|---------|----------|--------------------------------------------------|----------------------|
+| sales_name | string  | No       | Search sales name (partial, case-insensitive)    | `sales_name=John`    |
+| month      | integer | No       | Filter by month (1-12)                           | `month=2`            |
+| year       | integer | No       | Filter by year (2000-2100)                       | `year=2026`          |
+| state      | string  | No       | Filter by wilayah from master_customer           | `state=Banten`       |
 
 **Notes:**
-- Status hardcoded: hanya 'missed'
+- Data diagregasi per customer per bulan
+- Menghitung activities dengan status **done** (Visit & Follow Up terpisah)
+- Menghitung activities dengan status **missed** (semua tujuan)
 - Customer dengan `customer_id = NULL` excluded
-- Ambil row dengan `updated_at` terbaru untuk ID yang sama
-- Data sorted by: `plan_date DESC, customer_name ASC`
+- Data sorted by: `customer_name ASC, year DESC, month DESC`
 
 ---
 
 ## Example Requests
 
-### 1. Get all missed activities (no filters)
+### 1. Get all monthly visit summaries
 ```
-GET /api/activity-plans/missed-summary
+GET /api/activity-plans/monthly-visit
 ```
 
 ### 2. Filter by sales name
 ```
-GET /api/activity-plans/missed-summary?sales_name=John
+GET /api/activity-plans/monthly-visit?sales_name=John
 ```
 
-### 3. Filter by month & year (hanya Februari 2026)
+### 3. Filter by specific month & year
 ```
-GET /api/activity-plans/missed-summary?month=2&year=2026
+GET /api/activity-plans/monthly-visit?month=2&year=2026
 ```
 
 ### 4. Filter by state (wilayah)
 ```
-GET /api/activity-plans/missed-summary?state=Banten
+GET /api/activity-plans/monthly-visit?state=Banten
 ```
 
 ### 5. Combined filters
 ```
-GET /api/activity-plans/missed-summary?sales_name=John&month=2&year=2026&state=Banten
+GET /api/activity-plans/monthly-visit?sales_name=John&month=2&year=2026&state=Banten
 ```
 
 ---
@@ -85,31 +92,34 @@ GET /api/activity-plans/missed-summary?sales_name=John&month=2&year=2026&state=B
       "customer_name": "BAJA SAKTI",
       "sales_name": "John Doe",
       "wilayah": "Banten",
-      "tujuan": "Visit",
-      "status": "missed",
-      "plan_date": "Jumat, 06 Feb 2026",
-      "visit_count": 1,
-      "follow_up_count": 0
-    },
-    {
-      "customer_name": "MITRA LOGAM JAYA",
-      "sales_name": "Jane Smith",
-      "wilayah": "DKI Jakarta",
-      "tujuan": "Follow Up",
-      "status": "missed",
-      "plan_date": "Kamis, 05 Feb 2026",
-      "visit_count": 0,
-      "follow_up_count": 1
+      "year": 2026,
+      "month": 2,
+      "month_name": "February",
+      "done_visit_count": 8,
+      "done_follow_up_count": 5,
+      "missed_count": 3
     },
     {
       "customer_name": "CV ANUGRAH STEEL",
       "sales_name": "John Doe",
       "wilayah": "Jawa Barat",
-      "tujuan": "Visit",
-      "status": "missed",
-      "plan_date": "Rabu, 04 Feb 2026",
-      "visit_count": 1,
-      "follow_up_count": 0
+      "year": 2026,
+      "month": 2,
+      "month_name": "February",
+      "done_visit_count": 4,
+      "done_follow_up_count": 6,
+      "missed_count": 2
+    },
+    {
+      "customer_name": "MITRA LOGAM JAYA",
+      "sales_name": "Jane Smith",
+      "wilayah": "DKI Jakarta",
+      "year": 2026,
+      "month": 1,
+      "month_name": "January",
+      "done_visit_count": 3,
+      "done_follow_up_count": 2,
+      "missed_count": 5
     }
   ],
   "filters_applied": {
@@ -122,12 +132,47 @@ GET /api/activity-plans/missed-summary?sales_name=John&month=2&year=2026&state=B
 **Output Explanation:**
 - **customer_name**: Nama customer dari `master_customer`
 - **sales_name**: Nama sales dari `master_sales`
-- **wilayah**: State/wilayah dari `master_customer` (bukan dari `activity_plans`)
-- **tujuan**: Tujuan activity (Visit / Follow Up)
-- **status**: Status activity (selalu 'missed')
-- **plan_date**: Tanggal dalam format "Jumat, 06 Feb 2026" (fallback ke yyyy-mm-dd jika format gagal)
-- **visit_count**: 1 jika tujuan = 'Visit', 0 jika bukan
-- **follow_up_count**: 1 jika tujuan = 'Follow Up', 0 jika bukan
+- **wilayah**: State/wilayah dari `master_customer`
+- **year**: Tahun
+- **month**: Bulan (1-12)
+- **month_name**: Nama bulan (January, February, etc.)
+- **done_visit_count**: Total activities dengan status = 'done' AND tujuan = 'Visit' di bulan tersebut
+- **done_follow_up_count**: Total activities dengan status = 'done' AND tujuan = 'Follow Up' di bulan tersebut
+- **missed_count**: Total activities dengan status = 'missed' (semua tujuan) di bulan tersebut
+
+### Count Calculation Logic:
+
+```sql
+-- Done Visit
+SUM(CASE WHEN status = 'done' AND tujuan = 'Visit' THEN 1 ELSE 0 END)
+
+-- Done Follow Up
+SUM(CASE WHEN status = 'done' AND tujuan = 'Follow Up' THEN 1 ELSE 0 END)
+
+-- Missed (all tujuan)
+SUM(CASE WHEN status = 'missed' THEN 1 ELSE 0 END)
+```
+
+**Example Scenario:**
+
+Customer "BAJA SAKTI" di bulan Februari 2026 punya:
+- 8 activities: status = 'done', tujuan = 'Visit'
+- 5 activities: status = 'done', tujuan = 'Follow Up'
+- 2 activities: status = 'missed', tujuan = 'Visit'
+- 1 activity: status = 'missed', tujuan = 'Follow Up'
+
+Output:
+```json
+{
+  "done_visit_count": 8,
+  "done_follow_up_count": 5,
+  "missed_count": 3
+}
+```
+
+---
+
+## Error Responses
 
 ### Error Response (500 Internal Server Error)
 
@@ -162,9 +207,9 @@ GET /api/activity-plans/missed-summary?sales_name=John&month=2&year=2026&state=B
 ### Setup Collection
 
 1. **Create new request:**
-   - **Name:** Get Missed Activities
+   - **Name:** Get Monthly Visit Summary
    - **Method:** GET
-   - **URL:** `{{base_url}}/api/activity-plans/missed-summary`
+   - **URL:** `{{base_url}}/api/activity-plans/monthly-visit`
 
 2. **Add Query Params:**
    ```
@@ -178,29 +223,23 @@ GET /api/activity-plans/missed-summary?sales_name=John&month=2&year=2026&state=B
 
 ### Example Test Scenarios
 
-#### Scenario 1: All missed activities
+#### Scenario 1: All monthly summaries
 ```
-GET {{base_url}}/api/activity-plans/missed-summary
+GET {{base_url}}/api/activity-plans/monthly-visit
 ```
-Expected: All missed activities without any filter
+Expected: All customers with their monthly activity counts
 
-#### Scenario 2: Missed activities for specific month
+#### Scenario 2: Specific month
 ```
-GET {{base_url}}/api/activity-plans/missed-summary?month=2&year=2026
+GET {{base_url}}/api/activity-plans/monthly-visit?month=2&year=2026
 ```
-Expected: Only missed activities in February 2026
+Expected: Only February 2026 data
 
-#### Scenario 3: Missed activities by sales
+#### Scenario 3: By sales
 ```
-GET {{base_url}}/api/activity-plans/missed-summary?sales_name=John
+GET {{base_url}}/api/activity-plans/monthly-visit?sales_name=John
 ```
-Expected: Only missed activities handled by sales containing "John"
-
-#### Scenario 4: Missed activities in specific region
-```
-GET {{base_url}}/api/activity-plans/missed-summary?state=Banten
-```
-Expected: Only missed activities for customers in Banten
+Expected: Only customers handled by sales containing "John"
 
 ---
 
@@ -209,22 +248,28 @@ Expected: Only missed activities for customers in Banten
 ### 1. Copy Files
 
 ```bash
-# Copy Repository
-cp MissedActivityRepository.php backend/app/Repositories/
+# Copy Repository (NAMA FILE BERUBAH!)
+cp MonthlyVisitRepository.php backend/app/Repositories/
 
-# Copy Controller
-cp MissedActivityController.php backend/app/Http/Controllers/Api/
+# Copy Controller (NAMA FILE BERUBAH!)
+cp MonthlyVisitController.php backend/app/Http/Controllers/Api/
 ```
 
-### 2. Update Routes
+### 2. Update Routes (URL BERUBAH!)
 
-Add to `backend/routes/api.php`:
+Edit `backend/routes/api.php`:
 
+**HAPUS route lama:**
 ```php
-use App\Http\Controllers\Api\MissedActivityController;
+Route::get('/missed-summary', [MissedActivityController::class, 'index']);
+```
+
+**TAMBAH route baru:**
+```php
+use App\Http\Controllers\Api\MonthlyVisitController;
 
 Route::prefix('activity-plans')->group(function () {
-    Route::get('/missed-summary', [MissedActivityController::class, 'index']);
+    Route::get('/monthly-visit', [MonthlyVisitController::class, 'index']);
 });
 ```
 
@@ -241,53 +286,157 @@ php artisan cache:clear
 
 ```bash
 # Simple test
-curl http://localhost:8000/api/activity-plans/missed-summary
+curl http://localhost:8000/api/activity-plans/monthly-visit
 
 # With filters
-curl "http://localhost:8000/api/activity-plans/missed-summary?month=2&year=2026"
+curl "http://localhost:8000/api/activity-plans/monthly-visit?month=2&year=2026"
 ```
 
 ---
 
-## Notes
+## Migration Guide (from old endpoint)
 
-### Count Logic
-- **visit_count**: Bernilai 1 jika `tujuan = 'Visit'`, 0 jika selain itu
-- **follow_up_count**: Bernilai 1 jika `tujuan = 'Follow Up'`, 0 jika selain itu
-- Setiap row = 1 activity, jadi count selalu 0 atau 1
+### What Changed:
 
-### Date Format
-- Default format: **"Jumat, 06 Feb 2026"** (Hari, DD Bulan YYYY)
-- Jika formatting gagal: fallback ke **yyyy-mm-dd**
-- Format menggunakan nama hari & bulan dalam Bahasa Indonesia
+| Item | Old (missed-summary) | New (monthly-visit) |
+|------|---------------------|---------------------|
+| **URL** | `/api/activity-plans/missed-summary` | `/api/activity-plans/monthly-visit` |
+| **Repository** | `MissedActivityRepository` | `MonthlyVisitRepository` |
+| **Controller** | `MissedActivityController` | `MonthlyVisitController` |
+| **Output Fields** | `visit_count`, `follow_up_count`, `missed_count` | `done_visit_count`, `done_follow_up_count`, `missed_count` |
+| **Status Filter** | Hardcoded to 'missed' only | Includes both 'done' and 'missed' |
 
-### Data Filtering
-- **Status**: Hardcoded hanya 'missed'
-- **Duplicate ID**: Ambil row dengan `updated_at` paling baru
-- **Null customer_id**: Diabaikan dari hasil
-- **State**: Selalu dari `master_customer.state`, bukan dari `activity_plans.state`
+### Frontend Code Changes:
 
-### Sorting
-- Primary: `plan_date DESC` (terbaru dulu)
-- Secondary: `customer_name ASC` (A-Z)
+**Before:**
+```javascript
+const response = await fetch('/api/activity-plans/missed-summary?month=2&year=2026');
+const data = response.data;
+console.log(data.visit_count); // old field name
+```
+
+**After:**
+```javascript
+const response = await fetch('/api/activity-plans/monthly-visit?month=2&year=2026');
+const data = response.data;
+console.log(data.done_visit_count); // new field name
+console.log(data.done_follow_up_count);
+console.log(data.missed_count);
+```
+
+---
+
+## Use Cases
+
+### Use Case 1: Monthly Performance Dashboard
+Show customer activities for a specific month
+```
+GET /api/activity-plans/monthly-visit?month=2&year=2026
+```
+
+Display in table:
+```
+Customer          | Sales    | Done Visit | Done Follow Up | Missed | Total
+BAJA SAKTI        | John Doe | 8          | 5              | 3      | 16
+CV ANUGRAH STEEL  | John Doe | 4          | 6              | 2      | 12
+```
+
+Calculate total: `done_visit_count + done_follow_up_count + missed_count`
+
+### Use Case 2: Sales Performance
+```
+GET /api/activity-plans/monthly-visit?sales_name=John&year=2026
+```
+
+Aggregate by sales to see total performance across all customers.
+
+### Use Case 3: Success Rate Analysis
+```javascript
+const successRate = (
+  (data.done_visit_count + data.done_follow_up_count) / 
+  (data.done_visit_count + data.done_follow_up_count + data.missed_count) * 100
+).toFixed(1);
+```
+
+---
+
+## Frontend Integration Tips
+
+### Display in Table
+```javascript
+<table>
+  <thead>
+    <tr>
+      <th>Customer</th>
+      <th>Sales</th>
+      <th>Wilayah</th>
+      <th>Month</th>
+      <th>Done Visit</th>
+      <th>Done Follow Up</th>
+      <th>Missed</th>
+      <th>Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {data.map(row => (
+      <tr key={`${row.customer_name}-${row.year}-${row.month}`}>
+        <td>{row.customer_name}</td>
+        <td>{row.sales_name}</td>
+        <td>{row.wilayah}</td>
+        <td>{row.month_name} {row.year}</td>
+        <td>{row.done_visit_count}</td>
+        <td>{row.done_follow_up_count}</td>
+        <td>{row.missed_count}</td>
+        <td>{row.done_visit_count + row.done_follow_up_count + row.missed_count}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+```
+
+### Calculate Success Rate
+```javascript
+const total = row.done_visit_count + row.done_follow_up_count + row.missed_count;
+const successCount = row.done_visit_count + row.done_follow_up_count;
+const successRate = total > 0 ? ((successCount / total) * 100).toFixed(1) : 0;
+```
+
+### Filter Component
+```javascript
+const [filters, setFilters] = useState({
+  month: null,
+  year: new Date().getFullYear(),
+  sales_name: '',
+  state: ''
+});
+
+const fetchData = async () => {
+  const params = new URLSearchParams();
+  if (filters.month) params.append('month', filters.month);
+  if (filters.year) params.append('year', filters.year);
+  if (filters.sales_name) params.append('sales_name', filters.sales_name);
+  if (filters.state) params.append('state', filters.state);
+  
+  const response = await fetch(`/api/activity-plans/monthly-visit?${params}`);
+  const data = await response.json();
+};
+```
 
 ---
 
 ## Troubleshooting
 
 ### No data returned
-- Check apakah ada data dengan status = 'missed' di database
-- Verify filter bulan/tahun sudah benar
-- Coba tanpa filter dulu
+- Check if there are activities in the specified month/year
+- Verify filter values are correct
+- Try without filters first
 
-### Date format wrong
-- Check format `plan_date` di BigQuery (harus DATE type)
-- Verify timezone settings di PHP
+### Counts seem wrong
+- Verify `status` values in database (should be 'done' or 'missed')
+- Verify `tujuan` values (should be 'Visit' or 'Follow Up')
+- Check for duplicate IDs (should be handled by ROW_NUMBER)
 
-### Sales name not found
-- Verify join dengan `master_sales` berhasil
-- Check `sales_internal_id` di `activity_plans` match dengan `internal_id` di `master_sales`
-
-### Duplicate results
-- Verify logic ROW_NUMBER() sudah benar
-- Check apakah ada multiple rows dengan `updated_at` sama persis
+### Old endpoint still accessible
+- Clear routes cache: `php artisan route:clear`
+- Check routes file for old endpoint definition
+- Verify old controller/repository files are removed/renamed

@@ -3,21 +3,21 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Repositories\MissedActivityRepository;
+use App\Repositories\MonthlyVisitRepository;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
-class MissedActivityController extends Controller
+class MonthlyVisitController extends Controller
 {
-    protected $missedActivityRepository;
+    protected $monthlyVisitRepository;
 
-    public function __construct(MissedActivityRepository $missedActivityRepository)
+    public function __construct(MonthlyVisitRepository $monthlyVisitRepository)
     {
-        $this->missedActivityRepository = $missedActivityRepository;
+        $this->monthlyVisitRepository = $monthlyVisitRepository;
     }
 
     /**
-     * Get list of missed activities
+     * Get monthly visit summary
      * 
      * @param Request $request
      * @return JsonResponse
@@ -41,7 +41,7 @@ class MissedActivityController extends Controller
         ];
 
         // Get data from repository
-        $result = $this->missedActivityRepository->getMissedActivities($filters);
+        $result = $this->monthlyVisitRepository->getMonthlyVisitSummary($filters);
 
         if (!$result['success']) {
             return response()->json([
