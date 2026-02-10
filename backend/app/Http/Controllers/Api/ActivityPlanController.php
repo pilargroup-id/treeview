@@ -27,6 +27,7 @@ class ActivityPlanController extends Controller
         // Validate request
         $validated = $request->validate([
             'customer_name' => 'nullable|string|max:255',
+            'sales_name' => 'nullable|string|max:255',
             'months' => 'nullable|array|max:3',
             'months.*' => 'integer|min:1|max:12',
             'year' => 'nullable|integer|min:2000|max:2100',
@@ -38,6 +39,7 @@ class ActivityPlanController extends Controller
         // Build filters
         $filters = [
             'customer_name' => $validated['customer_name'] ?? null,
+            'sales_name' => $validated['sales_name'] ?? null,
             'months' => $validated['months'] ?? null,
             'year' => $validated['year'] ?? null,
             'state' => $validated['state'] ?? null,

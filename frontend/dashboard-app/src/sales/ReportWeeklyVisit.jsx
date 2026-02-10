@@ -53,6 +53,11 @@ const TOOLBAR_SVGS = {
       <path fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7m0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5"/>
     </svg>
   `,
+  sales: `
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4m0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4"/>
+    </svg>
+  `,
   reset: `
     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path fill="currentColor" d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6 0 2.97-2.17 5.43-5 5.91v2.02c3.95-.49 7-3.85 7-7.93 0-4.42-3.58-8-8-8m-6 8c0-1.65.67-3.15 1.76-4.24L6.34 7.34C4.9 8.79 4 10.79 4 13c0 4.08 3.05 7.44 7 7.93v-2.02c-2.83-.48-5-2.94-5-5.91"/>
@@ -62,6 +67,7 @@ const TOOLBAR_SVGS = {
 
 const TOOLBAR_ICONS = {
   wilayah: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.wilayah}</span>`,
+  sales: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.sales}</span>`,
   // Rendered via React (see mountToolbarReactIcons)
   month: '<span class="tv-w2ui-svg tv-w2ui-react-icon tv-w2ui-svg--compact" data-tv-icon="month" aria-hidden="true"></span>',
   year: '<span class="tv-w2ui-svg tv-w2ui-react-icon tv-w2ui-svg--compact" data-tv-icon="year" aria-hidden="true"></span>',
@@ -103,7 +109,7 @@ function mergeWeek4(week4, week5, week6) {
 }
 
 function buildColumnGroups(visibleMonths) {
-  return [{ text: '', span: 2 }].concat(
+  return [{ text: '', span: 3 }].concat(
     visibleMonths.map((monthIndex) => ({
       text: MONTH_LABELS[monthIndex] ?? '-',
       span: WEEK_COLUMNS.length,
@@ -122,9 +128,17 @@ function buildColumns(visibleMonths) {
       attr: 'style="white-space:nowrap;"',
     },
     {
+      field: 'sales_name',
+      text: 'Sales',
+      size: '180px',
+      sortable: true,
+      resizable: true,
+      attr: 'style="white-space:nowrap;"',
+    },
+    {
       field: 'customer',
       text: 'Customer',
-      size: '450px',
+      size: '420px',
       sortable: true,
       resizable: true,
       attr: 'style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"',
@@ -167,6 +181,7 @@ export default function DataTableMonthly() {
   const [filters, setFilters] = React.useState(() => ({
     query: '',
     wilayah: 'ALL',
+    sales: 'ALL',
     year: new Date().getFullYear(),
     months: getDefaultMonthSelection(),
   }));
@@ -311,6 +326,7 @@ export default function DataTableMonthly() {
       return {
         id: index + 1,
         wilayah: item?.wilayah ?? '-',
+        sales_name: item?.sales_name ?? '-',
         customer: item?.customer ?? '-',
         monthsByIndex,
         years,
@@ -336,18 +352,28 @@ export default function DataTableMonthly() {
     return Array.from(unique).sort((a, b) => b - a);
   }, [rows]);
 
+  const salesOptions = React.useMemo(() => {
+    const unique = new Set();
+    for (const row of rows) {
+      const value = String(row?.sales_name ?? '').trim();
+      if (value && value !== '-') unique.add(value);
+    }
+    return Array.from(unique).sort((a, b) => a.localeCompare(b));
+  }, [rows]);
+
   const filteredRows = React.useMemo(() => {
     const normalizedQuery = String(filters.query ?? '').trim().toLowerCase();
 
     return rows.filter((row) => {
       if (filters.wilayah !== 'ALL' && row.wilayah !== filters.wilayah) return false;
+      if (filters.sales !== 'ALL' && row.sales_name !== filters.sales) return false;
 
       const filterYear = Number(filters.year);
       if (Number.isInteger(filterYear) && row.years.size > 0 && !row.years.has(filterYear)) return false;
 
       if (!normalizedQuery) return true;
 
-      const haystack = `${row.wilayah} ${row.customer}`.toLowerCase();
+      const haystack = `${row.wilayah} ${row.sales_name} ${row.customer}`.toLowerCase();
       return haystack.includes(normalizedQuery);
     });
   }, [rows, filters]);
@@ -489,9 +515,9 @@ export default function DataTableMonthly() {
             type: 'html',
             id: 'tbQuery',
             html: `
-              <div class="tv-sales-toolbar-search" title="Cari wilayah / customer...">
+              <div class="tv-sales-toolbar-search" title="Cari wilayah / sales / customer...">
                 <span class="tv-sales-toolbar-search__icon" aria-hidden="true">${TOOLBAR_SVGS.search}</span>
-                <input id="${GRID_NAME}__query" class="w2ui-input tv-sales-toolbar-search__input" placeholder="Cari wilayah / customer..." />
+                <input id="${GRID_NAME}__query" class="w2ui-input tv-sales-toolbar-search__input" placeholder="Cari wilayah / sales / customer..." />
               </div>
             `,
           },
@@ -521,6 +547,14 @@ export default function DataTableMonthly() {
             selected: 'ALL',
             items: [{ id: 'ALL', text: 'Semua', checked: true }],
           },
+          {
+            type: 'menu-radio',
+            id: 'tbSales',
+            icon: TOOLBAR_ICONS.sales,
+            text: 'Sales: Semua',
+            selected: 'ALL',
+            items: [{ id: 'ALL', text: 'Semua', checked: true }],
+          },
           { type: 'spacer', id: 'tbSpacer1' },
           { type: 'button', id: 'tbReset', icon: TOOLBAR_ICONS.reset},
         ]);
@@ -538,6 +572,7 @@ export default function DataTableMonthly() {
             setFilters({
               query: '',
               wilayah: 'ALL',
+              sales: 'ALL',
               year: new Date().getFullYear(),
               months: getDefaultMonthSelection(),
             });
@@ -552,6 +587,8 @@ export default function DataTableMonthly() {
 
           if (parentId === 'tbState') {
             setFilters((prev) => ({ ...prev, wilayah: subId === 'ALL' ? 'ALL' : subId }));
+          } else if (parentId === 'tbSales') {
+            setFilters((prev) => ({ ...prev, sales: subId === 'ALL' ? 'ALL' : subId }));
           } else if (parentId === 'tbYear') {
             const year = Number(subId);
             if (!Number.isInteger(year)) return;
@@ -645,6 +682,7 @@ export default function DataTableMonthly() {
       const record = {
         recid: row.id,
         wilayah: row.wilayah,
+        sales_name: row.sales_name,
         customer: row.customer,
       };
 
@@ -715,6 +753,10 @@ export default function DataTableMonthly() {
       stateOptions.map((opt) => ({ id: opt, text: opt, checked: filters.wilayah === opt })),
     );
 
+    const salesItems = [{ id: 'ALL', text: 'Semua', checked: filters.sales === 'ALL' }].concat(
+      salesOptions.map((opt) => ({ id: opt, text: opt, checked: filters.sales === opt })),
+    );
+
     const tbMonth = grid.toolbar.get('tbMonth');
     if (tbMonth) {
       tbMonth.items = monthItems;
@@ -741,11 +783,20 @@ export default function DataTableMonthly() {
       grid.toolbar.refresh('tbState');
     }
 
+    const salesLabel = filters.sales === 'ALL' ? 'Semua' : String(filters.sales);
+    const tbSales = grid.toolbar.get('tbSales');
+    if (tbSales) {
+      tbSales.items = salesItems;
+      tbSales.selected = filters.sales;
+      tbSales.text = `Sales: ${salesLabel}`;
+      grid.toolbar.refresh('tbSales');
+    }
+
     // w2ui refresh can recreate DOM nodes, so re-mount React icons afterwards
     setTimeout(() => {
       mountToolbarReactIcons();
     }, 0);
-  }, [filters.year, filters.wilayah, visibleMonths, stateOptions, yearOptions, gridReadyTick]);
+  }, [filters.year, filters.wilayah, filters.sales, visibleMonths, stateOptions, yearOptions, salesOptions, gridReadyTick]);
 
   return (
     <Box
