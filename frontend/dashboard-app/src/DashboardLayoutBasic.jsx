@@ -15,9 +15,9 @@ import { DashboardLayout } from '@toolpad/core/DashboardLayout';
 import { useDemoRouter } from '@toolpad/core/internal';
 import ChartInvoice from './chart/ChartInvoice';
 import ItemTes from './chart/TestItemCategory';
-import ReportTableSales from './sales/ReportTableSales';
-import ReportTableCustomers from './sales/ReportTableCustomers';
-import ReportTableResult from './sales/ReportTableResult';
+import ReportMonthlyVisit from './sales/ReportMonthlyVisit';
+import ReportWeeklyVisit from './sales/ReportWeeklyVisit';
+import ReportMonitorRadius from './sales/ReportMonitorRadius';
 import { API_URL } from './config/api';
 
 const DASHBOARD_BACKGROUND_LIGHT =
@@ -163,7 +163,7 @@ function DemoPageContent({ pathname }) {
   if (currentPathname.includes('reports/sales')) {
     return (
       <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
-        <ReportTableSales />
+        <ReportMonthlyVisit />
       </Box>
     );
   }
@@ -171,7 +171,7 @@ function DemoPageContent({ pathname }) {
   if (currentPathname.includes('reports/customers')) {
     return (
       <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
-        <ReportTableCustomers />
+        <ReportWeeklyVisit />
       </Box>
     );
   }
@@ -179,7 +179,7 @@ function DemoPageContent({ pathname }) {
   if (currentPathname.includes('reports/result')) {
     return (
       <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
-        <ReportTableResult />
+        <ReportMonitorRadius />
       </Box>
     );
   }
