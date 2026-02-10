@@ -104,6 +104,12 @@ class ActivityPlanRepository
             $conditions[] = "LOWER(mc.customer_name) LIKE LOWER({$customerName})";
         }
 
+        // Filter by sales_name
+        if (!empty($filters['sales_name'])) {
+            $salesName = $this->escapeSqlString('%' . $filters['sales_name'] . '%');
+            $conditions[] = "LOWER(ms.name) LIKE LOWER({$salesName})";
+        }
+
         $whereClause = implode(' AND ', $conditions);
 
         $query = "
@@ -117,6 +123,7 @@ class ActivityPlanRepository
                     ap.updated_at,
                     mc.customer_name,
                     mc.state as wilayah,
+                    ms.name as sales_name,
                     EXTRACT(YEAR FROM ap.plan_date) as year,
                     EXTRACT(MONTH FROM ap.plan_date) as month,
                     EXTRACT(DAY FROM ap.plan_date) as day,
@@ -131,7 +138,7 @@ class ActivityPlanRepository
             filtered_plans AS (
                 SELECT 
                     id, customer_id, plan_date, status, tujuan, 
-                    customer_name, wilayah, year, month, day
+                    customer_name, sales_name, wilayah, year, month, day
                 FROM ranked_plans
                 WHERE rn = 1
             ),
@@ -157,6 +164,7 @@ class ActivityPlanRepository
             SELECT 
                 customer_id,
                 customer_name,
+                sales_name,
                 wilayah,
                 year,
                 month,
@@ -164,8 +172,8 @@ class ActivityPlanRepository
                 COUNT(*) as activity_count
             FROM week_calculation
             WHERE week_number IS NOT NULL -- Exclude Sundays
-            GROUP BY customer_id, customer_name, wilayah, year, month, week_number
-            ORDER BY wilayah, customer_name, year, month, week_number
+            GROUP BY customer_id, customer_name, sales_name, wilayah, year, month, week_number
+            ORDER BY wilayah, sales_name, customer_name, year, month, week_number
         ";
 
         return $query;
@@ -194,11 +202,14 @@ class ActivityPlanRepository
 
         // Group by customer
         foreach ($data as $row) {
-            $customerKey = $row['customer_id'];
+            $customerId = $row['customer_id'];
+            $salesName = $row['sales_name'] ?? null;
+            $customerKey = $customerId . '|' . ($salesName ?? '');
             
             if (!isset($grouped[$customerKey])) {
                 $grouped[$customerKey] = [
                     'wilayah' => $row['wilayah'],
+                    'sales_name' => $row['sales_name'] ?? null,
                     'customer' => $row['customer_name'],
                     'months' => []
                 ];
@@ -263,6 +274,7 @@ class ActivityPlanRepository
             
             $result[] = [
                 'wilayah' => $customerData['wilayah'],
+                'sales_name' => $customerData['sales_name'],
                 'customer' => $customerData['customer'],
                 'months' => $months
             ];
