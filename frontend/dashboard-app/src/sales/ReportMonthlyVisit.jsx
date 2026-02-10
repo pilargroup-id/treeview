@@ -14,6 +14,22 @@ const LAYOUT_NAME = 'reportSalesLayout';
 const MAIN_DATA_ID = `${LAYOUT_NAME}__tab_data`;
 const MAIN_SUMMARY_ID = `${LAYOUT_NAME}__tab_summary`;
 
+function getCurrentPeriod() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
+function parsePeriod(period) {
+  const match = /^(\d{4})-(\d{2})$/.exec(String(period ?? ''));
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) return null;
+  return { year, month };
+}
+
 const TOOLBAR_SVGS = {
   search: `
     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
@@ -67,6 +83,7 @@ export default function ReportTableSales() {
   const activeMainTabRef = React.useRef('data');
   const latestFilteredRowsRef = React.useRef([]);
   const latestFiltersRef = React.useRef(null);
+  const latestPeriodRef = React.useRef(getCurrentPeriod());
   const latestIsLoadingRef = React.useRef(true);
   const latestLoadErrorRef = React.useRef(null);
   const abortRef = React.useRef(null);
@@ -83,11 +100,16 @@ export default function ReportTableSales() {
     sales: 'ALL',
   }));
 
+  const [period, setPeriod] = React.useState(() => getCurrentPeriod());
   const [sourceData, setSourceData] = React.useState([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState(null);
 
   React.useEffect(() => {
+    const parsed = parsePeriod(period) ?? parsePeriod(getCurrentPeriod());
+    const month = parsed?.month ?? new Date().getMonth() + 1;
+    const year = parsed?.year ?? new Date().getFullYear();
+
     const nextRequestId = requestIdRef.current + 1;
     requestIdRef.current = nextRequestId;
 
@@ -95,7 +117,10 @@ export default function ReportTableSales() {
     const controller = new AbortController();
     abortRef.current = controller;
 
-    const url = `${API_URL}/activity-plans/missed-summary`;
+    const params = new URLSearchParams();
+    params.set('month', String(month));
+    params.set('year', String(year));
+    const url = `${API_URL}/activity-plans/monthly-visit?${params.toString()}`;
 
     setIsLoading(true);
     setLoadError(null);
@@ -130,7 +155,7 @@ export default function ReportTableSales() {
       });
 
     return () => controller.abort();
-  }, []);
+  }, [period]);
 
   React.useEffect(() => {
     const lockTarget = lockBoxRef.current;
@@ -152,11 +177,12 @@ export default function ReportTableSales() {
       customer_name: item?.customer_name ?? '-',
       wilayah: item?.wilayah ?? item?.state ?? '-',
       sales_name: item?.sales_name ?? '-',
-      visit_count: item?.visit_count ?? 0,
-      follow_up_count: item?.follow_up_count ?? 0,
-      tujuan: item?.tujuan ?? '-',
-      status: item?.status ?? '-',
-      plan_date: item?.plan_date ?? '-',
+      year: item?.year ?? null,
+      month: item?.month ?? null,
+      month_name: item?.month_name ?? null,
+      visit_count: item?.done_visit_count ?? item?.visit_count ?? 0,
+      follow_up_count: item?.done_follow_up_count ?? item?.follow_up_count ?? 0,
+      missed_count: item?.missed_count ?? item?.missed ?? 0,
     }));
   }, [sourceData]);
 
@@ -185,7 +211,7 @@ export default function ReportTableSales() {
       if (!normalizedQuery) return true;
 
       const haystack =
-        `${record.customer_name} ${record.wilayah} ${record.sales_name} ${record.tujuan} ${record.status} ${record.plan_date}`.toLowerCase();
+        `${record.customer_name} ${record.wilayah} ${record.sales_name} ${record.month_name ?? ''} ${record.month ?? ''} ${record.year ?? ''}`.toLowerCase();
       return haystack.includes(normalizedQuery);
     });
   }, [filters, rows]);
@@ -197,6 +223,10 @@ export default function ReportTableSales() {
   React.useEffect(() => {
     latestFiltersRef.current = filters;
   }, [filters]);
+
+  React.useEffect(() => {
+    latestPeriodRef.current = period;
+  }, [period]);
 
   React.useEffect(() => {
     latestIsLoadingRef.current = isLoading;
@@ -212,6 +242,7 @@ export default function ReportTableSales() {
 
     const currentRows = Array.isArray(latestFilteredRowsRef.current) ? latestFilteredRowsRef.current : [];
     const currentFilters = latestFiltersRef.current ?? { query: '', wilayah: 'ALL', sales: 'ALL' };
+    const currentPeriod = latestPeriodRef.current ?? getCurrentPeriod();
     const currentIsLoading = Boolean(latestIsLoadingRef.current);
     const currentLoadError = latestLoadErrorRef.current;
 
@@ -220,7 +251,13 @@ export default function ReportTableSales() {
     }
 
     summaryRootRef.current.render(
-      <SummarySales rows={currentRows} filters={currentFilters} isLoading={currentIsLoading} loadError={currentLoadError} />,
+      <SummarySales
+        rows={currentRows}
+        filters={currentFilters}
+        period={currentPeriod}
+        isLoading={currentIsLoading}
+        loadError={currentLoadError}
+      />,
     );
   }, []);
 
@@ -313,13 +350,12 @@ export default function ReportTableSales() {
           { text: 'Done', span: 2 },
         ],
         columns: [
-          { field: 'customer_name', text: 'Customer', size: '20%', sortable: true, resizable: true },
-          { field: 'wilayah', text: 'Wilayah', size: '20%', sortable: true, resizable: true },
           { field: 'sales_name', text: 'Sales', size: '20%', sortable: true, resizable: true },
+          { field: 'wilayah', text: 'Wilayah', size: '20%', sortable: true, resizable: true },
+          { field: 'customer_name', text: 'Customer', size: '20%', sortable: true, resizable: true },
           { field: 'visit_count', text: 'Visit', size: '90px', sortable: true, resizable: true, attr: 'align=right' },
           { field: 'follow_up_count', text: 'Follow Up', size: '90px', sortable: true, resizable: true, attr: 'align=right' },
-          { field: 'status', text: 'Missed', size: '150px', sortable: true, resizable: true },
-          { field: 'plan_date', text: 'Plan Date', size: '150px', sortable: true, resizable: true },
+          { field: 'missed_count', text: 'Missed', size: '110px', sortable: true, resizable: true, attr: 'align=right' },
         ],
         records: [],
       });
@@ -333,9 +369,18 @@ export default function ReportTableSales() {
             type: 'html',
             id: 'tbQuery',
             html: `
-              <div class="tv-sales-toolbar-search" title="Cari sales / customer / tujuan / status...">
+              <div class="tv-sales-toolbar-search" title="Cari sales / customer / wilayah...">
                 <span class="tv-sales-toolbar-search__icon" aria-hidden="true">${TOOLBAR_SVGS.search}</span>
-                <input id="${GRID_NAME}__query" class="w2ui-input tv-sales-toolbar-search__input" placeholder="Cari sales / customer / tujuan / status..." />
+                <input id="${GRID_NAME}__query" class="w2ui-input tv-sales-toolbar-search__input" placeholder="Cari sales / customer / wilayah..." />
+              </div>
+            `,
+          },
+          {
+            type: 'html',
+            id: 'tbPeriod',
+            html: `
+              <div class="tv-sales-toolbar-period" title="Filter bulan laporan">
+                <input id="${GRID_NAME}__period" type="month" class="w2ui-input tv-sales-toolbar-period__input" />
               </div>
             `,
           },
@@ -369,8 +414,12 @@ export default function ReportTableSales() {
               wilayah: 'ALL',
               sales: 'ALL',
             });
+            const defaultPeriod = getCurrentPeriod();
+            setPeriod(defaultPeriod);
             const queryEl = document.getElementById(`${GRID_NAME}__query`);
             if (queryEl) queryEl.value = '';
+            const periodEl = document.getElementById(`${GRID_NAME}__period`);
+            if (periodEl) periodEl.value = defaultPeriod;
             return;
           }
 
@@ -397,8 +446,18 @@ export default function ReportTableSales() {
           const queryEl = document.getElementById(`${GRID_NAME}__query`);
           if (queryEl) queryEl.value = '';
 
+          const periodEl = document.getElementById(`${GRID_NAME}__period`);
+          if (periodEl) periodEl.value = period;
+
           attach(`${GRID_NAME}__query`, 'input', (e) => {
             setFilters((prev) => ({ ...prev, query: e.target.value }));
+          });
+
+          attach(`${GRID_NAME}__period`, 'change', (e) => {
+            const next = String(e.target.value ?? '').trim();
+            const parsed = parsePeriod(next);
+            setPeriod(parsed ? next : getCurrentPeriod());
+            setPage(0);
           });
 
           toolbarInputsRef.current = listeners;
@@ -447,9 +506,7 @@ export default function ReportTableSales() {
       sales_name: record.sales_name,
       visit_count: record.visit_count,
       follow_up_count: record.follow_up_count,
-      tujuan: record.tujuan,
-      status: record.status,
-      plan_date: record.plan_date,
+      missed_count: record.missed_count,
     }));
 
     grid.clear();
@@ -457,6 +514,11 @@ export default function ReportTableSales() {
     grid.total = records.length;
     grid.refresh();
   }, [filteredRecords, gridReadyTick]);
+
+  React.useEffect(() => {
+    const periodEl = document.getElementById(`${GRID_NAME}__period`);
+    if (periodEl && periodEl.value !== period) periodEl.value = period;
+  }, [gridReadyTick, period]);
 
   React.useEffect(() => {
     const grid = gridRef.current ?? w2ui[GRID_NAME];
@@ -602,6 +664,34 @@ export default function ReportTableSales() {
             line-height: 26px;
             padding: 0 8px;
             width: min(280px, 42vw);
+            box-sizing: border-box;
+          }
+
+          .tv-sales-toolbar-period {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            height: 30px;
+            padding: 0 6px;
+            white-space: nowrap;
+            transform: translateY(-2px);
+          }
+          .tv-sales-toolbar-period__icon {
+            display: inline-flex;
+            align-items: center;
+            line-height: 1;
+            color: #8d99a7;
+          }
+          .tv-sales-toolbar-period__icon svg {
+            display: block;
+            width: 16px;
+            height: 16px;
+          }
+          .tv-sales-toolbar-period__input {
+            height: 26px;
+            line-height: 26px;
+            padding: 0 8px;
+            width: 150px;
             box-sizing: border-box;
           }
         `}

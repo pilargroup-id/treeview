@@ -3,6 +3,7 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import PlaceIcon from '@mui/icons-material/Place';
 import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
 import PhoneInTalkIcon from '@mui/icons-material/PhoneInTalk';
+import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 
 const ACCENT_BLUE = '#6BA3D0';
 const ACCENT_BLUE_BG = 'rgba(107, 163, 208, 0.12)';
@@ -31,6 +32,16 @@ function buildBars(items, palette) {
     percent: (it.value / maxValue) * 100,
     color: palette[idx % palette.length],
   }));
+}
+
+function formatPeriod(period) {
+  const match = /^(\d{4})-(\d{2})$/.exec(String(period ?? ''));
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) return null;
+  const date = new Date(year, month - 1, 1);
+  return new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(date);
 }
 
 function groupSum(rows, key, valueFn) {
@@ -208,8 +219,14 @@ function VerticalBars({ title, icon, totalLabel, items, emptyText }) {
   );
 }
 
-export default function SummarySales({ rows, filters, isLoading, loadError }) {
+export default function SummarySales({ rows, filters, period, isLoading, loadError }) {
   const safeRows = Array.isArray(rows) ? rows : [];
+
+  const totalMissed = React.useMemo(() => {
+    let sum = 0;
+    for (const row of safeRows) sum += toSafeNumber(row?.missed_count);
+    return sum;
+  }, [safeRows]);
 
   const totalVisit = React.useMemo(() => {
     let sum = 0;
@@ -223,13 +240,11 @@ export default function SummarySales({ rows, filters, isLoading, loadError }) {
     return sum;
   }, [safeRows]);
 
-  const totalActivity = totalVisit + totalFollowUp;
-
   const salesBars = React.useMemo(() => {
     const items = groupSum(
       safeRows,
       'sales_name',
-      (row) => toSafeNumber(row?.visit_count) + toSafeNumber(row?.follow_up_count),
+      (row) => toSafeNumber(row?.missed_count),
     );
     return buildBars(items, PALETTE);
   }, [safeRows]);
@@ -238,23 +253,25 @@ export default function SummarySales({ rows, filters, isLoading, loadError }) {
     const items = groupSum(
       safeRows,
       'wilayah',
-      (row) => toSafeNumber(row?.visit_count) + toSafeNumber(row?.follow_up_count),
+      (row) => toSafeNumber(row?.missed_count),
     );
     return buildBars(items, PALETTE);
   }, [safeRows]);
 
   const filterLabel = React.useMemo(() => {
     const parts = [];
+    const periodLabel = formatPeriod(period);
     const wilayah = String(filters?.wilayah ?? 'ALL');
     const sales = String(filters?.sales ?? 'ALL');
     const query = String(filters?.query ?? '').trim();
 
+    if (periodLabel) parts.push(`Periode: ${periodLabel}`);
     if (wilayah && wilayah !== 'ALL') parts.push(`Wilayah: ${wilayah}`);
     if (sales && sales !== 'ALL') parts.push(`Sales: ${sales}`);
     if (query) parts.push(`Cari: "${query}"`);
 
     return parts.length > 0 ? parts.join(' • ') : 'Semua data';
-  }, [filters?.query, filters?.sales, filters?.wilayah]);
+  }, [filters?.query, filters?.sales, filters?.wilayah, period]);
 
   const headerNote = loadError ? (
     <div style={{ marginBottom: 10, color: '#b42318' }}>{String(loadError)}</div>
@@ -262,9 +279,7 @@ export default function SummarySales({ rows, filters, isLoading, loadError }) {
     <div style={{ marginBottom: 10, color: '#6b7685' }}>Loading...</div>
   ) : null;
 
-  const subtitle = `${filterLabel} • Total baris: ${formatNumber(safeRows.length)} • Total aktivitas: ${formatNumber(
-    totalActivity,
-  )}`;
+  const subtitle = `${filterLabel} • Total baris: ${formatNumber(safeRows.length)} • Total missed: ${formatNumber(totalMissed)}`;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -276,6 +291,14 @@ export default function SummarySales({ rows, filters, isLoading, loadError }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
+        <SmallStatCard
+          title="Total Missed"
+          value={totalMissed}
+          subtitle={safeRows.length > 0 ? `Rata-rata: ${formatNumber(totalMissed / safeRows.length)} per baris` : null}
+          accent="rgba(217, 45, 32, 0.10)"
+          iconColor="#D92D20"
+          icon={<ReportProblemIcon fontSize="medium" />}
+        />
         <SmallStatCard
           title="Total Visit"
           value={totalVisit}
@@ -297,7 +320,7 @@ export default function SummarySales({ rows, filters, isLoading, loadError }) {
       <VerticalBars
         title="Chart Sales"
         icon={<BarChartIcon />}
-        totalLabel={`Total aktivitas: ${formatNumber(totalActivity)}`}
+        totalLabel={`Total missed: ${formatNumber(totalMissed)}`}
         items={salesBars}
         emptyText="Tidak ada data sales."
       />
@@ -305,7 +328,7 @@ export default function SummarySales({ rows, filters, isLoading, loadError }) {
       <VerticalBars
         title="Chart Wilayah"
         icon={<PlaceIcon />}
-        totalLabel={`Total aktivitas: ${formatNumber(totalActivity)}`}
+        totalLabel={`Total missed: ${formatNumber(totalMissed)}`}
         items={wilayahBars}
         emptyText="Tidak ada data wilayah."
       />

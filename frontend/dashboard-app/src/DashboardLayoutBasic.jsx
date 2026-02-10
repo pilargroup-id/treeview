@@ -5,9 +5,9 @@ import { createTheme, GlobalStyles } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import BarChartIcon from '@mui/icons-material/BarChart';
-import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
-import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
-import FactCheckIcon from '@mui/icons-material/FactCheck';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import CalendarViewWeekIcon from '@mui/icons-material/CalendarViewWeek';
+import MyLocationIcon from '@mui/icons-material/MyLocation';
 import LayersIcon from '@mui/icons-material/Layers';
 import CategoryIcon from '@mui/icons-material/Category';
 import { AppProvider } from '@toolpad/core/AppProvider';
@@ -42,9 +42,9 @@ const NAVIGATION = [
     title: 'Reports',
     icon: <BarChartIcon />,
     children: [
-      { segment: 'sales', title: 'Monthly Visit', icon: <PointOfSaleIcon /> },
-      { segment: 'customers', title: 'Weekly Summary', icon: <PeopleAltIcon /> },
-      { segment: 'result', title: 'Monitor Radius', icon: <FactCheckIcon /> },
+      { segment: 'monthly-visit', title: 'Monthly Visit', icon: <CalendarMonthIcon /> },
+      { segment: 'weekly-summary', title: 'Weekly Summary', icon: <CalendarViewWeekIcon /> },
+      { segment: 'monitor-radius', title: 'Monitor Radius', icon: <MyLocationIcon /> },
     ],
   },
   { segment: 'integrations', title: 'Integrations', icon: <LayersIcon /> },
@@ -160,7 +160,7 @@ function DemoPageContent({ pathname }) {
     );
   }
 
-  if (currentPathname.includes('reports/sales')) {
+  if (currentPathname.includes('reports/monthly-visit') || currentPathname.includes('reports/sales')) {
     return (
       <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
         <ReportMonthlyVisit />
@@ -168,7 +168,7 @@ function DemoPageContent({ pathname }) {
     );
   }
 
-  if (currentPathname.includes('reports/customers')) {
+  if (currentPathname.includes('reports/weekly-summary') || currentPathname.includes('reports/customers')) {
     return (
       <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
         <ReportWeeklyVisit />
@@ -176,7 +176,7 @@ function DemoPageContent({ pathname }) {
     );
   }
 
-  if (currentPathname.includes('reports/result')) {
+  if (currentPathname.includes('reports/monitor-radius') || currentPathname.includes('reports/result')) {
     return (
       <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
         <ReportMonitorRadius />
