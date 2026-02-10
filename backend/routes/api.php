@@ -3,8 +3,8 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\FinancialController;
-use App\Http\Controllers\TreeViewAuthController;
-use App\Http\Controllers\PageController;
+use App\Http\Controllers\Api\TreeViewAuthController;
+use App\Http\Controllers\Api\PageController;
 use App\Http\Controllers\Api\ActivityPlanController;
 use App\Http\Controllers\Api\MonthlyVisitController;
 use App\Http\Controllers\Api\ActivityDetailController;
@@ -27,9 +27,9 @@ Route::prefix('activity-plans')->group(function () {
 
 
 // // Tree View Auth Routes
-// Route::prefix('tree-view')->group(function () {
-//     // Public routes
-//     Route::post('/login', [TreeViewAuthController::class, 'login']);
+Route::prefix('tree-view')->group(function () {
+    // Public routes
+    Route::post('/login', [TreeViewAuthController::class, 'login']);
     
 //     // Protected routes
 //     Route::middleware('tree_view_auth')->group(function () {
@@ -49,4 +49,4 @@ Route::prefix('activity-plans')->group(function () {
 //         Route::get('/page-c', [PageController::class, 'pageC'])
 //             ->middleware('check_permission:Finance|Manager');
 //     });
-// });
+});
