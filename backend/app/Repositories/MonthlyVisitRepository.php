@@ -58,7 +58,6 @@ class MonthlyVisitRepository
         
         // Base conditions
         $conditions = [
-            "ap.customer_id IS NOT NULL",
             "ap.deleted_at IS NULL"
         ];
 
@@ -73,10 +72,10 @@ class MonthlyVisitRepository
             $conditions[] = "EXTRACT(YEAR FROM ap.plan_date) = {$year}";
         }
 
-        // Filter by state (from master_customer)
+        // Filter by state (from master_customer; fallback to activity_plans.state for CheckIn rows)
         if (!empty($filters['state'])) {
             $state = $this->escapeSqlString($filters['state']);
-            $conditions[] = "mc.state = {$state}";
+            $conditions[] = "COALESCE(NULLIF(TRIM(CAST(mc.state AS STRING)), ''), NULLIF(TRIM(CAST(ap.state AS STRING)), '')) = {$state}";
         }
 
         // Filter by sales_name
@@ -97,9 +96,18 @@ class MonthlyVisitRepository
                     ap.tujuan,
                     ap.sales_internal_id,
                     ap.updated_at,
-                    mc.customer_name,
-                    mc.state as wilayah,
-                    ms.name as sales_name,
+                    CASE
+                        WHEN NULLIF(TRIM(CAST(ap.customer_id AS STRING)), '') IS NULL
+                          OR TRIM(CAST(ap.customer_id AS STRING)) = '0' THEN 'CheckIn'
+                        ELSE COALESCE(mc.customer_name, 'Unknown Customer')
+                    END as customer_name,
+                    CASE
+                        WHEN NULLIF(TRIM(CAST(ap.customer_id AS STRING)), '') IS NULL
+                          OR TRIM(CAST(ap.customer_id AS STRING)) = '0'
+                          THEN COALESCE(NULLIF(TRIM(CAST(ap.state AS STRING)), ''), 'CHECKIN')
+                        ELSE COALESCE(NULLIF(TRIM(CAST(mc.state AS STRING)), ''), '-')
+                    END as wilayah,
+                    COALESCE(ms.name, '-') as sales_name,
                     EXTRACT(YEAR FROM ap.plan_date) as year,
                     EXTRACT(MONTH FROM ap.plan_date) as month,
                     ROW_NUMBER() OVER (PARTITION BY ap.id ORDER BY ap.updated_at DESC) as rn

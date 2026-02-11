@@ -327,7 +327,7 @@ export default function DataTableMonthly() {
         id: index + 1,
         wilayah: item?.wilayah ?? '-',
         sales_name: item?.sales_name ?? '-',
-        customer: item?.customer ?? '-',
+        customer: String(item?.customer ?? item?.customer_name ?? '').trim() || '-',
         monthsByIndex,
         years,
       };

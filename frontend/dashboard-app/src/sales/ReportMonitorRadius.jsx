@@ -16,6 +16,11 @@ const TOOLBAR_SVGS = {
       <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79L19 20.49L20.49 19l-4.99-5Zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14Z"/>
     </svg>
   `,
+  map: `
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M12 2C8.14 2 5 5.14 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.86-3.14-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5 14.5 7.62 14.5 9 13.38 11.5 12 11.5z"/>
+    </svg>
+  `,
   radius: `
     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path fill="currentColor" d="M12 2a10 10 0 1 0 .001 20.001A10 10 0 0 0 12 2Zm0 2a8 8 0 1 1-.001 16.001A8 8 0 0 1 12 4Zm0 3a5 5 0 1 0 .001 10.001A5 5 0 0 0 12 7Zm0 2a3 3 0 1 1-.001 6.001A3 3 0 0 1 12 9Z"/>
@@ -100,6 +105,16 @@ function escapeAttr(value) {
     .replaceAll('>', '&gt;');
 }
 
+function buildMapsUrls(latRaw, lngRaw) {
+  const lat = parseMaybeNumber(latRaw);
+  const lng = parseMaybeNumber(lngRaw);
+  if (lat == null || lng == null) return null;
+  const q = `${lat},${lng}`;
+  const openUrl = `https://www.google.com/maps?q=${encodeURIComponent(q)}&z=17`;
+  const embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(q)}&z=17&output=embed`;
+  return { openUrl, embedUrl, label: q };
+}
+
 function buildApiUrl(pathname) {
   const base = String(API_URL ?? '').replace(/\/+$/, '');
   const cleanPath = String(pathname ?? '').replace(/^\/+/, '');
@@ -138,6 +153,14 @@ function buildColumns() {
       attr: 'style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"',
     },
     {
+      field: 'plan_no',
+      text: 'Plan No',
+      size: '160px',
+      sortable: true,
+      resizable: true,
+      attr: 'style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"',
+    },
+    {
       field: 'plan_date',
       text: 'Tanggal Visit',
       size: '220px',
@@ -163,6 +186,31 @@ function buildColumns() {
       sortable: true,
       resizable: true,
       attr: 'style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"',
+    },
+    {
+      field: 'maps_address',
+      text: 'Maps Address',
+      size: '260px',
+      sortable: false,
+      resizable: true,
+      attr: 'style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"',
+      render(record) {
+        const urls = buildMapsUrls(record?.result_location_lat ?? null, record?.result_location_lng ?? null);
+        if (!urls) return '-';
+        const dataLat = escapeAttr(String(parseMaybeNumber(record?.result_location_lat)));
+        const dataLng = escapeAttr(String(parseMaybeNumber(record?.result_location_lng)));
+        return `
+          <span style="display:inline-flex; align-items:center; gap:8px; min-width:0;">
+            <button type="button" class="tv-map-btn" data-lat="${dataLat}" data-lng="${dataLng}" title="Buka Maps" aria-label="Buka Maps">
+              <span class="tv-map-btn__icon" aria-hidden="true">${TOOLBAR_SVGS.map}</span>
+              <span class="tv-map-btn__text">Maps</span>
+            </button>
+            <span title="${escapeAttr(urls.label)}" style="min-width:0; overflow:hidden; text-overflow:ellipsis;">${escapeAttr(
+              urls.label,
+            )}</span>
+          </span>
+        `.trim();
+      },
     },
     {
       field: 'user_photo',
@@ -309,7 +357,10 @@ export default function ReportTableResult() {
       sales_name: item?.sales_name ?? '-',
       wilayah: item?.wilayah ?? item?.state ?? '-',
       customer_name: item?.customer_name ?? '-',
+      plan_no: item?.plan_no ?? '-',
       plan_date: item?.plan_date ?? '-',
+      result_location_lat: item?.result_location_lat ?? null,
+      result_location_lng: item?.result_location_lng ?? null,
       result_location_accuracy: item?.result_location_accuracy ?? null,
       result: item?.result == null || item?.result === '' ? '-' : item.result,
       user_photo: item?.user_photo ?? null,
@@ -350,7 +401,7 @@ export default function ReportTableResult() {
 
       if (!normalizedQuery) return true;
 
-      const haystack = `${row.sales_name} ${row.wilayah} ${row.customer_name} ${row.plan_date} ${row.result}`.toLowerCase();
+      const haystack = `${row.sales_name} ${row.wilayah} ${row.customer_name} ${row.plan_no} ${row.plan_date} ${row.result}`.toLowerCase();
       return haystack.includes(normalizedQuery);
     });
   }, [rows, filters]);
@@ -471,6 +522,38 @@ export default function ReportTableResult() {
       gridHostClickHandler = (e) => {
         const target = e?.target;
         if (!(target instanceof HTMLElement)) return;
+        const mapBtn = target.closest?.('button.tv-map-btn');
+        if (mapBtn) {
+          const urls = buildMapsUrls(mapBtn.getAttribute('data-lat'), mapBtn.getAttribute('data-lng'));
+          if (!urls) return;
+          const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
+          const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 768;
+          const width = Math.max(520, Math.min(980, viewportWidth - 40));
+          const height = Math.max(420, Math.min(760, viewportHeight - 80));
+          const src = escapeAttr(urls.embedUrl);
+          const openUrl = escapeAttr(urls.openUrl);
+
+          w2popup.open({
+            title: `Maps (${urls.label})`,
+            showMax: true,
+            width,
+            height,
+            body: `
+              <div class="tv-map-popup">
+                <div class="tv-map-popup__actions">
+                  <a class="tv-map-popup__link" href="${openUrl}" target="_blank" rel="noopener noreferrer">Buka di tab baru</a>
+                </div>
+                <iframe class="tv-map-popup__frame" src="${src}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+              </div>
+            `.trim(),
+            actions: {
+              Tutup() {
+                w2popup.close();
+              },
+            },
+          });
+          return;
+        }
         const btn = target.closest?.('button.tv-photo-btn');
         if (!btn) return;
         const url = btn.getAttribute('data-url');
@@ -510,9 +593,9 @@ export default function ReportTableResult() {
             type: 'html',
             id: 'tbQuery',
             html: `
-              <div class="tv-sales-toolbar-search" title="Cari sales / customer / result...">
+              <div class="tv-sales-toolbar-search" title="Cari sales / customer / plan no / address...">
                 <span class="tv-sales-toolbar-search__icon" aria-hidden="true">${TOOLBAR_SVGS.search}</span>
-                <input id="${GRID_NAME}__query" class="w2ui-input tv-sales-toolbar-search__input" placeholder="Cari sales / customer / result..." />
+                <input id="${GRID_NAME}__query" class="w2ui-input tv-sales-toolbar-search__input" placeholder="Cari sales / customer / plan no / address..." />
               </div>
             `,
           },
@@ -681,7 +764,10 @@ export default function ReportTableResult() {
         sales_name: row.sales_name,
         wilayah: row.wilayah,
         customer_name: row.customer_name,
+        plan_no: row.plan_no,
         plan_date: row.plan_date,
+        result_location_lat: row.result_location_lat,
+        result_location_lng: row.result_location_lng,
         result_location_accuracy: row.result_location_accuracy,
         result: row.result,
         user_photo: row.user_photo,
@@ -946,6 +1032,69 @@ export default function ReportTableResult() {
             border-radius: 10px;
             background: #111827;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+          }
+          .tv-map-btn {
+            height: 24px;
+            padding: 0 10px;
+            border: 1px solid #cfd6de;
+            border-radius: 6px;
+            background: #fff;
+            color: #5b6775;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            line-height: 1;
+            flex: 0 0 auto;
+          }
+          .tv-map-btn__icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+          }
+          .tv-map-btn svg {
+            display: block;
+            width: 16px;
+            height: 16px;
+          }
+          .tv-map-btn__text {
+            font-size: 12px;
+            line-height: 1;
+          }
+          .tv-map-btn:hover {
+            background: rgba(107, 163, 208, 0.08);
+            border-color: rgba(107, 163, 208, 0.6);
+            color: #1f2937;
+          }
+          .tv-map-popup {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #0b1220;
+          }
+          .tv-map-popup__actions {
+            padding: 10px 12px;
+            background: #0b1220;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          }
+          .tv-map-popup__link {
+            color: #93c5fd;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 600;
+          }
+          .tv-map-popup__link:hover {
+            text-decoration: underline;
+          }
+          .tv-map-popup__frame {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            flex: 1;
+            background: #0b1220;
           }
           .w2ui-toolbar .w2ui-tb-button .w2ui-tb-icon .tv-w2ui-svg {
             display: inline-flex;
