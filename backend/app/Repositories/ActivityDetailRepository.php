@@ -59,7 +59,6 @@ class ActivityDetailRepository
         
         // Base conditions
         $conditions = [
-            "ap.customer_id IS NOT NULL",
             "ap.deleted_at IS NULL"
         ];
 
@@ -70,10 +69,10 @@ class ActivityDetailRepository
             $conditions[] = "ap.plan_date BETWEEN {$startDate} AND {$endDate}";
         }
 
-        // Filter by state (from master_customer)
+        // Filter by state (from master_customer; fallback to activity_plans.state for CheckIn rows)
         if (!empty($filters['state'])) {
             $state = $this->escapeSqlString($filters['state']);
-            $conditions[] = "mc.state = {$state}";
+            $conditions[] = "COALESCE(NULLIF(TRIM(CAST(mc.state AS STRING)), ''), NULLIF(TRIM(CAST(ap.state AS STRING)), '')) = {$state}";
         }
 
         // Filter by sales_name
@@ -85,7 +84,15 @@ class ActivityDetailRepository
         // Filter by customer_name
         if (!empty($filters['customer_name'])) {
             $customerName = $this->escapeSqlString('%' . $filters['customer_name'] . '%');
-            $conditions[] = "LOWER(mc.customer_name) LIKE LOWER({$customerName})";
+            $conditions[] = "
+                LOWER(
+                    CASE
+                        WHEN NULLIF(TRIM(CAST(ap.customer_id AS STRING)), '') IS NULL
+                          OR TRIM(CAST(ap.customer_id AS STRING)) = '0' THEN 'checkin'
+                        ELSE COALESCE(mc.customer_name, '')
+                    END
+                ) LIKE LOWER({$customerName})
+            ";
         }
 
         $whereClause = implode(' AND ', $conditions);
@@ -94,16 +101,28 @@ class ActivityDetailRepository
             WITH ranked_plans AS (
                 SELECT 
                     ap.id,
+                    ap.plan_no,
                     ap.customer_id,
                     ap.plan_date,
                     ap.result,
+                    ap.result_location_lat,
+                    ap.result_location_lng,
                     ap.result_location_accuracy,
                     ap.user_photo,
                     ap.sales_internal_id,
                     ap.updated_at,
-                    mc.customer_name,
-                    mc.state as wilayah,
-                    ms.name as sales_name,
+                    CASE
+                        WHEN NULLIF(TRIM(CAST(ap.customer_id AS STRING)), '') IS NULL
+                          OR TRIM(CAST(ap.customer_id AS STRING)) = '0' THEN 'CheckIn'
+                        ELSE COALESCE(mc.customer_name, 'Unknown Customer')
+                    END as customer_name,
+                    CASE
+                        WHEN NULLIF(TRIM(CAST(ap.customer_id AS STRING)), '') IS NULL
+                          OR TRIM(CAST(ap.customer_id AS STRING)) = '0'
+                          THEN COALESCE(NULLIF(TRIM(CAST(ap.state AS STRING)), ''), 'CHECKIN')
+                        ELSE COALESCE(NULLIF(TRIM(CAST(mc.state AS STRING)), ''), '-')
+                    END as wilayah,
+                    COALESCE(ms.name, '-') as sales_name,
                     ROW_NUMBER() OVER (PARTITION BY ap.id ORDER BY ap.updated_at DESC) as rn
                 FROM {$projectDataset}.activity_plans ap
                 LEFT JOIN {$projectDataset}.master_customer mc 
@@ -117,7 +136,10 @@ class ActivityDetailRepository
                     sales_name,
                     wilayah,
                     customer_name,
+                    plan_no,
                     plan_date,
+                    result_location_lat,
+                    result_location_lng,
                     result_location_accuracy,
                     result,
                     user_photo
@@ -128,7 +150,10 @@ class ActivityDetailRepository
                 sales_name,
                 wilayah,
                 customer_name,
+                plan_no,
                 plan_date,
+                result_location_lat,
+                result_location_lng,
                 result_location_accuracy,
                 result,
                 user_photo
@@ -154,7 +179,10 @@ class ActivityDetailRepository
                 'sales_name' => $row['sales_name'],
                 'wilayah' => $row['wilayah'],
                 'customer_name' => $row['customer_name'],
+                'plan_no' => $row['plan_no'] ?? null,
                 'plan_date' => $this->formatDate($row['plan_date']),
+                'result_location_lat' => $row['result_location_lat'] ?? null,
+                'result_location_lng' => $row['result_location_lng'] ?? null,
                 'result_location_accuracy' => $row['result_location_accuracy'],
                 'result' => $row['result'],
                 'user_photo' => $this->buildPhotoUrl($row['user_photo']),

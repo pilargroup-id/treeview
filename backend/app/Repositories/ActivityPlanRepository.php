@@ -58,7 +58,6 @@ class ActivityPlanRepository
         
         // Base conditions
         $conditions = [
-            "ap.customer_id IS NOT NULL",
             "ap.deleted_at IS NULL"
         ];
 
@@ -77,7 +76,8 @@ class ActivityPlanRepository
         // Filter by state (from master_customer)
         if (!empty($filters['state'])) {
             $state = $this->escapeSqlString($filters['state']);
-            $conditions[] = "mc.state = {$state}";
+            // For CheckIn rows (customer_id NULL/0), state can come from activity_plans.state
+            $conditions[] = "COALESCE(NULLIF(TRIM(CAST(mc.state AS STRING)), ''), NULLIF(TRIM(CAST(ap.state AS STRING)), '')) = {$state}";
         }
 
         // Filter by status
@@ -121,9 +121,18 @@ class ActivityPlanRepository
                     ap.status,
                     ap.tujuan,
                     ap.updated_at,
-                    mc.customer_name,
-                    mc.state as wilayah,
-                    ms.name as sales_name,
+                    CASE
+                        WHEN NULLIF(TRIM(CAST(ap.customer_id AS STRING)), '') IS NULL
+                          OR TRIM(CAST(ap.customer_id AS STRING)) = '0' THEN 'CheckIn'
+                        ELSE COALESCE(mc.customer_name, 'Unknown Customer')
+                    END as customer_name,
+                    CASE
+                        WHEN NULLIF(TRIM(CAST(ap.customer_id AS STRING)), '') IS NULL
+                          OR TRIM(CAST(ap.customer_id AS STRING)) = '0'
+                          THEN COALESCE(NULLIF(TRIM(CAST(ap.state AS STRING)), ''), 'CHECKIN')
+                        ELSE COALESCE(NULLIF(TRIM(CAST(mc.state AS STRING)), ''), '-')
+                    END as wilayah,
+                    COALESCE(ms.name, '-') as sales_name,
                     EXTRACT(YEAR FROM ap.plan_date) as year,
                     EXTRACT(MONTH FROM ap.plan_date) as month,
                     EXTRACT(DAY FROM ap.plan_date) as day,
@@ -204,11 +213,12 @@ class ActivityPlanRepository
         foreach ($data as $row) {
             $customerId = $row['customer_id'];
             $salesName = $row['sales_name'] ?? null;
-            $customerKey = $customerId . '|' . ($salesName ?? '');
+            $wilayah = $row['wilayah'] ?? null;
+            $customerKey = $customerId . '|' . ($salesName ?? '') . '|' . ($wilayah ?? '');
             
             if (!isset($grouped[$customerKey])) {
                 $grouped[$customerKey] = [
-                    'wilayah' => $row['wilayah'],
+                    'wilayah' => $wilayah,
                     'sales_name' => $row['sales_name'] ?? null,
                     'customer' => $row['customer_name'],
                     'months' => []
