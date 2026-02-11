@@ -16,8 +16,13 @@ const TOOLBAR_SVGS = {
       <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79L19 20.49L20.49 19l-4.99-5Zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14Z"/>
     </svg>
   `,
+  calendar: `
+    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2Zm0 16H5V9h14v11Zm0-13H5V6h14v1Z"/>
+    </svg>
+  `,
   map: `
-    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <svg width="10" height="10" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path fill="currentColor" d="M12 2C8.14 2 5 5.14 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.86-3.14-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5 14.5 7.62 14.5 9 13.38 11.5 12 11.5z"/>
     </svg>
   `,
@@ -65,6 +70,14 @@ function toDateInputValue(date) {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+function formatIsoDateToDmyShort(isoDate) {
+  const raw = String(isoDate ?? '').trim();
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return '';
+  const [, yyyy, mm, dd] = match;
+  return `${dd}-${mm}-${yyyy.slice(2)}`;
 }
 
 function formatMaybeNumber(value) {
@@ -190,7 +203,7 @@ function buildColumns() {
     {
       field: 'maps_address',
       text: 'Maps Address',
-      size: '260px',
+      size: '100px',
       sortable: false,
       resizable: true,
       attr: 'style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"',
@@ -200,22 +213,17 @@ function buildColumns() {
         const dataLat = escapeAttr(String(parseMaybeNumber(record?.result_location_lat)));
         const dataLng = escapeAttr(String(parseMaybeNumber(record?.result_location_lng)));
         return `
-          <span style="display:inline-flex; align-items:center; gap:8px; min-width:0;">
-            <button type="button" class="tv-map-btn" data-lat="${dataLat}" data-lng="${dataLng}" title="Buka Maps" aria-label="Buka Maps">
-              <span class="tv-map-btn__icon" aria-hidden="true">${TOOLBAR_SVGS.map}</span>
-              <span class="tv-map-btn__text">Maps</span>
-            </button>
-            <span title="${escapeAttr(urls.label)}" style="min-width:0; overflow:hidden; text-overflow:ellipsis;">${escapeAttr(
-              urls.label,
-            )}</span>
-          </span>
+          <button type="button" class="tv-map-btn" data-lat="${dataLat}" data-lng="${dataLng}" title="Buka Maps" aria-label="Buka Maps">
+            <span class="tv-map-btn__icon" aria-hidden="true">${TOOLBAR_SVGS.map}</span>
+            <span class="tv-map-btn__text">Maps</span>
+          </button>
         `.trim();
       },
     },
     {
       field: 'user_photo',
       text: 'Foto',
-      size: '100px',
+      size: '90px',
       sortable: true,
       resizable: true,
       attr: 'style="text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"',
@@ -405,6 +413,11 @@ export default function ReportTableResult() {
       return haystack.includes(normalizedQuery);
     });
   }, [rows, filters]);
+
+  const pagedFilteredRows = React.useMemo(() => {
+    const start = page * rowsPerPage;
+    return filteredRows.slice(start, start + rowsPerPage);
+  }, [filteredRows, page, rowsPerPage]);
 
   React.useEffect(() => {
     latestFilteredRowsRef.current = filteredRows;
@@ -627,44 +640,58 @@ export default function ReportTableResult() {
               { id: 'OUT_200', text: `Luar > ${RADIUS_THRESHOLD_METERS} m`, checked: false },
             ],
           },
-          {
-            type: 'html',
-            id: 'tbDates',
-            html: `
-              <div class="tv-sales-toolbar-dates" title="Filter tanggal (maks 31 hari)">
-                <span class="tv-sales-toolbar-dates__label">Dari</span>
-                <input id="${GRID_NAME}__start_date" type="date" class="w2ui-input tv-sales-toolbar-dates__input" />
-                <span class="tv-sales-toolbar-dates__label">Sampai</span>
-                <input id="${GRID_NAME}__end_date" type="date" class="w2ui-input tv-sales-toolbar-dates__input" />
-              </div>
-            `,
-          },
+           {
+             type: 'html',
+             id: 'tbDates',
+             html: `
+               <div class="tv-sales-toolbar-dates" title="Filter tanggal (maks 31 hari)">
+                 <span class="tv-sales-toolbar-dates__label">Dari</span>
+                 <div class="tv-sales-toolbar-datefield tv-sales-toolbar-datefield--icon">
+                   <span class="tv-sales-toolbar-datefield__icon" aria-hidden="true">${TOOLBAR_SVGS.calendar}</span>
+                   <input id="${GRID_NAME}__start_date" type="date" class="w2ui-input tv-sales-toolbar-dates__input tv-sales-toolbar-dates__native" />
+                   <input id="${GRID_NAME}__start_date_display" type="text" class="w2ui-input tv-sales-toolbar-dates__input tv-sales-toolbar-dates__display" placeholder="dd-mm-yy" readonly tabindex="-1" aria-hidden="true" />
+                 </div>
+                 <span class="tv-sales-toolbar-dates__label">Sampai</span>
+                 <div class="tv-sales-toolbar-datefield tv-sales-toolbar-datefield--icon">
+                   <span class="tv-sales-toolbar-datefield__icon" aria-hidden="true">${TOOLBAR_SVGS.calendar}</span>
+                   <input id="${GRID_NAME}__end_date" type="date" class="w2ui-input tv-sales-toolbar-dates__input tv-sales-toolbar-dates__native" />
+                   <input id="${GRID_NAME}__end_date_display" type="text" class="w2ui-input tv-sales-toolbar-dates__input tv-sales-toolbar-dates__display" placeholder="dd-mm-yy" readonly tabindex="-1" aria-hidden="true" />
+                 </div>
+               </div>
+             `,
+           },
           { type: 'spacer', id: 'tbSpacer1' },
-          { type: 'button', id: 'tbReset', icon: TOOLBAR_ICONS.reset},
+          { type: 'button', id: 'tbReset', icon: TOOLBAR_ICONS.reset, hint: 'Reset Filter' },
         ]);
 
         grid.toolbar.on('click', (event) => {
           const target = String(event.target ?? '');
           if (!target) return;
 
-          if (target === 'tbReset') {
-            const now = new Date();
-            setFilters({
-              query: '',
-              sales: 'ALL',
-              wilayah: 'ALL',
-              radius: 'ALL',
-              start_date: toDateInputValue(new Date(now.getFullYear(), now.getMonth(), 1)),
-              end_date: toDateInputValue(now),
-            });
-            const queryEl = document.getElementById(`${GRID_NAME}__query`);
-            if (queryEl) queryEl.value = '';
-            const startEl = document.getElementById(`${GRID_NAME}__start_date`);
-            if (startEl) startEl.value = toDateInputValue(new Date(now.getFullYear(), now.getMonth(), 1));
-            const endEl = document.getElementById(`${GRID_NAME}__end_date`);
-            if (endEl) endEl.value = toDateInputValue(now);
-            return;
-          }
+           if (target === 'tbReset') {
+             const now = new Date();
+             const nextStart = toDateInputValue(new Date(now.getFullYear(), now.getMonth(), 1));
+             const nextEnd = toDateInputValue(now);
+             setFilters({
+               query: '',
+               sales: 'ALL',
+               wilayah: 'ALL',
+               radius: 'ALL',
+               start_date: nextStart,
+               end_date: nextEnd,
+             });
+             const queryEl = document.getElementById(`${GRID_NAME}__query`);
+             if (queryEl) queryEl.value = '';
+             const startEl = document.getElementById(`${GRID_NAME}__start_date`);
+             if (startEl) startEl.value = nextStart;
+             const startDisplayEl = document.getElementById(`${GRID_NAME}__start_date_display`);
+             if (startDisplayEl) startDisplayEl.value = formatIsoDateToDmyShort(nextStart);
+             const endEl = document.getElementById(`${GRID_NAME}__end_date`);
+             if (endEl) endEl.value = nextEnd;
+             const endDisplayEl = document.getElementById(`${GRID_NAME}__end_date_display`);
+             if (endDisplayEl) endDisplayEl.value = formatIsoDateToDmyShort(nextEnd);
+             return;
+           }
 
           if (!target.includes(':')) return;
           const [parentId, subIdRaw] = target.split(':');
@@ -696,24 +723,34 @@ export default function ReportTableResult() {
             listeners.push({ el, eventName, handler });
           };
 
-          const queryEl = document.getElementById(`${GRID_NAME}__query`);
-          if (queryEl) queryEl.value = String(filters.query ?? '');
-          const startEl = document.getElementById(`${GRID_NAME}__start_date`);
-          if (startEl) startEl.value = String(filters.start_date ?? '');
-          const endEl = document.getElementById(`${GRID_NAME}__end_date`);
-          if (endEl) endEl.value = String(filters.end_date ?? '');
+           const queryEl = document.getElementById(`${GRID_NAME}__query`);
+           if (queryEl) queryEl.value = String(filters.query ?? '');
+           const startEl = document.getElementById(`${GRID_NAME}__start_date`);
+           if (startEl) startEl.value = String(filters.start_date ?? '');
+           const startDisplayEl = document.getElementById(`${GRID_NAME}__start_date_display`);
+           if (startDisplayEl) startDisplayEl.value = formatIsoDateToDmyShort(String(filters.start_date ?? ''));
+           const endEl = document.getElementById(`${GRID_NAME}__end_date`);
+           if (endEl) endEl.value = String(filters.end_date ?? '');
+           const endDisplayEl = document.getElementById(`${GRID_NAME}__end_date_display`);
+           if (endDisplayEl) endDisplayEl.value = formatIsoDateToDmyShort(String(filters.end_date ?? ''));
 
           attach(`${GRID_NAME}__query`, 'input', (e) => {
             setFilters((prev) => ({ ...prev, query: e.target.value }));
           });
 
-          attach(`${GRID_NAME}__start_date`, 'change', (e) => {
-            setFilters((prev) => ({ ...prev, start_date: e.target.value }));
-          });
+           attach(`${GRID_NAME}__start_date`, 'change', (e) => {
+             const next = e.target.value;
+             const startDisplayEl = document.getElementById(`${GRID_NAME}__start_date_display`);
+             if (startDisplayEl) startDisplayEl.value = formatIsoDateToDmyShort(next);
+             setFilters((prev) => ({ ...prev, start_date: next }));
+           });
 
-          attach(`${GRID_NAME}__end_date`, 'change', (e) => {
-            setFilters((prev) => ({ ...prev, end_date: e.target.value }));
-          });
+           attach(`${GRID_NAME}__end_date`, 'change', (e) => {
+             const next = e.target.value;
+             const endDisplayEl = document.getElementById(`${GRID_NAME}__end_date_display`);
+             if (endDisplayEl) endDisplayEl.value = formatIsoDateToDmyShort(next);
+             setFilters((prev) => ({ ...prev, end_date: next }));
+           });
 
           toolbarInputsRef.current = listeners;
         }, 0);
@@ -758,7 +795,7 @@ export default function ReportTableResult() {
     const grid = gridRef.current ?? w2ui[GRID_NAME];
     if (!grid) return;
 
-    const records = filteredRows.map((row) => {
+    const records = pagedFilteredRows.map((row) => {
       return {
         recid: row.id,
         sales_name: row.sales_name,
@@ -778,16 +815,7 @@ export default function ReportTableResult() {
     grid.add(records);
     grid.total = records.length;
     grid.refresh();
-  }, [filteredRows, gridReadyTick]);
-
-  React.useEffect(() => {
-    const grid = gridRef.current ?? w2ui[GRID_NAME];
-    if (!grid) return;
-
-    grid.limit = rowsPerPage;
-    grid.offset = page * rowsPerPage;
-    grid.refresh();
-  }, [gridReadyTick, page, rowsPerPage]);
+  }, [pagedFilteredRows, gridReadyTick]);
 
   React.useEffect(() => {
     const total = filteredRows.length;
@@ -862,10 +890,16 @@ export default function ReportTableResult() {
     const startEl = document.getElementById(`${GRID_NAME}__start_date`);
     const nextStart = String(filters.start_date ?? '');
     if (startEl && startEl.value !== nextStart) startEl.value = nextStart;
+    const startDisplayEl = document.getElementById(`${GRID_NAME}__start_date_display`);
+    const nextStartDisplay = formatIsoDateToDmyShort(nextStart);
+    if (startDisplayEl && startDisplayEl.value !== nextStartDisplay) startDisplayEl.value = nextStartDisplay;
 
     const endEl = document.getElementById(`${GRID_NAME}__end_date`);
     const nextEnd = String(filters.end_date ?? '');
     if (endEl && endEl.value !== nextEnd) endEl.value = nextEnd;
+    const endDisplayEl = document.getElementById(`${GRID_NAME}__end_date_display`);
+    const nextEndDisplay = formatIsoDateToDmyShort(nextEnd);
+    if (endDisplayEl && endDisplayEl.value !== nextEndDisplay) endDisplayEl.value = nextEndDisplay;
   }, [filters.end_date, filters.query, filters.start_date, gridReadyTick]);
 
   return (
@@ -979,6 +1013,50 @@ export default function ReportTableResult() {
             padding: 0 6px;
             width: 140px;
             box-sizing: border-box;
+          }
+          .tv-sales-toolbar-datefield {
+            position: relative;
+            display: inline-block;
+          }
+          .tv-sales-toolbar-datefield__icon {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: inline-flex;
+            align-items: center;
+            line-height: 1;
+            pointer-events: none;
+            z-index: 3;
+          }
+          .tv-sales-toolbar-datefield__icon svg {
+            display: block;
+            width: 14px;
+            height: 14px;
+            color: #8d99a7;
+          }
+          .tv-sales-toolbar-dates__native {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 2;
+          }
+          .tv-sales-toolbar-dates__display {
+            position: relative;
+            z-index: 1;
+            pointer-events: none;
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: "tnum" 1;
+          }
+          .tv-sales-toolbar-datefield--icon .tv-sales-toolbar-dates__display {
+            padding-right: 26px;
+          }
+          .tv-sales-toolbar-datefield:focus-within .tv-sales-toolbar-dates__display {
+            outline: 2px solid rgba(107, 163, 208, 0.45);
+            outline-offset: 1px;
           }
 
           .tv-photo-btn {
