@@ -71,8 +71,6 @@ const TOOLBAR_ICONS = {
   reset: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.reset}</span>`,
 };
 
-
-
 export default function ReportTableSales() {
   const layoutBoxRef = React.useRef(null);
   const lockBoxRef = React.useRef(null);
@@ -109,7 +107,7 @@ export default function ReportTableSales() {
     const parsed = parsePeriod(period) ?? parsePeriod(getCurrentPeriod());
     const month = parsed?.month ?? new Date().getMonth() + 1;
     const year = parsed?.year ?? new Date().getFullYear();
-
+    
     const nextRequestId = requestIdRef.current + 1;
     requestIdRef.current = nextRequestId;
 
@@ -215,6 +213,11 @@ export default function ReportTableSales() {
       return haystack.includes(normalizedQuery);
     });
   }, [filters, rows]);
+
+  const pagedFilteredRecords = React.useMemo(() => {
+    const start = page * rowsPerPage;
+    return filteredRecords.slice(start, start + rowsPerPage);
+  }, [filteredRecords, page, rowsPerPage]);
 
   React.useEffect(() => {
     latestFilteredRowsRef.current = filteredRecords;
@@ -499,7 +502,7 @@ export default function ReportTableSales() {
     const grid = gridRef.current ?? w2ui[GRID_NAME];
     if (!grid) return;
 
-    const records = filteredRecords.map((record) => ({
+    const records = pagedFilteredRecords.map((record) => ({
       recid: record.recid,
       customer_name: record.customer_name,
       wilayah: record.wilayah,
@@ -513,21 +516,12 @@ export default function ReportTableSales() {
     grid.add(records);
     grid.total = records.length;
     grid.refresh();
-  }, [filteredRecords, gridReadyTick]);
+  }, [pagedFilteredRecords, gridReadyTick]);
 
   React.useEffect(() => {
     const periodEl = document.getElementById(`${GRID_NAME}__period`);
     if (periodEl && periodEl.value !== period) periodEl.value = period;
   }, [gridReadyTick, period]);
-
-  React.useEffect(() => {
-    const grid = gridRef.current ?? w2ui[GRID_NAME];
-    if (!grid) return;
-
-    grid.limit = rowsPerPage;
-    grid.offset = page * rowsPerPage;
-    grid.refresh();
-  }, [gridReadyTick, page, rowsPerPage]);
 
   React.useEffect(() => {
     const total = filteredRecords.length;

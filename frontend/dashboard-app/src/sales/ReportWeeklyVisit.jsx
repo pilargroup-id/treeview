@@ -2,8 +2,6 @@ import * as React from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import TablePagination from '@mui/material/TablePagination';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import EventIcon from '@mui/icons-material/Event';
 import { createRoot } from 'react-dom/client';
 import { w2grid, w2layout, w2ui, w2utils } from 'w2ui';
 import 'w2ui/w2ui-2.0.min.css';
@@ -48,6 +46,16 @@ const TOOLBAR_SVGS = {
       <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5A6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79L19 20.49L20.49 19l-4.99-5Zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5S14 7.01 14 9.5S11.99 14 9.5 14Z"/>
     </svg>
   `,
+  month: `
+    <svg width="10" height="10" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M7 2h2v2h6V2h2v2h3v18H4V4h3V2Zm13 8H6v10h14V10Z"/>
+    </svg>
+  `,
+  year: `
+    <svg width="10" height="10" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M7 2h2v2h6V2h2v2h3v18H4V4h3V2Zm13 6H6v12h14V8Z"/>
+    </svg>
+  `,
   wilayah: `
     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7m0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5"/>
@@ -66,11 +74,10 @@ const TOOLBAR_SVGS = {
 };
 
 const TOOLBAR_ICONS = {
+  month: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.month}</span>`,
+  year: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.year}</span>`,
   wilayah: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.wilayah}</span>`,
   sales: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.sales}</span>`,
-  // Rendered via React (see mountToolbarReactIcons)
-  month: '<span class="tv-w2ui-svg tv-w2ui-react-icon tv-w2ui-svg--compact" data-tv-icon="month" aria-hidden="true"></span>',
-  year: '<span class="tv-w2ui-svg tv-w2ui-react-icon tv-w2ui-svg--compact" data-tv-icon="year" aria-hidden="true"></span>',
   reset: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.reset}</span>`,
 };
 
@@ -164,8 +171,7 @@ export default function DataTableMonthly() {
   const lockBoxRef = React.useRef(null);
   const layoutRef = React.useRef(null);
   const gridRef = React.useRef(null);
-  const queryInputRef = React.useRef(null);
-  const toolbarIconRootsRef = React.useRef(new Map());
+  const toolbarInputsRef = React.useRef([]);
   const summaryRootRef = React.useRef(null);
   const activeMainTabRef = React.useRef('data');
   const latestFilteredRowsRef = React.useRef([]);
@@ -199,34 +205,6 @@ export default function DataTableMonthly() {
     if (unique.length === 0) return [new Date().getMonth()];
     return unique.slice(0, 3);
   }, [filters.months]);
-
-  const mountToolbarReactIcons = React.useCallback(() => {
-    const gridEl = document.getElementById(`grid_${GRID_NAME}`);
-    if (!gridEl) return;
-
-    // Prune unmounted hosts to avoid leaking roots
-    for (const [hostEl, root] of toolbarIconRootsRef.current.entries()) {
-      if (!hostEl.isConnected) {
-        root.unmount();
-        toolbarIconRootsRef.current.delete(hostEl);
-      }
-    }
-
-    const iconHosts = gridEl.querySelectorAll('.tv-w2ui-react-icon[data-tv-icon]');
-    iconHosts.forEach((hostEl) => {
-      const iconKey = hostEl.getAttribute('data-tv-icon');
-      const IconComponent = iconKey === 'month' ? CalendarMonthIcon : iconKey === 'year' ? EventIcon : null;
-      if (!IconComponent) return;
-
-      let root = toolbarIconRootsRef.current.get(hostEl);
-      if (!root) {
-        root = createRoot(hostEl);
-        toolbarIconRootsRef.current.set(hostEl, root);
-      }
-
-      root.render(<IconComponent />);
-    });
-  }, []);
 
   React.useEffect(() => {
     const nextRequestId = requestIdRef.current + 1;
@@ -342,6 +320,15 @@ export default function DataTableMonthly() {
     return Array.from(unique).sort((a, b) => a.localeCompare(b));
   }, [rows]);
 
+  const salesOptions = React.useMemo(() => {
+    const unique = new Set();
+    for (const row of rows) {
+      const value = String(row?.sales_name ?? '').trim();
+      if (value && value !== '-') unique.add(value);
+    }
+    return Array.from(unique).sort((a, b) => a.localeCompare(b));
+  }, [rows]);
+
   const yearOptions = React.useMemo(() => {
     const unique = new Set();
 
@@ -350,15 +337,6 @@ export default function DataTableMonthly() {
     }
 
     return Array.from(unique).sort((a, b) => b - a);
-  }, [rows]);
-
-  const salesOptions = React.useMemo(() => {
-    const unique = new Set();
-    for (const row of rows) {
-      const value = String(row?.sales_name ?? '').trim();
-      if (value && value !== '-') unique.add(value);
-    }
-    return Array.from(unique).sort((a, b) => a.localeCompare(b));
   }, [rows]);
 
   const filteredRows = React.useMemo(() => {
@@ -377,6 +355,11 @@ export default function DataTableMonthly() {
       return haystack.includes(normalizedQuery);
     });
   }, [rows, filters]);
+
+  const pagedFilteredRows = React.useMemo(() => {
+    const start = page * rowsPerPage;
+    return filteredRows.slice(start, start + rowsPerPage);
+  }, [filteredRows, page, rowsPerPage]);
 
   React.useEffect(() => {
     latestFilteredRowsRef.current = filteredRows;
@@ -537,6 +520,7 @@ export default function DataTableMonthly() {
             icon: TOOLBAR_ICONS.year,
             text: `Tahun: ${new Date().getFullYear()}`,
             selected: String(new Date().getFullYear()),
+            overlay: { class: 'w2ui-white tv-report-customers__year-menu' },
             items: [{ id: String(new Date().getFullYear()), text: String(new Date().getFullYear()), checked: true }],
           },
           {
@@ -556,13 +540,8 @@ export default function DataTableMonthly() {
             items: [{ id: 'ALL', text: 'Semua', checked: true }],
           },
           { type: 'spacer', id: 'tbSpacer1' },
-          { type: 'button', id: 'tbReset', icon: TOOLBAR_ICONS.reset},
+          { type: 'button', id: 'tbReset', icon: TOOLBAR_ICONS.reset, hint: 'Reset Filter' },
         ]);
-
-        setTimeout(() => {
-          if (disposed) return;
-          mountToolbarReactIcons();
-        }, 0);
 
         grid.toolbar.on('click', (event) => {
           const target = String(event.target ?? '');
@@ -615,15 +594,22 @@ export default function DataTableMonthly() {
         });
 
         setTimeout(() => {
-          const input = document.getElementById(`${GRID_NAME}__query`);
-          if (!input) return;
-
-          const handler = (e) => {
-            setFilters((prev) => ({ ...prev, query: e.target.value }));
+          const listeners = [];
+          const attach = (id, eventName, handler) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener(eventName, handler);
+            listeners.push({ el, eventName, handler });
           };
 
-          input.addEventListener('input', handler);
-          queryInputRef.current = { el: input, handler };
+          const queryEl = document.getElementById(`${GRID_NAME}__query`);
+          if (queryEl) queryEl.value = '';
+
+          attach(`${GRID_NAME}__query`, 'input', (e) => {
+            setFilters((prev) => ({ ...prev, query: e.target.value }));
+          });
+
+          toolbarInputsRef.current = listeners;
         }, 0);
       }
     }, 0);
@@ -640,12 +626,10 @@ export default function DataTableMonthly() {
       if (initialMountTimeoutId) clearTimeout(initialMountTimeoutId);
 
       window.removeEventListener('resize', handleResize);
-      if (queryInputRef.current?.el && queryInputRef.current?.handler) {
-        queryInputRef.current.el.removeEventListener('input', queryInputRef.current.handler);
+      for (const { el, eventName, handler } of toolbarInputsRef.current) {
+        el.removeEventListener(eventName, handler);
       }
-      queryInputRef.current = null;
-      for (const [, root] of toolbarIconRootsRef.current.entries()) root.unmount();
-      toolbarIconRootsRef.current.clear();
+      toolbarInputsRef.current = [];
       summaryRootRef.current?.unmount?.();
       summaryRootRef.current = null;
       if (w2ui[GRID_NAME]) w2ui[GRID_NAME].destroy();
@@ -678,7 +662,7 @@ export default function DataTableMonthly() {
     if (!grid) return;
 
     const selectedSet = new Set(visibleMonths);
-    const records = filteredRows.map((row) => {
+    const records = pagedFilteredRows.map((row) => {
       const record = {
         recid: row.id,
         wilayah: row.wilayah,
@@ -703,16 +687,7 @@ export default function DataTableMonthly() {
     grid.add(records);
     grid.total = records.length;
     grid.refresh();
-  }, [filteredRows, visibleMonths, gridReadyTick]);
-
-  React.useEffect(() => {
-    const grid = gridRef.current ?? w2ui[GRID_NAME];
-    if (!grid) return;
-
-    grid.limit = rowsPerPage;
-    grid.offset = page * rowsPerPage;
-    grid.refresh();
-  }, [gridReadyTick, page, rowsPerPage]);
+  }, [pagedFilteredRows, visibleMonths, gridReadyTick]);
 
   React.useEffect(() => {
     const total = filteredRows.length;
@@ -791,11 +766,6 @@ export default function DataTableMonthly() {
       tbSales.text = `Sales: ${salesLabel}`;
       grid.toolbar.refresh('tbSales');
     }
-
-    // w2ui refresh can recreate DOM nodes, so re-mount React icons afterwards
-    setTimeout(() => {
-      mountToolbarReactIcons();
-    }, 0);
   }, [filters.year, filters.wilayah, filters.sales, visibleMonths, stateOptions, yearOptions, salesOptions, gridReadyTick]);
 
   return (
@@ -889,6 +859,22 @@ export default function DataTableMonthly() {
             width: min(280px, 42vw);
             box-sizing: border-box;
           }
+
+          /* w2ui toolbar clips children by default (overflow:hidden), which can cut icons/menus. */
+          .tv-report-customers .w2ui-toolbar,
+          #grid_${GRID_NAME} .w2ui-toolbar {
+            overflow: visible;
+          }
+
+          .tv-report-customers .w2ui-toolbar .w2ui-tb-line,
+          #grid_${GRID_NAME} .w2ui-toolbar .w2ui-tb-line {
+            overflow: visible !important;
+          }
+
+          .tv-report-customers .w2ui-toolbar .w2ui-scroll-wrapper,
+          #grid_${GRID_NAME} .w2ui-toolbar .w2ui-scroll-wrapper {
+            overflow: visible !important;
+          }
           
           /* Make w2ui toolbar icon/text align consistently (override float-based default layout). */
           .tv-report-customers .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button,
@@ -896,6 +882,7 @@ export default function DataTableMonthly() {
             display: inline-flex;
             align-items: center;
             gap: 6px;
+            overflow: visible;
           }
           
           .tv-report-customers .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button .w2ui-tb-icon,
@@ -906,8 +893,9 @@ export default function DataTableMonthly() {
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            overflow: visible !important;
           }
-          
+
           .tv-report-customers .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button .w2ui-tb-text,
           #grid_${GRID_NAME} .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button .w2ui-tb-text {
             margin-left: 0 !important;
@@ -930,6 +918,7 @@ export default function DataTableMonthly() {
             line-height: 1;
             overflow: visible;
             flex-shrink: 0;
+            font-size: 16px;
           }
           
           .tv-report-customers .w2ui-toolbar .w2ui-scroll-wrapper .w2ui-tb-button .w2ui-tb-icon .tv-w2ui-svg svg,
@@ -985,6 +974,11 @@ export default function DataTableMonthly() {
             height: 16px;
             display: inline-block;
             line-height: 16px;
+          }
+
+          .tv-report-customers__month-menu,
+          .tv-report-customers__year-menu {
+            z-index: 9999;
           }
 
           .tv-report-customers__month-menu .menu-icon .w2ui-icon.w2ui-icon-empty:before,

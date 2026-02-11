@@ -18,6 +18,19 @@ function toLabel(value) {
   return label || '-';
 }
 
+function formatDateDmy(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+
+  const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|[T\s])/);
+  if (isoMatch) return `${isoMatch[3]}-${isoMatch[2]}-${isoMatch[1]}`;
+
+  const dmyMatch = raw.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
+  if (dmyMatch) return `${dmyMatch[1]}-${dmyMatch[2]}-${dmyMatch[3]}`;
+
+  return raw;
+}
+
 function buildBars(items, palette) {
   const maxValue = Math.max(...items.map((it) => it.value), 1);
   return items.map((it, idx) => ({
@@ -216,9 +229,9 @@ export default function SummaryResult({ rows, filters, isLoading, loadError }) {
   const noPhotoCount = safeRows.length - photoCount;
 
   const periodLabel = React.useMemo(() => {
-    const startDate = String(filters?.start_date ?? '').trim();
-    const endDate = String(filters?.end_date ?? '').trim();
-    if (startDate && endDate) return `${startDate} s/d ${endDate}`;
+    const startDate = formatDateDmy(filters?.start_date);
+    const endDate = formatDateDmy(filters?.end_date);
+    if (startDate && endDate) return `Dari ${startDate} sampai ${endDate}`;
     if (startDate) return `Dari ${startDate}`;
     if (endDate) return `Sampai ${endDate}`;
     return 'Semua';
@@ -242,7 +255,7 @@ export default function SummaryResult({ rows, filters, isLoading, loadError }) {
     <div style={{ marginBottom: 10, color: '#6b7685' }}>Loading...</div>
   ) : null;
 
-  const subtitle = `Periode: ${periodLabel} • Total baris: ${formatNumber(safeRows.length)}`;
+  const subtitle = [`Periode: ${periodLabel}`, `Total baris: ${formatNumber(safeRows.length)}`].join(' | ');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -250,7 +263,7 @@ export default function SummaryResult({ rows, filters, isLoading, loadError }) {
 
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ fontSize: 18, fontWeight: 900, color: ACCENT_BLUE }}>Summary Result</div>
-        <div style={{ fontSize: 12, color: '#667085' }}>{subtitle}</div>
+        <div style={{ fontSize: 12, fontWeight: 400, color: '#667085' }}>{subtitle}</div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
