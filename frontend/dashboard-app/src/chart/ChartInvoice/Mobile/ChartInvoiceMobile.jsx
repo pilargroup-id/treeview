@@ -36,7 +36,7 @@ import { enGB } from 'date-fns/locale';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import FilterSection from '../components/filters/FilterSection';
-import YearCards from '../components/filters/Tahun/YearCards';
+import YearsCardMonthly from '../../ChartMonthly/YearsCardMonthly';
 import RangeDateFilter from '../components/filters/RangeTanggal/RangeDateFilter';
 import SpecificDateFilter from '../components/filters/TanggalTertentu/SpecificDateFilter';
 import SummaryCard from '../components/filters/SummaryCard';
@@ -989,6 +989,17 @@ function ChartInvoiceMobile() {
         </Card>
       </Box>
 
+      <Box sx={{ position: 'relative', zIndex: 1 }}>
+        <YearsCardMonthly
+          availableYears={availableYears}
+          selectedYears={years}
+          yearTotals={yearTotals}
+          onToggleYear={toggleYear}
+          isLoading={yearSummaryLoading}
+          dateFilterType={dateFilterType}
+        />
+      </Box>
+
       {/* Filter Drawer */}
       <Drawer
         anchor="bottom"
@@ -1062,7 +1073,7 @@ function ChartInvoiceMobile() {
           </IconButton>
         </Box>
         <Box sx={{ px: 2, overflow: 'auto', maxHeight: 'calc(90vh - 80px)' }}>
-          <YearCards
+          <YearsCardMonthly
             availableYears={availableYears}
             selectedYears={years}
             yearTotals={yearTotals}

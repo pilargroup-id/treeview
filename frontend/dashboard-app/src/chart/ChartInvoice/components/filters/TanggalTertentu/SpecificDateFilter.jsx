@@ -13,7 +13,9 @@ function SpecificDateFilter({
   dataType = 'both',
   onDataTypeChange,
   invoiceData = [],
-  onValidatedRangesChange = null
+  onValidatedRangesChange = null,
+  initialValidatedRanges = null,
+  openPickerSignal = 0
 }) {
   return (
     <SingleDatePickerWithYear
@@ -27,6 +29,8 @@ function SpecificDateFilter({
       onDataTypeChange={onDataTypeChange}
       invoiceData={invoiceData}
       onValidatedRangesChange={onValidatedRangesChange}
+      initialValidatedRanges={initialValidatedRanges}
+      openPickerSignal={openPickerSignal}
     />
   );
 }

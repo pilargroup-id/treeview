@@ -11,7 +11,10 @@ function RangeDateFilter({
   onBusinessUnitToggle,
   dataType = 'both',
   onDataTypeChange,
-  invoiceData = []
+  invoiceData = [],
+  openPickerSignal = 0,
+  showTitle = true,
+  showSummary = true
 }) {
   return (
     <DateRangePickerWithPresets
@@ -25,6 +28,9 @@ function RangeDateFilter({
       dataType={dataType}
       onDataTypeChange={onDataTypeChange}
       invoiceData={invoiceData}
+      openPickerSignal={openPickerSignal}
+      showTitle={showTitle}
+      showSummary={showSummary}
     />
   );
 }
