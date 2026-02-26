@@ -22,7 +22,7 @@ import {
 } from '@mui/material';
 import dayjs from 'dayjs';
 import FilterSection from './components/filters/FilterSection';
-import YearCards from './components/filters/Tahun/YearCards';
+import YearsCardMonthly from '../ChartMonthly/YearsCardMonthly';
 import RangeDateFilter from './components/filters/RangeTanggal/RangeDateFilter';
 import SpecificDateFilter from './components/filters/TanggalTertentu/SpecificDateFilter';
 import SummaryCard from './components/filters/SummaryCard';
@@ -590,7 +590,15 @@ function ChartInvoice() {
     dataType
   });
 
-  const yearTotals = { ...yearSummary };
+  const yearTotals = availableYears.reduce((totals, year) => {
+    const yearData = yearSummary?.[year] || yearSummary?.[String(year)] || {};
+    totals[year] = {
+      sales: Number(yearData.sales ?? yearData.total_sales ?? 0),
+      quantity: Number(yearData.quantity ?? yearData.total_quantity ?? 0),
+      order: Number(yearData.order ?? yearData.invoice_count ?? 0)
+    };
+    return totals;
+  }, {});
 
   return (
     <Box sx={{
@@ -669,7 +677,7 @@ function ChartInvoice() {
             alignItems: 'start',
             flexShrink: 0
           }}>
-            <YearCards
+            <YearsCardMonthly
               availableYears={availableYears}
               selectedYears={years}
               yearTotals={yearTotals}

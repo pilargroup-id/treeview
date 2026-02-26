@@ -18,6 +18,9 @@ import ItemTes from './chart/TestItemCategory';
 import ReportMonthlyVisit from './sales/ReportMonthlyVisit';
 import ReportWeeklyVisit from './sales/ReportWeeklyVisit';
 import ReportMonitorRadius from './sales/ReportMonitorRadius';
+import MonthlyRevenue from './businessUnit/MonthlyRevenue';
+import GotoRevenue from './businessUnit/GotoRevenue';
+import GosaveRevenue from './businessUnit/GosaveRevenue';
 import { API_URL } from './config/api';
 
 const DASHBOARD_BACKGROUND_LIGHT =
@@ -31,6 +34,9 @@ const NAVIGATION = [
     icon: <DashboardIcon />,
     children: [
       { segment: 'RevenueInvoice', title: 'Revenue', icon: <BarChartIcon /> },
+      { segment: 'MonthlyRevenue', title: 'Monthly Revenue', icon: <BarChartIcon /> },
+      { segment: 'GotoRevenue', title: 'Goto Revenue', icon: <BarChartIcon /> },
+      { segment: 'GosaveRevenue', title: 'Gosave Revenue', icon: <BarChartIcon /> },
       { segment: 'CategoryItemTes', title: 'Category Item (Tes)', icon: <CategoryIcon /> },
     ],
   },
@@ -144,6 +150,30 @@ function DemoPageContent({ pathname }) {
         }}>
           <ChartInvoice />
         </Box>
+      </Box>
+    );
+  }
+
+  if (currentPathname.includes('MonthlyRevenue')) {
+    return (
+      <Box sx={{ p: 0, height: '100%', overflow: 'auto' }}>
+        <MonthlyRevenue />
+      </Box>
+    );
+  }
+
+  if (currentPathname.includes('GotoRevenue')) {
+    return (
+      <Box sx={{ p: 0, height: '100%', overflow: 'auto' }}>
+        <GotoRevenue />
+      </Box>
+    );
+  }
+
+  if (currentPathname.includes('GosaveRevenue')) {
+    return (
+      <Box sx={{ p: 0, height: '100%', overflow: 'auto' }}>
+        <GosaveRevenue />
       </Box>
     );
   }

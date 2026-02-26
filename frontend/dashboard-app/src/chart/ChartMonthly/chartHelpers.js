@@ -10,6 +10,388 @@ const monthShortNames = [
   'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
   'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'
 ];
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+const FINANCIAL_BASE_URL = `${String(API_URL ?? '').replace(/\/+$/, '')}/financial`;
+const DEFAULT_MONTHLY_REVENUE_URL = `${FINANCIAL_BASE_URL}/monthly-revenue`;
+const DEFAULT_INVOICE_SALES_URL = `${FINANCIAL_BASE_URL}/invoice-sales`;
+const DEFAULT_BUSINESS_UNITS_URL = `${FINANCIAL_BASE_URL}/business-units`;
+
+const normalizeBusinessUnits = (businessUnits) => {
+  if (businessUnits instanceof Set) {
+    return Array.from(businessUnits);
+  }
+
+  if (Array.isArray(businessUnits)) {
+    return businessUnits;
+  }
+
+  return [];
+};
+
+const normalizeSubBusinessUnits = (subBusinessUnits) => {
+  if (subBusinessUnits instanceof Set) {
+    return Array.from(subBusinessUnits);
+  }
+
+  if (Array.isArray(subBusinessUnits)) {
+    return subBusinessUnits;
+  }
+
+  return [];
+};
+
+const buildMonthlyRevenueQueryParams = (accountHeader, startDate, endDate, businessUnits) => {
+  const params = new URLSearchParams();
+  params.append('account_header', accountHeader);
+  params.append('start_date', startDate);
+  params.append('end_date', endDate);
+
+  normalizeBusinessUnits(businessUnits).forEach((businessUnit) => {
+    params.append('business_units[]', businessUnit);
+  });
+
+  return params;
+};
+
+const buildInvoiceSalesRangeQueryParams = (
+  startDate,
+  endDate,
+  businessUnits,
+  subBusinessUnits = []
+) => {
+  const params = new URLSearchParams();
+  params.append('date_type', 'range');
+  params.append('start_date', startDate);
+  params.append('end_date', endDate);
+
+  const normalizedSubBusinessUnits = normalizeSubBusinessUnits(subBusinessUnits)
+    .map((subBusinessUnit) => String(subBusinessUnit || '').trim())
+    .filter(Boolean);
+
+  if (normalizedSubBusinessUnits.length > 0) {
+    normalizedSubBusinessUnits.forEach((subBusinessUnit) => {
+      params.append('sub_business_units[]', subBusinessUnit);
+    });
+    return params;
+  }
+
+  normalizeBusinessUnits(businessUnits).forEach((businessUnit) => {
+    params.append('business_units[]', businessUnit);
+  });
+
+  return params;
+};
+
+const extractApiErrorMessage = (result, fallbackMessage = 'Error loading data from API') => {
+  if (result?.message) {
+    return result.message;
+  }
+
+  if (result?.errors && typeof result.errors === 'object') {
+    const firstFieldErrors = Object.values(result.errors)[0];
+    if (Array.isArray(firstFieldErrors) && firstFieldErrors.length > 0) {
+      return firstFieldErrors[0];
+    }
+  }
+
+  return fallbackMessage;
+};
+
+const normalizeMainBusinessUnit = (businessUnitValue) => {
+  const normalizedValue = String(businessUnitValue || '').trim().toLowerCase();
+  if (!normalizedValue) {
+    return null;
+  }
+
+  if (normalizedValue.includes('gosave')) {
+    return 'Gosave';
+  }
+
+  if (normalizedValue.includes('goto') || normalizedValue === 'store') {
+    return 'Goto';
+  }
+
+  return null;
+};
+
+const normalizeYears = (years) => {
+  if (!Array.isArray(years)) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      years
+        .map((year) => Number.parseInt(year, 10))
+        .filter(Number.isInteger)
+    )
+  );
+};
+
+const parseIsoDate = (value) => {
+  const rawValue = String(value || '').trim();
+  if (!ISO_DATE_PATTERN.test(rawValue)) {
+    return null;
+  }
+
+  const [yearRaw, monthRaw, dayRaw] = rawValue.split('-');
+  const year = Number.parseInt(yearRaw, 10);
+  const month = Number.parseInt(monthRaw, 10);
+  const day = Number.parseInt(dayRaw, 10);
+
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    return null;
+  }
+
+  const parsedDate = new Date(year, month - 1, day);
+  if (
+    parsedDate.getFullYear() !== year ||
+    parsedDate.getMonth() !== month - 1 ||
+    parsedDate.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return {
+    iso: rawValue,
+    year,
+    month,
+    day,
+    date: parsedDate
+  };
+};
+
+const normalizeCompareYearDateRanges = (dateRanges) => {
+  if (!Array.isArray(dateRanges)) {
+    return [];
+  }
+
+  return dateRanges
+    .map((range) => {
+      const start = parseIsoDate(range?.startDate || range?.start || '');
+      const end = parseIsoDate(range?.endDate || range?.end || '');
+
+      if (!start || !end || end.date < start.date) {
+        return null;
+      }
+
+      const diffDays = Math.floor((end.date.getTime() - start.date.getTime()) / MS_PER_DAY) + 1;
+      if (diffDays > 31) {
+        return null;
+      }
+
+      return {
+        startDate: start.iso,
+        endDate: end.iso
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 5);
+};
+
+const toMonthDay = (isoDate) => {
+  const parsed = parseIsoDate(isoDate);
+  if (!parsed) {
+    return null;
+  }
+
+  return parsed.iso.slice(5, 10);
+};
+
+const formatIsoDateLabel = (isoDate) => {
+  const parsed = parseIsoDate(isoDate);
+  if (!parsed) {
+    return isoDate;
+  }
+
+  const dayLabel = String(parsed.day).padStart(2, '0');
+  const monthLabel = monthShortNames[parsed.month - 1] || String(parsed.month).padStart(2, '0');
+  return `${dayLabel} ${monthLabel} ${parsed.year}`;
+};
+
+const resolveInvoiceMetrics = (item) => {
+  const parsedCredit = Number.parseFloat(item?.total_credit);
+  const parsedDebit = Number.parseFloat(item?.total_debit);
+  const parsedDifference = Number.parseFloat(item?.total_difference);
+  const parsedSales = Number.parseFloat(item?.total_sales);
+
+  const hasCredit = Number.isFinite(parsedCredit);
+  const hasDebit = Number.isFinite(parsedDebit);
+  const hasDifference = Number.isFinite(parsedDifference);
+  const hasSales = Number.isFinite(parsedSales);
+
+  const credit = hasCredit
+    ? parsedCredit
+    : hasSales
+      ? parsedSales
+      : hasDifference
+        ? parsedDifference
+        : 0;
+  const debit = hasDebit ? parsedDebit : 0;
+  const total = (hasCredit || hasDebit)
+    ? (credit - debit)
+    : hasDifference
+      ? parsedDifference
+      : hasSales
+        ? parsedSales
+        : 0;
+
+  return { credit, debit, total };
+};
+
+const aggregateInvoiceRowsByRange = (rows) => {
+  const sourceRows = Array.isArray(rows) ? rows : [];
+  return sourceRows.reduce((accumulator, item) => {
+    const metrics = resolveInvoiceMetrics(item);
+    accumulator.credit += metrics.credit;
+    accumulator.debit += metrics.debit;
+    accumulator.total += metrics.total;
+    return accumulator;
+  }, {
+    credit: 0,
+    debit: 0,
+    total: 0
+  });
+};
+
+const buildInvoiceSalesCompareYearQueryParams = ({
+  startDate,
+  endDate,
+  compareYears,
+  businessUnit
+}) => {
+  const compareStartMonthDay = toMonthDay(startDate);
+  const compareEndMonthDay = toMonthDay(endDate);
+  const normalizedCompareYears = normalizeYears(compareYears).sort((left, right) => left - right);
+
+  if (!compareStartMonthDay || !compareEndMonthDay || normalizedCompareYears.length === 0 || !businessUnit) {
+    return null;
+  }
+
+  const params = new URLSearchParams();
+  params.append('date_type', 'compare_year');
+  params.append('compare_dates[]', compareStartMonthDay);
+  params.append('compare_dates[]', compareEndMonthDay);
+
+  normalizedCompareYears.forEach((year) => {
+    params.append('compare_years[]', String(year));
+  });
+
+  params.append('business_units[]', businessUnit);
+  return params;
+};
+
+const sanitizeBusinessUnitId = (businessUnit) => {
+  return String(businessUnit || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'unit';
+};
+
+const loadInvoiceSalesCompareYearMultiRangeData = async ({
+  dateRanges,
+  compareYears,
+  businessUnits,
+  invoiceSalesUrl = DEFAULT_INVOICE_SALES_URL
+}) => {
+  const normalizedRanges = normalizeCompareYearDateRanges(dateRanges);
+  const normalizedBusinessUnits = normalizeBusinessUnits(businessUnits)
+    .map((businessUnit) => String(businessUnit || '').trim())
+    .filter(Boolean);
+  const normalizedCompareYears = normalizeYears(compareYears).sort((left, right) => left - right);
+  const fallbackYear = parseIsoDate(normalizedRanges[0]?.startDate || '')?.year || new Date().getFullYear();
+  const resolvedCompareYears = normalizedCompareYears.length > 0
+    ? normalizedCompareYears
+    : [fallbackYear - 1, fallbackYear];
+
+  if (!invoiceSalesUrl) {
+    return {
+      success: false,
+      error: 'URL API invoice sales tidak tersedia'
+    };
+  }
+
+  if (normalizedBusinessUnits.length === 0) {
+    return {
+      success: false,
+      error: 'Pilih minimal 1 business unit'
+    };
+  }
+
+  if (normalizedRanges.length === 0) {
+    return {
+      success: true,
+      data: []
+    };
+  }
+
+  try {
+    const requests = normalizedRanges.flatMap((range, rangeIndex) =>
+      normalizedBusinessUnits.map((businessUnit) => ({
+        range,
+        rangeIndex,
+        businessUnit
+      }))
+    );
+
+    const responses = await Promise.all(
+      requests.map(async ({ range, rangeIndex, businessUnit }) => {
+        const params = buildInvoiceSalesCompareYearQueryParams({
+          startDate: range.startDate,
+          endDate: range.endDate,
+          compareYears: resolvedCompareYears,
+          businessUnit
+        });
+
+        if (!params) {
+          throw new Error(`Range ${rangeIndex + 1} tidak valid untuk compare_year (${businessUnit})`);
+        }
+
+        const response = await fetch(`${invoiceSalesUrl}?${params.toString()}`);
+
+        let result = null;
+        try {
+          result = await response.json();
+        } catch (error) {
+          throw new Error(`Response API tidak valid untuk Range ${rangeIndex + 1} (${businessUnit})`);
+        }
+
+        if (!response.ok || result?.status !== 'success') {
+          const fallbackMessage = `Gagal memuat data Range ${rangeIndex + 1} (${businessUnit})`;
+          throw new Error(extractApiErrorMessage(result, fallbackMessage));
+        }
+
+        const aggregated = aggregateInvoiceRowsByRange(result?.data);
+        const formattedRangeLabel = `${formatIsoDateLabel(range.startDate)} - ${formatIsoDateLabel(range.endDate)}`;
+        return {
+          id: `range-${rangeIndex + 1}-${sanitizeBusinessUnitId(businessUnit)}`,
+          rangeId: `range-${rangeIndex + 1}`,
+          rangeOrder: rangeIndex,
+          label: formattedRangeLabel,
+          rangeLabel: formattedRangeLabel,
+          startDate: range.startDate,
+          endDate: range.endDate,
+          business_unit: businessUnit,
+          mainBusinessUnit: normalizeMainBusinessUnit(businessUnit),
+          ...aggregated
+        };
+      })
+    );
+
+    return {
+      success: true,
+      data: responses
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error?.message || 'Failed to load compare year data'
+    };
+  }
+};
 
 export const formatCurrency = (num) => {
   const value = parseFloat(num);
@@ -26,16 +408,74 @@ export const formatCurrency = (num) => {
 export const processData = (apiData) => {
   const processed = [];
   apiData.forEach(item => {
-    const date = new Date(item.period + '-01');
-    const monthIndex = date.getMonth();
+    let monthIndex = -1;
+
+    if (item.month !== undefined && item.month !== null) {
+      const parsedMonth = parseInt(item.month, 10);
+      if (!Number.isNaN(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12) {
+        monthIndex = parsedMonth - 1;
+      }
+    }
+
+    if (monthIndex < 0 && typeof item.period === 'string') {
+      const [, periodMonth] = item.period.split('-');
+      const parsedPeriodMonth = parseInt(periodMonth, 10);
+      if (!Number.isNaN(parsedPeriodMonth) && parsedPeriodMonth >= 1 && parsedPeriodMonth <= 12) {
+        monthIndex = parsedPeriodMonth - 1;
+      }
+    }
+
+    if (monthIndex < 0) {
+      monthIndex = 0;
+    }
     
-    const credit = parseFloat(item.total_credit) || 0;
-    const debit = parseFloat(item.total_debit) || 0;
-    const total = parseFloat(item.total_difference) || (credit - debit);
+    const parsedCredit = parseFloat(item.total_credit);
+    const parsedDebit = parseFloat(item.total_debit);
+    const parsedDifference = parseFloat(item.total_difference);
+    const parsedSales = parseFloat(item.total_sales);
+    const hasCredit = Number.isFinite(parsedCredit);
+    const hasDebit = Number.isFinite(parsedDebit);
+    const hasDifference = Number.isFinite(parsedDifference);
+    const hasSales = Number.isFinite(parsedSales);
+
+    const credit = hasCredit
+      ? parsedCredit
+      : hasSales
+        ? parsedSales
+        : hasDifference
+          ? parsedDifference
+          : 0;
+    const debit = hasDebit ? parsedDebit : 0;
+    const total = (hasCredit || hasDebit)
+      ? (credit - debit)
+      : hasDifference
+        ? parsedDifference
+        : hasSales
+          ? parsedSales
+          : 0;
+    const parsedYearFromPeriod = typeof item.period === 'string'
+      ? parseInt(item.period.split('-')[0], 10)
+      : NaN;
+    const parsedYearFromItem = parseInt(item.year, 10);
+    const year = Number.isInteger(parsedYearFromItem)
+      ? parsedYearFromItem
+      : Number.isInteger(parsedYearFromPeriod)
+        ? parsedYearFromPeriod
+        : null;
     
+    const businessUnit = typeof item.business_unit === 'string'
+      ? item.business_unit.trim()
+      : '';
+    const mainBusinessUnit = normalizeMainBusinessUnit(businessUnit);
+
     processed.push({
+      period: item.period ?? null,
       month: monthNames[monthIndex],
       monthShort: monthShortNames[monthIndex],
+      monthNumber: monthIndex + 1,
+      year,
+      business_unit: businessUnit || null,
+      mainBusinessUnit,
       credit: credit,
       debit: debit,
       total: total
@@ -78,9 +518,9 @@ export const convertRangeMonthsToSelectedMonths = (rangeMonths) => {
 };
 
 // Load BU from API
-export const loadBusinessUnits = async () => {
+export const loadBusinessUnits = async (businessUnitsUrl = DEFAULT_BUSINESS_UNITS_URL) => {
   try {
-    const response = await fetch(`${API_URL}/financial/business-units`);
+    const response = await fetch(businessUnitsUrl);
     const result = await response.json();
     
     if (result.status === 'success' && Array.isArray(result.data)) {
@@ -104,29 +544,44 @@ export const loadBusinessUnits = async () => {
 };
 
 // API 
-export const loadRevenueData = async (accountHeader, startDate, endDate, businessUnits) => {
+export const loadRevenueData = async (
+  accountHeader,
+  startDate,
+  endDate,
+  businessUnits,
+  monthlyRevenueUrl = DEFAULT_MONTHLY_REVENUE_URL,
+  options = {}
+) => {
   try {
-    // Build BU query params
-    const buParams = Array.from(businessUnits).map(bu => `business_units[]=${bu}`).join('&');
-    const buQuery = businessUnits.size > 0 ? `&${buParams}` : '';
-    
-    const response = await fetch(
-      `${API_URL}/financial/monthly-revenue?account_header=${accountHeader}&start_date=${startDate}&end_date=${endDate}${buQuery}`
+    const queryParams = buildMonthlyRevenueQueryParams(
+      accountHeader,
+      startDate,
+      endDate,
+      businessUnits
     );
-
+    const response = await fetch(`${monthlyRevenueUrl}?${queryParams.toString()}`);
     const result = await response.json();
 
-    if (result.status === 'success') {
+    if (response.ok && result.status === 'success') {
+      const requestYear = parseInt(options?.requestYear, 10);
+      const fallbackYear = Number.isInteger(requestYear)
+        ? requestYear
+        : parseInt(String(startDate || '').slice(0, 4), 10);
+      const processedData = processData(result.data).map((item) => ({
+        ...item,
+        year: Number.isInteger(item.year) ? item.year : fallbackYear
+      }));
+
       return {
         success: true,
         data: {
-          data: processData(result.data)
+          data: processedData
         }
       };
     } else {
       return {
         success: false,
-        error: result.message || 'Error loading data from API'
+        error: extractApiErrorMessage(result)
       };
     }
   } catch (error) {
@@ -138,26 +593,170 @@ export const loadRevenueData = async (accountHeader, startDate, endDate, busines
   }
 };
 
+export const loadInvoiceSalesRangeData = async (
+  startDate,
+  endDate,
+  businessUnits,
+  invoiceSalesUrl = DEFAULT_INVOICE_SALES_URL,
+  options = {}
+) => {
+  try {
+    const queryParams = buildInvoiceSalesRangeQueryParams(
+      startDate,
+      endDate,
+      businessUnits,
+      options?.subBusinessUnits
+    );
+    const response = await fetch(`${invoiceSalesUrl}?${queryParams.toString()}`);
+    const result = await response.json();
+
+    if (response.ok && result.status === 'success') {
+      const requestYear = parseInt(options?.requestYear, 10);
+      const fallbackYear = Number.isInteger(requestYear)
+        ? requestYear
+        : parseInt(String(startDate || '').slice(0, 4), 10);
+      const processedData = processData(result.data).map((item) => ({
+        ...item,
+        year: Number.isInteger(item.year) ? item.year : fallbackYear
+      }));
+
+      return {
+        success: true,
+        data: {
+          data: processedData
+        }
+      };
+    }
+
+    return {
+      success: false,
+      error: extractApiErrorMessage(result)
+    };
+  } catch (error) {
+    console.error('Error loading invoice sales range data:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to load data'
+    };
+  }
+};
+
 // Custom Hooks
-export const useChartData = (initialAccountHeader = '4000.01.00', initialStartDate = '2024-01-01', initialEndDate = '2025-12-31') => {
+export const useChartData = (
+  initialAccountHeader = '4000.01.00',
+  initialStartDate = '2024-01-01',
+  initialEndDate = '2025-12-31',
+  initialBusinessUnits = ['Gosave', 'Goto'],
+  apiConfig = {}
+) => {
+  const monthlyRevenueUrl = apiConfig?.monthlyRevenueUrl || DEFAULT_MONTHLY_REVENUE_URL;
+  const invoiceSalesUrl = apiConfig?.invoiceSalesUrl || DEFAULT_INVOICE_SALES_URL;
   const [accountHeader, setAccountHeader] = useState(initialAccountHeader);
   const [startDate, setStartDate] = useState(initialStartDate);
   const [endDate, setEndDate] = useState(initialEndDate);
-  const [selectedBusinessUnits, setSelectedBusinessUnits] = useState(new Set(['Gosave', 'Goto']));
+  const [selectedBusinessUnits, setSelectedBusinessUnits] = useState(
+    new Set(
+      Array.isArray(initialBusinessUnits) && initialBusinessUnits.length > 0
+        ? initialBusinessUnits
+        : ['Gosave', 'Goto']
+    )
+  );
   const [allData, setAllData] = useState({ data: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const loadRevenue = useCallback(async (onError) => {
+  const loadRevenue = useCallback(async (onError, options = {}) => {
+    const inputRanges = Array.isArray(options.dateRanges) ? options.dateRanges : [];
+    const targetDateRanges = inputRanges
+      .map((range) => ({
+        startDate: range?.startDate || range?.start || '',
+        endDate: range?.endDate || range?.end || '',
+        year: parseInt(range?.year, 10)
+      }))
+      .filter((range) => Boolean(range.startDate && range.endDate));
+
+    if (targetDateRanges.length > 0) {
+      const hasInvalidRangeOrder = targetDateRanges.some((range) => new Date(range.startDate) > new Date(range.endDate));
+      if (hasInvalidRangeOrder) {
+        const errorMsg = 'Tanggal mulai tidak boleh lebih besar dari tanggal akhir';
+        setError(errorMsg);
+        if (onError) onError(errorMsg);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        if (options?.dateType === 'compare_year') {
+          const compareYearResult = await loadInvoiceSalesCompareYearMultiRangeData({
+            dateRanges: targetDateRanges,
+            compareYears: options?.compareYears,
+            businessUnits: selectedBusinessUnits,
+            invoiceSalesUrl
+          });
+
+          if (compareYearResult.success) {
+            setAllData({ data: compareYearResult.data || [] });
+            setError(null);
+            if (onError) onError(null);
+          } else {
+            const errorMsg = compareYearResult.error || 'Failed to load compare year data';
+            setError(errorMsg);
+            if (onError) onError(errorMsg);
+          }
+
+          return;
+        }
+
+        const rangeResponses = await Promise.all(
+          targetDateRanges.map((range) =>
+            loadRevenueData(
+              accountHeader,
+              range.startDate,
+              range.endDate,
+              selectedBusinessUnits,
+              monthlyRevenueUrl,
+              { requestYear: range.year }
+            )
+          )
+        );
+
+        const failedResponse = rangeResponses.find((response) => !response.success);
+        if (failedResponse) {
+          const errorMsg = failedResponse.error || 'Failed to load data';
+          setError(errorMsg);
+          if (onError) onError(errorMsg);
+          return;
+        }
+
+        const mergedData = rangeResponses.flatMap((response) => response?.data?.data || []);
+        setAllData({ data: mergedData });
+        setError(null);
+        if (onError) onError(null);
+      } catch (err) {
+        const errorMessage = err.message || 'Failed to load data';
+        setError(errorMessage);
+        if (onError) onError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+
+      return;
+    }
+
+    const targetStartDate = options.startDate || startDate;
+    const targetEndDate = options.endDate || endDate;
+
     // Validate dates
-    if (!startDate || !endDate) {
+    if (!targetStartDate || !targetEndDate) {
       const errorMsg = 'Mohon pilih tanggal mulai dan tanggal akhir';
       setError(errorMsg);
       if (onError) onError(errorMsg);
       return;
     }
     
-    if (new Date(startDate) > new Date(endDate)) {
+    if (new Date(targetStartDate) > new Date(targetEndDate)) {
       const errorMsg = 'Tanggal mulai tidak boleh lebih besar dari tanggal akhir';
       setError(errorMsg);
       if (onError) onError(errorMsg);
@@ -168,11 +767,30 @@ export const useChartData = (initialAccountHeader = '4000.01.00', initialStartDa
     setError(null);
     
     try {
-      const result = await loadRevenueData(accountHeader, startDate, endDate, selectedBusinessUnits);
+      const useInvoiceSalesRangeApi = options?.dateType === 'range';
+      const targetSubBusinessUnits = normalizeSubBusinessUnits(options?.subBusinessUnits)
+        .map((subBusinessUnit) => String(subBusinessUnit || '').trim())
+        .filter(Boolean);
+      const result = useInvoiceSalesRangeApi
+        ? await loadInvoiceSalesRangeData(
+            targetStartDate,
+            targetEndDate,
+            selectedBusinessUnits,
+            invoiceSalesUrl,
+            { subBusinessUnits: targetSubBusinessUnits }
+          )
+        : await loadRevenueData(
+            accountHeader,
+            targetStartDate,
+            targetEndDate,
+            selectedBusinessUnits,
+            monthlyRevenueUrl
+          );
       
       if (result.success) {
         setAllData(result.data);
         setError(null);
+        if (onError) onError(null);
       } else {
         setError(result.error);
         if (onError) onError(result.error);
@@ -184,7 +802,7 @@ export const useChartData = (initialAccountHeader = '4000.01.00', initialStartDa
     } finally {
       setLoading(false);
     }
-  }, [accountHeader, startDate, endDate, selectedBusinessUnits]);
+  }, [accountHeader, startDate, endDate, selectedBusinessUnits, monthlyRevenueUrl, invoiceSalesUrl]);
 
   return {
     accountHeader,
@@ -482,7 +1100,14 @@ export function getAvailableYears() {
 }
 
 // year summary monthly revenue
-export async function loadYearSummary(availableYears, setYearSummary, setYearSummaryLoading, accountHeader = '4000.01.00', businessUnits = new Set(['Gosave', 'Goto'])) {
+export async function loadYearSummary(
+  availableYears,
+  setYearSummary,
+  setYearSummaryLoading,
+  accountHeader = '4000.01.00',
+  businessUnits = new Set(['Gosave', 'Goto']),
+  monthlyRevenueUrl = DEFAULT_MONTHLY_REVENUE_URL
+) {
   try {
     setYearSummaryLoading(true);
     
@@ -492,20 +1117,19 @@ export async function loadYearSummary(availableYears, setYearSummary, setYearSum
     for (const year of availableYears) {
       const startDate = `${year}-01-01`;
       const endDate = `${year}-12-31`;
-      
-      // Build business units query params
-      const buArray = businessUnits instanceof Set ? Array.from(businessUnits) : (Array.isArray(businessUnits) ? businessUnits : ['Gosave', 'Goto']);
-      const buParams = buArray.map(bu => `business_units[]=${bu}`).join('&');
-      const buQuery = buArray.length > 0 ? `&${buParams}` : '';
+      const queryParams = buildMonthlyRevenueQueryParams(
+        accountHeader,
+        startDate,
+        endDate,
+        businessUnits
+      );
       
       try {
-        const response = await fetch(
-          `${API_URL}/financial/monthly-revenue?account_header=${accountHeader}&start_date=${startDate}&end_date=${endDate}${buQuery}`
-        );
+        const response = await fetch(`${monthlyRevenueUrl}?${queryParams.toString()}`);
         
         const result = await response.json();
         
-        if (result.status === 'success' && Array.isArray(result.data)) {
+        if (response.ok && result.status === 'success' && Array.isArray(result.data)) {
           let totalSales = 0;
           let totalQuantity = 0;
           

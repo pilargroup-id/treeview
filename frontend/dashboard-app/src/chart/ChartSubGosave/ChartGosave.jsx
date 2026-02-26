@@ -28,21 +28,27 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import {
   useChartData,
   getFilteredData,
-  loadBusinessUnits,
   loadYearSummary,
   getAvailableYears,
   monthShortNames
-} from './chartHelpers';
+} from '../ChartMonthly/chartHelpers';
 import BusinessIcon from '@mui/icons-material/Business';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import YearsCardMonthly from './YearsCardMonthly';
+import YearsCardMonthly from '../ChartMonthly/YearsCardMonthly';
 import RangeDateFilter from '../ChartInvoice/components/filters/RangeTanggal/RangeDateFilter';
 import SpecificDateFilter from '../ChartInvoice/components/filters/TanggalTertentu/SpecificDateFilter';
-import { useQuery, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import ErrorBoundary from './ErrorBoundary';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import ErrorBoundary from '../ChartMonthly/ErrorBoundary';
 import { API_URL } from '../../config/api';
-import { buildRangeChartModel } from './rangeChartModel';
+import { buildRangeChartModel } from '../ChartMonthly/rangeChartModel';
+import {
+  GOSAVE_SUB_BUSINESS_UNIT_OPTIONS,
+  loadGosaveMultiRangeCompareYearData,
+  loadGosaveMonthlyInvoiceSalesData,
+  normalizeGosaveSubBusinessUnit,
+  normalizeGosaveSubBusinessUnitOptions
+} from './chartHelperGosave';
 
 // QueryClient 
 const queryClient = new QueryClient({
@@ -59,13 +65,14 @@ const queryClient = new QueryClient({
 const FINANCIAL_API_BASE_URL = `${String(API_URL ?? '').replace(/\/+$/, '')}/financial`;
 const MONTHLY_REVENUE_URL = `${FINANCIAL_API_BASE_URL}/monthly-revenue`;
 const INVOICE_SALES_URL = `${FINANCIAL_API_BASE_URL}/invoice-sales`;
-const BUSINESS_UNITS_URL = `${FINANCIAL_API_BASE_URL}/business-units`;
 
 const FILTER_TYPE_OPTIONS = [
   { value: 'monthly', label: 'Monthly' },
   { value: 'range', label: 'Range Filter' },
   { value: 'multi_range', label: 'Multi Range Filter (Max 5)' }
 ];
+
+const SUB_BUSINESS_UNIT_OPTIONS = GOSAVE_SUB_BUSINESS_UNIT_OPTIONS;
 
 const SERIES_COLORS = {
   credit: 'rgb(75, 192, 192)',
@@ -301,6 +308,139 @@ const formatDetailedSeriesValue = (value) => {
   return formatValueInDynamicUnit(value);
 };
 
+const SubBusinessUnitDropdown = React.memo(({ value, options = [], onChange }) => {
+  const formControlRef = useRef(null);
+  const [menuWidth, setMenuWidth] = useState(null);
+
+  const handleOpen = useCallback(() => {
+    if (formControlRef.current) {
+      const selectInput = formControlRef.current.querySelector('.MuiSelect-select') ||
+        formControlRef.current.querySelector('.MuiOutlinedInput-root');
+      if (selectInput) {
+        const width = selectInput.offsetWidth || formControlRef.current.offsetWidth;
+        setMenuWidth(width);
+      } else {
+        const width = formControlRef.current.offsetWidth;
+        setMenuWidth(width);
+      }
+    }
+  }, []);
+
+  const handleChange = useCallback((event) => {
+    onChange(event.target.value);
+  }, [onChange]);
+
+  const hasValue = Boolean(value && options.includes(value));
+  const dropdownValue = hasValue ? value : (options[0] || '');
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <FormControl ref={formControlRef} size="medium" fullWidth>
+        <InputLabel
+          id="gosave-sub-bu-label"
+          sx={{
+            fontSize: '0.875rem',
+            color: '#757575',
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+            '&.Mui-focused': {
+              color: '#6BA3D0'
+            }
+          }}
+        >
+          Sub BU
+        </InputLabel>
+        <Select
+          labelId="gosave-sub-bu-label"
+          value={dropdownValue}
+          onChange={handleChange}
+          onOpen={handleOpen}
+          label="Sub BU"
+          displayEmpty={false}
+          MenuProps={{
+            PaperProps: {
+              sx: {
+                mt: 1,
+                width: menuWidth ? `${menuWidth}px !important` : 'auto',
+                minWidth: menuWidth ? `${menuWidth}px !important` : '0 !important',
+                maxWidth: menuWidth ? `${menuWidth}px !important` : 'none',
+                overflow: 'hidden',
+                boxSizing: 'border-box',
+                '& .MuiMenuItem-root': {
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  fontSize: '0.875rem',
+                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+                  px: 2,
+                  py: 1,
+                  maxWidth: '100%',
+                  width: '100%',
+                  boxSizing: 'border-box'
+                }
+              },
+              style: menuWidth ? {
+                width: `${menuWidth}px`,
+                minWidth: `${menuWidth}px`,
+                maxWidth: `${menuWidth}px`,
+                boxSizing: 'border-box'
+              } : {}
+            },
+            anchorOrigin: {
+              vertical: 'bottom',
+              horizontal: 'left',
+            },
+            transformOrigin: {
+              vertical: 'top',
+              horizontal: 'left',
+            },
+            disableAutoFocusItem: true
+          }}
+          sx={{
+            fontSize: '0.875rem',
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+            borderRadius: '12px',
+            bgcolor: '#FFFFFF',
+            transition: 'all 0.2s ease',
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#E5E5E5',
+              borderWidth: '1px'
+            },
+            '&:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#E0E0E0'
+            },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#6BA3D0',
+              borderWidth: '1px'
+            }
+          }}
+        >
+          {options.map((option) => (
+            <MenuItem
+              key={option}
+              value={option}
+              sx={{
+                fontSize: '0.875rem',
+                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+                '&.Mui-selected': {
+                  bgcolor: 'rgba(107, 163, 208, 0.08)',
+                  color: '#6BA3D0',
+                  '&:hover': {
+                    bgcolor: 'rgba(107, 163, 208, 0.12)'
+                  }
+                }
+              }}
+            >
+              {option}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+    </Box>
+  );
+});
+
+SubBusinessUnitDropdown.displayName = 'SubBusinessUnitDropdown';
+
 const FilterTypeDropdown = React.memo(({ value, onChange }) => {
   const formControlRef = useRef(null);
   const [menuWidth, setMenuWidth] = useState(null);
@@ -431,87 +571,14 @@ const FilterTypeDropdown = React.memo(({ value, onChange }) => {
 
 FilterTypeDropdown.displayName = 'FilterTypeDropdown';
 
-// BU Filter
-const BusinessUnitFilter = React.memo(({ availableBusinessUnits, selectedBusinessUnits, onToggle }) => {
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.625 }}>
-      <Typography sx={{ 
-        fontWeight: 500, 
-        fontSize: { xs: '0.75rem', md: '0.8125rem' }, 
-        whiteSpace: 'nowrap', 
-        color: '#757575',
-        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-        letterSpacing: '0.01em',
-        lineHeight: 1.4
-      }}>
-        Business Unit
-      </Typography>
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-          gap: 1
-        }}
-      >
-        {availableBusinessUnits.map((unit) => {
-          const isSelected = selectedBusinessUnits.includes(unit);
-          return (
-            <Button
-              key={unit}
-              variant={isSelected ? 'contained' : 'outlined'}
-              onClick={() => onToggle(unit)}
-              size="small"
-              sx={{ 
-                textTransform: 'none',
-                fontSize: '0.75rem',
-                fontWeight: isSelected ? 600 : 500,
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-                bgcolor: isSelected ? '#6BA3D0' : 'transparent',
-                color: isSelected ? 'white' : '#757575',
-                border: isSelected ? 'none' : '1px solid #E5E5E5',
-                borderRadius: '10px',
-                width: '100%',
-                minWidth: 0,
-                py: 0.625,
-                px: 1.5,
-                boxShadow: 'none',
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                '&:hover': {
-                  bgcolor: isSelected ? '#5A9FD0' : '#FAFAFA',
-                  border: isSelected ? 'none' : '1px solid #E0E0E0',
-                  boxShadow: 'none'
-                },
-                '&:active': {
-                  transform: 'scale(0.98)',
-                  transition: 'all 0.1s ease'
-                },
-                '&:focus-visible': {
-                  outline: '2px solid #6BA3D0',
-                  outlineOffset: '2px'
-                }
-              }}
-              aria-label={`Toggle business unit ${unit}`}
-              aria-pressed={isSelected}
-            >
-              {unit}
-            </Button>
-          );
-        })}
-      </Box>
-    </Box>
-  );
-});
-
-BusinessUnitFilter.displayName = 'BusinessUnitFilter';
-
 // FilterSection 
 const FilterSection = React.memo(({
+  subBusinessUnitOptions,
+  selectedSubBusinessUnit,
+  onSubBusinessUnitChange,
   filterType,
   onFilterTypeChange,
   onOpenCalendarModal,
-  availableBusinessUnits,
-  businessUnits,
-  onBusinessUnitToggle,
   onLoadData,
   onRefreshData,
   isLoading
@@ -579,15 +646,15 @@ const FilterSection = React.memo(({
         </IconButton>
       </Box>
 
+      <SubBusinessUnitDropdown
+        value={selectedSubBusinessUnit}
+        options={subBusinessUnitOptions}
+        onChange={onSubBusinessUnitChange}
+      />
+
       <FilterTypeDropdown
         value={filterType}
         onChange={onFilterTypeChange}
-      />
-      
-      <BusinessUnitFilter 
-        availableBusinessUnits={availableBusinessUnits}
-        selectedBusinessUnits={businessUnits}
-        onToggle={onBusinessUnitToggle}
       />
 
       {isCalendarFilterType(filterType) ? (
@@ -892,7 +959,7 @@ const SummaryCardCompact = React.memo(({
 
     return rawLabel
       .split(',')
-      .map((label) => label.trim().replace(/^R\d+\s*:\s*/i, ''))
+      .map((label) => label.trim())
       .filter(Boolean);
   }, [dateRangeLabel, filterType]);
 
@@ -1119,8 +1186,12 @@ const SummaryCardCompact = React.memo(({
 
 SummaryCardCompact.displayName = 'SummaryCardCompact';
 
-//component that uses useQuery 
-function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
+// Main chart component
+function ChartGosaveContent({
+  initialBusinessUnits = ['Gosave'],
+  subBusinessUnitOptions = SUB_BUSINESS_UNIT_OPTIONS,
+  initialSubBusinessUnit
+}) {
   const currentYear = new Date().getFullYear();
   const isMobileScreen = useMediaQuery('(max-width:600px)');
   const isCompactScreen = useMediaQuery('(max-width:900px)');
@@ -1155,8 +1226,26 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
   const [showDebit, setShowDebit] = useState(true);
   const [showTotal, setShowTotal] = useState(true);
   const [years, setYears] = useState([currentYear]);
+  const normalizedSubBusinessUnitOptions = useMemo(
+    () => normalizeGosaveSubBusinessUnitOptions(subBusinessUnitOptions),
+    [subBusinessUnitOptions]
+  );
+  const [selectedSubBusinessUnit, setSelectedSubBusinessUnit] = useState(
+    (() => {
+      const normalizedInitialValue = normalizeGosaveSubBusinessUnit(initialSubBusinessUnit);
+      if (normalizedSubBusinessUnitOptions.includes(normalizedInitialValue)) {
+        return normalizedInitialValue;
+      }
+
+      return normalizedSubBusinessUnitOptions[0] || '';
+    })()
+  );
   const [yearSummary, setYearSummary] = useState({});
   const [yearSummaryLoading, setYearSummaryLoading] = useState(false);
+  const [monthlySubBusinessUnitData, setMonthlySubBusinessUnitData] = useState({ data: [] });
+  const [monthlySubBusinessUnitLoading, setMonthlySubBusinessUnitLoading] = useState(false);
+  const [multiRangeSubBusinessUnitData, setMultiRangeSubBusinessUnitData] = useState({ data: [] });
+  const [multiRangeSubBusinessUnitLoading, setMultiRangeSubBusinessUnitLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const defaultStartDate = `${currentYear}-01-01`;
   const defaultEndDate = `${currentYear}-12-31`;
@@ -1178,15 +1267,40 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
     }
   );
 
-  // Load business units from API
-  const { data: businessUnitsData } = useQuery({
-    queryKey: ['businessUnits', BUSINESS_UNITS_URL],
-    queryFn: () => loadBusinessUnits(BUSINESS_UNITS_URL),
-    staleTime: 30 * 60 * 1000, // 30 minutes
-  });
-
-  const availableBusinessUnits = businessUnitsData?.data || ['Gosave', 'Goto'];
   const businessUnits = useMemo(() => Array.from(selectedBusinessUnits), [selectedBusinessUnits]);
+  const activeData = useMemo(() => {
+    if (filterType === 'monthly') {
+      return monthlySubBusinessUnitData;
+    }
+
+    if (filterType === 'multi_range') {
+      return multiRangeSubBusinessUnitData;
+    }
+
+    return allData;
+  }, [allData, filterType, monthlySubBusinessUnitData, multiRangeSubBusinessUnitData]);
+  const isDataLoading = loading || monthlySubBusinessUnitLoading || multiRangeSubBusinessUnitLoading;
+
+  useEffect(() => {
+    if (!Array.isArray(normalizedSubBusinessUnitOptions) || normalizedSubBusinessUnitOptions.length === 0) {
+      if (selectedSubBusinessUnit !== '') {
+        setSelectedSubBusinessUnit('');
+      }
+      return;
+    }
+
+    const normalizedSelectedSubBusinessUnit = normalizeGosaveSubBusinessUnit(selectedSubBusinessUnit);
+
+    if (!normalizedSubBusinessUnitOptions.includes(normalizedSelectedSubBusinessUnit)) {
+      setSelectedSubBusinessUnit(normalizedSubBusinessUnitOptions[0]);
+      return;
+    }
+
+    if (selectedSubBusinessUnit !== normalizedSelectedSubBusinessUnit) {
+      setSelectedSubBusinessUnit(normalizedSelectedSubBusinessUnit);
+    }
+  }, [normalizedSubBusinessUnitOptions, selectedSubBusinessUnit]);
+
   const normalizedSelectedYears = useMemo(() => {
     const uniqueYears = Array.from(new Set(
       (years || [])
@@ -1270,7 +1384,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
   // Get filtered data from loaded dataset
   const filteredData = useMemo(() => {
     const selectedMainBusinessUnits = new Set((businessUnits || []).map((unit) => String(unit)));
-    let nextData = getFilteredData(allData).data || [];
+    let nextData = getFilteredData(activeData).data || [];
 
     if (selectedMainBusinessUnits.size > 0) {
       nextData = nextData.filter((item) => {
@@ -1309,7 +1423,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
     }
 
     return { data: nextData };
-  }, [allData, businessUnits, filterType, rangeDates]);
+  }, [activeData, businessUnits, filterType, rangeDates]);
 
   const monthlyChartData = useMemo(() => {
     const aggregatedByMonth = new Map();
@@ -1399,51 +1513,9 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
     });
   }, [filterType, filteredData.data, rangeDates]);
 
-  const multiRangeChartData = useMemo(() => {
-    if (filterType !== 'multi_range') {
-      return [];
-    }
-
-    const groupedByRange = new Map();
-    (filteredData.data || []).forEach((item, index) => {
-      const parsedRangeOrder = Number.parseInt(item?.rangeOrder, 10);
-      const rangeOrder = Number.isInteger(parsedRangeOrder) ? parsedRangeOrder : index;
-      const rangeKey = String(rangeOrder);
-      const fallbackRangeLabel = item?.startDate && item?.endDate
-        ? `${dayjs(item.startDate).format('DD MMM YYYY')} - ${dayjs(item.endDate).format('DD MMM YYYY')}`
-        : item?.label || `Range ${rangeOrder + 1}`;
-
-      const previousValue = groupedByRange.get(rangeKey) || {
-        id: item?.rangeId || item?.id || `range-${rangeOrder + 1}`,
-        rangeId: item?.rangeId || `range-${rangeOrder + 1}`,
-        rangeOrder,
-        rangeLabel: item?.rangeLabel || fallbackRangeLabel,
-        label: item?.rangeLabel || fallbackRangeLabel,
-        startDate: item?.startDate || null,
-        endDate: item?.endDate || null,
-        credit: 0,
-        debit: 0,
-        total: 0
-      };
-
-      previousValue.credit += Number(item?.credit || 0);
-      previousValue.debit += Number(item?.debit || 0);
-      previousValue.total += Number(item?.total || 0);
-      groupedByRange.set(rangeKey, previousValue);
-    });
-
-    return Array.from(groupedByRange.values()).sort((left, right) => {
-      const leftOrder = Number.parseInt(left?.rangeOrder, 10);
-      const rightOrder = Number.parseInt(right?.rangeOrder, 10);
-      const normalizedLeft = Number.isInteger(leftOrder) ? leftOrder : 0;
-      const normalizedRight = Number.isInteger(rightOrder) ? rightOrder : 0;
-      return normalizedLeft - normalizedRight;
-    });
-  }, [filterType, filteredData.data]);
-
   const activeSingleSeriesData = useMemo(() => {
     if (filterType === 'multi_range') {
-      return multiRangeChartData;
+      return filteredData.data || [];
     }
 
     if (filterType === 'range' && rangeChartModel?.data?.length) {
@@ -1451,7 +1523,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
     }
 
     return monthlyChartData;
-  }, [filterType, monthlyChartData, multiRangeChartData, rangeChartModel]);
+  }, [filterType, filteredData.data, monthlyChartData, rangeChartModel]);
 
   const isMonthlyComparisonMode = filterType === 'monthly' && normalizedSelectedYears.length > 1;
   const isMultiRangeMode = filterType === 'multi_range';
@@ -1608,44 +1680,48 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
         };
 
     if (isMonthlyComparisonMode) {
-      monthlyComparisonChartData.forEach((yearSeries, yearIndex) => {
-        const colors = COMPARISON_SERIES_COLORS[yearIndex] || COMPARISON_SERIES_COLORS[0];
+      const comparisonSeriesGroups = [
+        {
+          enabled: showCredit,
+          idPrefix: 'creditSeriesYear',
+          dataKey: 'credit',
+          labelPrefix: 'Credit',
+          yAxisId: 'leftAxisId'
+        },
+        {
+          enabled: showDebit,
+          idPrefix: 'debitSeriesYear',
+          dataKey: 'debit',
+          labelPrefix: 'Debit',
+          yAxisId: 'rightAxisId'
+        },
+        {
+          enabled: showTotal,
+          idPrefix: 'totalSeriesYear',
+          dataKey: 'total',
+          labelPrefix: 'Total',
+          yAxisId: 'leftAxisId'
+        }
+      ];
 
-        if (showCredit) {
+      comparisonSeriesGroups.forEach((group) => {
+        if (!group.enabled) {
+          return;
+        }
+
+        monthlyComparisonChartData.forEach((yearSeries, yearIndex) => {
+          const colors = COMPARISON_SERIES_COLORS[yearIndex] || COMPARISON_SERIES_COLORS[0];
+
           series.push({
-            id: `creditSeriesYear${yearSeries.year}`,
-            data: yearSeries.data.map((item) => item.credit),
-            label: `Credit (${yearSeries.year})`,
-            yAxisId: 'leftAxisId',
-            color: colors.credit,
+            id: `${group.idPrefix}${yearSeries.year}`,
+            data: yearSeries.data.map((item) => item[group.dataKey]),
+            label: `${group.labelPrefix} (${yearSeries.year})`,
+            yAxisId: group.yAxisId,
+            color: colors[group.dataKey],
             valueFormatter: (value) => formatSeriesValue(value, formatDetailedSeriesValue),
             ...baseSeriesConfig
           });
-        }
-
-        if (showDebit) {
-          series.push({
-            id: `debitSeriesYear${yearSeries.year}`,
-            data: yearSeries.data.map((item) => item.debit),
-            label: `Debit (${yearSeries.year})`,
-            yAxisId: 'rightAxisId',
-            color: colors.debit,
-            valueFormatter: (value) => formatSeriesValue(value, formatDetailedSeriesValue),
-            ...baseSeriesConfig
-          });
-        }
-
-        if (showTotal) {
-          series.push({
-            id: `totalSeriesYear${yearSeries.year}`,
-            data: yearSeries.data.map((item) => item.total),
-            label: `Total (${yearSeries.year})`,
-            yAxisId: 'leftAxisId',
-            color: colors.total,
-            valueFormatter: (value) => formatSeriesValue(value, formatDetailedSeriesValue),
-            ...baseSeriesConfig
-          });
-        }
+        });
       });
 
       return series;
@@ -1694,7 +1770,15 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
     }
 
     return series;
-  }, [activeSingleSeriesData, isMonthlyComparisonMode, isMultiRangeMode, monthlyComparisonChartData, showCredit, showDebit, showTotal]);
+  }, [
+    activeSingleSeriesData,
+    isMonthlyComparisonMode,
+    isMultiRangeMode,
+    monthlyComparisonChartData,
+    showCredit,
+    showDebit,
+    showTotal
+  ]);
 
   const chartSeriesSx = useMemo(() => {
     const dynamicStyles = {};
@@ -1850,9 +1934,11 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
     if (filterType === 'range' && rangeDates.length > 0) {
       const parsedRange = convertRangeFilterValueToApiRange(rangeDates[0]);
       if (parsedRange) {
+        const normalizedSubBusinessUnit = normalizeGosaveSubBusinessUnit(selectedSubBusinessUnit);
         return {
           ...parsedRange,
-          dateType: 'range'
+          dateType: 'range',
+          subBusinessUnits: normalizedSubBusinessUnit ? [normalizedSubBusinessUnit] : []
         };
       }
     }
@@ -1860,14 +1946,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
     if (filterType === 'multi_range') {
       const normalizedRanges = normalizeMultiRangeValues(multiRangeDates);
       if (normalizedRanges.length > 0) {
-        const baseCompareYear = Number.isInteger(selectedYear) ? selectedYear : currentYear;
-        const compareYears = normalizedSelectedYears.length > 1
-          ? normalizedSelectedYears
-          : [baseCompareYear - 1, baseCompareYear];
-
         return {
-          dateType: 'compare_year',
-          compareYears,
           dateRanges: normalizedRanges
         };
       }
@@ -1894,7 +1973,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
       startDate: `${selectedYear}-01-01`,
       endDate: `${selectedYear}-12-31`
     };
-  }, [currentYear, filterType, multiRangeDates, normalizedSelectedYears, rangeDates, selectedYear]);
+  }, [filterType, multiRangeDates, normalizedSelectedYears, rangeDates, selectedSubBusinessUnit, selectedYear]);
 
   const handleOpenCalendarModal = useCallback(() => {
     setOpenCalendarSignal((prev) => prev + 1);
@@ -1943,6 +2022,63 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
       return;
     }
 
+    if (filterType === 'monthly') {
+      setMonthlySubBusinessUnitLoading(true);
+
+      const monthlyResult = await loadGosaveMonthlyInvoiceSalesData({
+        years: normalizedSelectedYears,
+        subBusinessUnit: selectedSubBusinessUnit,
+        invoiceSalesUrl: INVOICE_SALES_URL
+      });
+
+      setMonthlySubBusinessUnitLoading(false);
+
+      if (monthlyResult.success) {
+        setMonthlySubBusinessUnitData({ data: monthlyResult.data || [] });
+        if (showSuccessMessage) {
+          setSnackbar({ open: true, message: 'Data berhasil dimuat', severity: 'success' });
+        }
+      } else {
+        setMonthlySubBusinessUnitData({ data: [] });
+        setSnackbar({
+          open: true,
+          message: monthlyResult.error || 'Gagal memuat data monthly',
+          severity: 'error'
+        });
+      }
+      return;
+    }
+
+    if (filterType === 'multi_range') {
+      setMultiRangeSubBusinessUnitLoading(true);
+
+      const baseCompareYear = Number.isInteger(selectedYear) ? selectedYear : currentYear;
+      const compareYears = [baseCompareYear - 1, baseCompareYear];
+      const multiRangeResult = await loadGosaveMultiRangeCompareYearData({
+        dateRanges: multiRangeDates,
+        compareYears,
+        subBusinessUnit: selectedSubBusinessUnit,
+        invoiceSalesUrl: INVOICE_SALES_URL
+      });
+
+      setMultiRangeSubBusinessUnitLoading(false);
+
+      if (multiRangeResult.success) {
+        setMultiRangeSubBusinessUnitData({ data: multiRangeResult.data || [] });
+        if (showSuccessMessage) {
+          setSnackbar({ open: true, message: 'Data berhasil dimuat', severity: 'success' });
+        }
+      } else {
+        setMultiRangeSubBusinessUnitData({ data: [] });
+        setSnackbar({
+          open: true,
+          message: multiRangeResult.error || 'Gagal memuat data multi range',
+          severity: 'error'
+        });
+      }
+      return;
+    }
+
     const loadOptions = getLoadOptions();
     await loadRevenue((error) => {
       if (error) {
@@ -1951,7 +2087,17 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
         setSnackbar({ open: true, message: 'Data berhasil dimuat', severity: 'success' });
       }
     }, loadOptions);
-  }, [getLoadOptions, loadRevenue, validateFilterSelection]);
+  }, [
+    currentYear,
+    filterType,
+    getLoadOptions,
+    loadRevenue,
+    multiRangeDates,
+    normalizedSelectedYears,
+    selectedYear,
+    selectedSubBusinessUnit,
+    validateFilterSelection
+  ]);
 
   const handleRefreshData = useCallback(async () => {
     await runLoadRevenue(true);
@@ -2015,15 +2161,15 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
             flexDirection: 'column'
           }}>
             <FilterSection
+              subBusinessUnitOptions={normalizedSubBusinessUnitOptions}
+              selectedSubBusinessUnit={selectedSubBusinessUnit}
+              onSubBusinessUnitChange={setSelectedSubBusinessUnit}
               filterType={filterType}
               onFilterTypeChange={handleFilterTypeChange}
               onOpenCalendarModal={handleOpenCalendarModal}
-              availableBusinessUnits={availableBusinessUnits}
-              businessUnits={businessUnits}
-              onBusinessUnitToggle={toggleBusinessUnit}
               onLoadData={handleLoadData}
               onRefreshData={handleRefreshData}
-              isLoading={loading}
+              isLoading={isDataLoading}
             />
           </Box>
 
@@ -2064,7 +2210,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
                     onBusinessUnitToggle={toggleBusinessUnit}
                     dataType="both"
                     onDataTypeChange={() => {}}
-                    invoiceData={allData.data || []}
+                    invoiceData={activeData.data || []}
                     openPickerSignal={openCalendarSignal}
                     showTitle={false}
                     showSummary={false}
@@ -2079,7 +2225,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
                     onBusinessUnitToggle={toggleBusinessUnit}
                     dataType="both"
                     onDataTypeChange={() => {}}
-                    invoiceData={allData.data || []}
+                    invoiceData={activeData.data || []}
                     onValidatedRangesChange={handleValidatedMultiRangesChange}
                     initialValidatedRanges={multiRangeDates}
                     openPickerSignal={openCalendarSignal}
@@ -2097,7 +2243,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
                 filterType={filterType}
                 dateRangeLabel={summaryDateRangeLabel}
                 businessUnits={businessUnits}
-                invoiceData={allData.data || []}
+                invoiceData={activeData.data || []}
                 onClearRangeData={handleClearRangeData}
               />
             </Box>
@@ -2141,7 +2287,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
               lineHeight: 1.4,
               fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
             }}>
-              Monthly Revenue
+              Gosave Revenue
             </Typography>
             <Box
               sx={{
@@ -2201,8 +2347,8 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
                 height: chartCanvasHeight
               }}
             >
-            {loading && (
-              <Fade in={loading}>
+            {isDataLoading && (
+              <Fade in={isDataLoading}>
                 <Box sx={{
                   position: 'absolute',
                   top: 0,
@@ -2241,7 +2387,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
                 </Box>
               </Fade>
             )}
-            {!loading ? (
+            {!isDataLoading ? (
               <ChartContainer
                 series={chartSeries}
                 xAxis={[
@@ -2302,7 +2448,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
               </ChartContainer>
             ) : null}
 
-            {!loading && isMonthlyDataEmpty ? (
+            {!isDataLoading && isMonthlyDataEmpty ? (
               <Box
                 sx={{
                   position: 'absolute',
@@ -2353,19 +2499,35 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
 }
 
 // QueryClientProvider
-function ChartMonthly({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
+function ChartGosave({
+  initialBusinessUnits = ['Gosave'],
+  subBusinessUnitOptions = SUB_BUSINESS_UNIT_OPTIONS,
+  initialSubBusinessUnit
+}) {
   return (
     <QueryClientProvider client={queryClient}>
-      <ChartMonthlyContent initialBusinessUnits={initialBusinessUnits} />
+      <ChartGosaveContent
+        initialBusinessUnits={initialBusinessUnits}
+        subBusinessUnitOptions={subBusinessUnitOptions}
+        initialSubBusinessUnit={initialSubBusinessUnit}
+      />
     </QueryClientProvider>
   );
 }
 
 // ErrorBoundary
-const ChartMonthlyWithErrorBoundary = ({ initialBusinessUnits = ['Gosave', 'Goto'] }) => (
+const ChartGosaveWithErrorBoundary = ({
+  initialBusinessUnits = ['Gosave'],
+  subBusinessUnitOptions = SUB_BUSINESS_UNIT_OPTIONS,
+  initialSubBusinessUnit
+}) => (
   <ErrorBoundary>
-    <ChartMonthly initialBusinessUnits={initialBusinessUnits} />
+    <ChartGosave
+      initialBusinessUnits={initialBusinessUnits}
+      subBusinessUnitOptions={subBusinessUnitOptions}
+      initialSubBusinessUnit={initialSubBusinessUnit}
+    />
   </ErrorBoundary>
 );
 
-export default ChartMonthlyWithErrorBoundary;
+export default ChartGosaveWithErrorBoundary;

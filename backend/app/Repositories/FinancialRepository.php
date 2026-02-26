@@ -103,6 +103,8 @@ class FinancialRepository
                     {$selectYear} as year,
                     {$selectMonth} as month,
                     department_name as business_unit,  
+                    SUM(credit) as total_credit,
+                    SUM(debit) as total_debit,
                     SUM(debit) * -1 + SUM(credit) as total_sales
                 FROM
                     {$this->tablePath}
@@ -217,6 +219,8 @@ class FinancialRepository
                 gl.year,
                 gl.business_unit,
                 gl.month,
+                gl.total_credit,
+                gl.total_debit,
                 gl.total_sales,
                 IFNULL(qs.total_quantity, 0) as total_quantity,
                 IFNULL(cm.total_credit_memo_qty, 0) as credit_memo_qty,
@@ -253,7 +257,7 @@ class FinancialRepository
                 gl.year, gl.month, gl.business_unit
         ";
         
-        $cacheKey = "invoice_sales_gl_" . md5(json_encode($businessUnits) . json_encode($subBusinessUnits) . json_encode($years) . $dateType . json_encode($dateParams));
+        $cacheKey = "invoice_sales_gl_v2_" . md5(json_encode($businessUnits) . json_encode($subBusinessUnits) . json_encode($years) . $dateType . json_encode($dateParams));
         
         return Cache::store('file')->remember($cacheKey, 1800, function () use ($query) {
             return $this->bigQueryService->runQuery($query);
@@ -280,6 +284,8 @@ class FinancialRepository
                         WHEN department_name = 'GOTO E-Com' THEN 'Goto'
                         ELSE NULL
                     END as business_unit,
+                    SUM(credit) as total_credit,
+                    SUM(debit) as total_debit,
                     SUM(debit) * -1 + SUM(credit) as total_sales
                 FROM
                     {$this->tablePath}
@@ -454,6 +460,8 @@ class FinancialRepository
             SELECT
                 gl.range_group as period,
                 gl.business_unit,
+                gl.total_credit,
+                gl.total_debit,
                 gl.total_sales,
                 COALESCE(qs.total_quantity, 0) as total_quantity,
                 COALESCE(cm.total_credit_memo_qty, 0) as credit_memo_qty,
@@ -493,7 +501,7 @@ class FinancialRepository
                 gl.range_group, gl.business_unit
         ";
         
-        $cacheKey = "multi_range_comparison_gl_" . md5(json_encode($businessUnits) . json_encode($ranges));
+        $cacheKey = "multi_range_comparison_gl_v2_" . md5(json_encode($businessUnits) . json_encode($ranges));
         
         return Cache::store('file')->remember($cacheKey, 1800, function () use ($query) {
             return $this->bigQueryService->runQuery($query);

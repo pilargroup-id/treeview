@@ -19,7 +19,9 @@ export const SingleDatePickerWithYear = ({
   dataType = 'both',
   onDataTypeChange,
   invoiceData = [],
-  onValidatedRangesChange = null 
+  onValidatedRangesChange = null,
+  initialValidatedRanges = null,
+  openPickerSignal = 0
 }) => {
   const { alertState, showWarning, showError, closeAlert } = useAlert();
   
@@ -39,10 +41,34 @@ export const SingleDatePickerWithYear = ({
   const [showPicker, setShowPicker] = useState(false);
   const anchorRef = useRef(null);
   const pickerRef = useRef(null);
+  const lastOpenPickerSignalRef = useRef(openPickerSignal);
 
   // State Preview
   const [showManualMode, setShowManualMode] = useState(true);
-  const [validatedRanges, setValidatedRanges] = useState([]); 
+  const [validatedRanges, setValidatedRanges] = useState(
+    Array.isArray(initialValidatedRanges) ? initialValidatedRanges : []
+  ); 
+
+  useEffect(() => {
+    if (!Array.isArray(initialValidatedRanges)) {
+      return;
+    }
+
+    setValidatedRanges(initialValidatedRanges);
+  }, [initialValidatedRanges]);
+
+  useEffect(() => {
+    // Abaikan nilai awal saat mount agar modal tidak auto-open saat ganti filter.
+    if (openPickerSignal === lastOpenPickerSignalRef.current) {
+      return;
+    }
+
+    lastOpenPickerSignalRef.current = openPickerSignal;
+
+    if (openPickerSignal > 0) {
+      setShowPicker(true);
+    }
+  }, [openPickerSignal]);
 
   // Add Date Range 
   const handleAddToPreview = () => {
