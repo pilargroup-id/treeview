@@ -344,14 +344,14 @@ const SubBusinessUnitDropdown = React.memo(({ value, options = [], onChange }) =
             }
           }}
         >
-          Sub BU
+          Chanel
         </InputLabel>
         <Select
           labelId="goto-sub-bu-label"
           value={dropdownValue}
           onChange={handleChange}
           onOpen={handleOpen}
-          label="Sub BU"
+          label="Chanel"
           displayEmpty={false}
           MenuProps={{
             PaperProps: {
@@ -568,6 +568,87 @@ const FilterTypeDropdown = React.memo(({ value, onChange }) => {
 
 FilterTypeDropdown.displayName = 'FilterTypeDropdown';
 
+const DATA_TYPE_OPTIONS = ['Penjualan', 'Quantity', 'Order'];
+
+const DataTypeButtons = React.memo(() => {
+  const [selectedDataTypes, setSelectedDataTypes] = useState(['Penjualan']);
+
+  const handleToggleDataType = useCallback((option) => {
+    setSelectedDataTypes((prevSelected) => (
+      prevSelected.includes(option)
+        ? prevSelected.filter((item) => item !== option)
+        : [...prevSelected, option]
+    ));
+  }, []);
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <Typography
+        sx={{
+          fontSize: '0.75rem',
+          color: '#757575',
+          fontWeight: 600,
+          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+          letterSpacing: '0.02em',
+          textTransform: 'uppercase'
+        }}
+      >
+        Tipe Data
+      </Typography>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          gap: 0.75
+        }}
+      >
+        {DATA_TYPE_OPTIONS.map((option) => {
+          const isSelected = selectedDataTypes.includes(option);
+
+          return (
+            <Button
+              key={option}
+              type="button"
+              onClick={() => handleToggleDataType(option)}
+              aria-pressed={isSelected}
+              variant={isSelected ? 'contained' : 'outlined'}
+              sx={{
+                minHeight: 38,
+                borderRadius: '10px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                textTransform: 'none',
+                boxShadow: 'none',
+                ...(isSelected
+                  ? {
+                      bgcolor: '#6BA3D0',
+                      color: '#FFFFFF',
+                      '&:hover': {
+                        bgcolor: '#5A9FD0',
+                        boxShadow: 'none'
+                      }
+                    }
+                  : {
+                      borderColor: '#D1D5DB',
+                      color: '#4B5563',
+                      '&:hover': {
+                        borderColor: '#6BA3D0',
+                        bgcolor: 'rgba(107, 163, 208, 0.06)'
+                      }
+                    })
+              }}
+            >
+              {option}
+            </Button>
+          );
+        })}
+      </Box>
+    </Box>
+  );
+});
+
+DataTypeButtons.displayName = 'DataTypeButtons';
+
 // FilterSection 
 const FilterSection = React.memo(({
   subBusinessUnitOptions,
@@ -653,6 +734,8 @@ const FilterSection = React.memo(({
         value={filterType}
         onChange={onFilterTypeChange}
       />
+
+      <DataTypeButtons />
 
       {isCalendarFilterType(filterType) ? (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
@@ -1001,6 +1084,9 @@ const SummaryCardCompact = React.memo(({
       border: '1px solid #E5E7EB',
       p: { xs: 2.25, md: 2.5 },
       width: '100%',
+      height: isCalendarFilterType(filterType) ? '100%' : 'auto',
+      display: 'flex',
+      flexDirection: 'column',
       fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
       position: 'relative',
       zIndex: 1,
@@ -2113,14 +2199,14 @@ function ChartGosaveContent({
       <Box sx={{
         width: '100%',
         maxWidth: 'min(100%, 1880px)',
-        mx: 'auto',
+        mr: 'auto',
         minHeight: '100%',
         height: 'auto',
         display: 'flex',
         flexDirection: 'column',
         background: 'linear-gradient(135deg, #F5F7FA 0%, #F8F9FA 50%, #FAFBFC 100%)',
         pt: { xs: 1.75, sm: 2.25, md: 3, xl: 3.5 },
-        px: { xs: 1.25, sm: 2.25, md: 3, xl: 3.5 },
+        px: { xs: 1, sm: 1.5, md: 2, xl: 2.5 },
         pb: { xs: 1.75, sm: 2.25, md: 3, xl: 3.5 },
         gap: { xs: 2, md: 2.5, xl: 3 },
         fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
@@ -2233,8 +2319,9 @@ function ChartGosaveContent({
 
             <Box sx={{
               display: 'flex',
-              alignItems: 'start',
-              flexShrink: 0
+              alignItems: 'stretch',
+              flex: isCalendarFilterType(filterType) ? 1 : '0 0 auto',
+              minHeight: 0
             }}>
               <SummaryCardCompact
                 filterType={filterType}
