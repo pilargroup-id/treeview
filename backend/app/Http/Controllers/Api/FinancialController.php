@@ -28,33 +28,27 @@ class FinancialController extends Controller
             'end_date' => 'required|date|date_format:Y-m-d|after_or_equal:start_date',
             'business_units' => 'nullable|array',
             'business_units.*' => 'in:Gosave,Goto',
+            'channel' => 'nullable|array',
+            'channel.*' => 'in:Gosave GT,Gosave B2B,Gosave E-Com,GOTO GT,Store,GOTO E-Com',
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'errors' => $validator->errors()
-            ], 422);
+            return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
         }
 
         $result = $this->financialRepo->getMonthlyRevenue(
             $request->account_header,
             $request->start_date,
             $request->end_date,
-            $request->input('business_units', null)
+            $request->input('business_units', null),
+            $request->input('channel', null)
         );
 
         if ($result['success']) {
-            return response()->json([
-                'status' => 'success',
-                'data' => $result['data']
-            ]);
+            return response()->json(['status' => 'success', 'data' => $result['data']]);
         }
 
-        return response()->json([
-            'status' => 'error',
-            'message' => $result['error']
-        ], 500);
+        return response()->json(['status' => 'error', 'message' => $result['error']], 500);
     }
 
     /**
@@ -66,8 +60,8 @@ class FinancialController extends Controller
         $validator = Validator::make($request->all(), [
             'business_units' => 'nullable|array',
             'business_units.*' => 'in:Gosave,Goto',
-            'sub_business_units' => 'nullable|array',  // Tambah validasi ini
-            'sub_business_units.*' => 'in:Gosave GT,Gosave B2B,Gosave E-Com,GOTO GT,Store,GOTO E-Com',  // Tambah validasi ini
+            'channel' => 'nullable|array',
+            'channel.*' => 'in:Gosave GT,Gosave B2B,Gosave E-Com,GOTO GT,Store,GOTO E-Com',
             'date_type' => 'nullable|in:year,range,specific,compare_year,multi_range',
             'years' => 'nullable|array',
             'years.*' => 'integer|min:2020|max:2030',
@@ -136,11 +130,11 @@ class FinancialController extends Controller
         }
 
         $result = $this->financialRepo->getInvoiceSalesData(
-            $request->input('business_units', []),  // Bisa empty array
+            $request->input('business_units', []),
             $request->input('years', null),
             $dateType,
             $dateParams,
-            $request->input('sub_business_units', null)  // Tambah parameter ini
+            $request->input('channel', null)
         );
 
         if ($result['success']) {

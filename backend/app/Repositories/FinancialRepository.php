@@ -20,12 +20,11 @@ class FinancialRepository
     /**
      * Get Monthly Revenue (Credit - Debit)
      */
-    public function getMonthlyRevenue($accountHeader, $startDate, $endDate, $businessUnits = null)
+    public function getMonthlyRevenue($accountHeader, $startDate, $endDate, $businessUnits = null, $channel = null)
     {
-        // Build business unit filter
         $businessUnitFilter = "";
-        if (!empty($businessUnits)) {
-            $businessUnitFilter = "AND " . $this->buildBusinessUnitConditionForFinancialGL($businessUnits);
+        if (!empty($businessUnits) || !empty($channel)) {
+            $businessUnitFilter = "AND " . $this->buildBusinessUnitConditionForFinancialGL($businessUnits, $channel);
         }
         
         $query = "
@@ -49,9 +48,9 @@ class FinancialRepository
                 year, month
         ";
 
-        $cacheKey = "monthly_revenue_{$accountHeader}_{$startDate}_{$endDate}_" . md5(json_encode($businessUnits));
-        
-        return Cache::store('file')->remember($cacheKey, 1800, function () use ($query) {
+        $cacheKey = "monthly_revenue_{$accountHeader}_{$startDate}_{$endDate}_" . md5(json_encode($businessUnits) . json_encode($channel));
+
+        return Cache::store('file')->remember($cacheKey, 60, function () use ($query) {
             return $this->bigQueryService->runQuery($query);
         });
     }
@@ -59,17 +58,16 @@ class FinancialRepository
     /**
      * Query 2: Invoice Sales & Quantity by Business Unit (Revenue from GL)
      */
-    public function getInvoiceSalesData($businessUnits, $years = null, $dateType = null, $dateParams = null, $subBusinessUnits = null)
+    public function getInvoiceSalesData($businessUnits, $years = null, $dateType = null, $dateParams = null, $channel = null)
     {
-        // Build business unit conditions dengan sub-units
-        $businessUnitCondition = $this->buildBusinessUnitConditionForFinancialGL($businessUnits, $subBusinessUnits);
+        $businessUnitCondition = $this->buildBusinessUnitConditionForFinancialGL($businessUnits, $channel);
         
         // Build date filter for GL
         $dateFilter = $this->buildDateFilterForGL($years, $dateType, $dateParams);
         
         // Special handling for multi_range
         if ($dateType === 'multi_range' && !empty($dateParams)) {
-            return $this->getMultiRangeComparison($businessUnits, $dateParams, $subBusinessUnits);
+            return $this->getMultiRangeComparison($businessUnits, $dateParams, $channel);
         }
 
         // ... (grouping logic sama seperti sebelumnya)
@@ -125,7 +123,7 @@ class FinancialRepository
                     `even-gearbox-255203.ds_netbackup.header_invoice` t1
                 WHERE
                     t1.approval_status = 'Approved'
-                    AND " . $this->buildBusinessUnitCondition($businessUnits, $subBusinessUnits) . "
+                    AND " . $this->buildBusinessUnitCondition($businessUnits, $channel) . "
                     " . $this->buildDateFilter($years, $dateType, $dateParams) . "
             ),
             invoice_quantity AS (
@@ -164,7 +162,7 @@ class FinancialRepository
                     `even-gearbox-255203.ds_netbackup.credit_memo_item`
                 WHERE
                     h_status = 'Fully Applied'
-                    AND " . $this->buildBusinessUnitConditionForCreditMemo($businessUnits, $subBusinessUnits) . "
+                    AND " . $this->buildBusinessUnitConditionForCreditMemo($businessUnits, $channel) . "
                     " . $this->buildDateFilterForCreditMemo($years, $dateType, $dateParams) . "
                     AND d_quantity < 0
                 GROUP BY
@@ -180,7 +178,7 @@ class FinancialRepository
                 WHERE
                     approval_status = 'Approved'
                     AND department IN ('Gosave GT', 'Gosave B2B', 'Gosave E-Com')
-                    " . ($subBusinessUnits ? "AND department IN ('" . implode("','", $subBusinessUnits) . "')" : "") . "
+                    " . ($channel ? "AND department IN ('" . implode("','", $channel) . "')" : "") . "
                     {$gosaveDateFilter}
                 GROUP BY
                     period, business_unit
@@ -253,9 +251,9 @@ class FinancialRepository
                 gl.year, gl.month, gl.business_unit
         ";
         
-        $cacheKey = "invoice_sales_gl_" . md5(json_encode($businessUnits) . json_encode($subBusinessUnits) . json_encode($years) . $dateType . json_encode($dateParams));
+        $cacheKey = "invoice_sales_gl_" . md5(json_encode($businessUnits) . json_encode($channel) . json_encode($years) . $dateType . json_encode($dateParams));
         
-        return Cache::store('file')->remember($cacheKey, 1800, function () use ($query) {
+        return Cache::store('file')->remember($cacheKey, 60, function () use ($query) {
             return $this->bigQueryService->runQuery($query);
         });
     }
@@ -495,7 +493,7 @@ class FinancialRepository
         
         $cacheKey = "multi_range_comparison_gl_" . md5(json_encode($businessUnits) . json_encode($ranges));
         
-        return Cache::store('file')->remember($cacheKey, 1800, function () use ($query) {
+        return Cache::store('file')->remember($cacheKey, 60, function () use ($query) {
             return $this->bigQueryService->runQuery($query);
         });
     }
@@ -729,116 +727,91 @@ class FinancialRepository
     /**
      * Build business unit condition for financial_gl table with sub-units
      */
-    private function buildBusinessUnitConditionForFinancialGL($businessUnits, $subBusinessUnits = null)
+    private function buildBusinessUnitConditionForFinancialGL($businessUnits, $channel = null)
     {
-        if (empty($businessUnits) && empty($subBusinessUnits)) {
+        if (empty($businessUnits) && empty($channel)) {
             return "1=1";
         }
-        
+
         $conditions = [];
-        
-        // Jika ada sub_business_units, prioritaskan itu
-        if (!empty($subBusinessUnits)) {
+
+        if (!empty($channel)) {
             $departmentConditions = [];
-            foreach ($subBusinessUnits as $subUnit) {
-                $departmentConditions[] = "department_name = '{$subUnit}'";
+            foreach ($channel as $ch) {
+                $departmentConditions[] = "department_name = '{$ch}'";
             }
-            if (!empty($departmentConditions)) {
-                $conditions[] = "(" . implode(" OR ", $departmentConditions) . ")";
-            }
-        } 
-        // Kalau cuma main business units (tanpa sub)
-        else if (!empty($businessUnits)) {
+            $conditions[] = "(" . implode(" OR ", $departmentConditions) . ")";
+        } else {
             foreach ($businessUnits as $unit) {
                 if ($unit === 'Gosave') {
                     $conditions[] = "department_name IN ('Gosave GT', 'Gosave B2B', 'Gosave E-Com')";
                 } elseif ($unit === 'Goto') {
-                    $conditions[] = "department_name IN ('GOTO GT', 'Store', 'GOTO E-Com')";
+                    $conditions[] = "department_name IN ('GOTO GT', 'Store', 'GOTO E-Com')"; // semua channel Goto
                 }
             }
         }
-        
-        if (empty($conditions)) {
-            return "1=1";
-        }
-        
-        return "(" . implode(" OR ", $conditions) . ")";
+
+        return empty($conditions) ? "1=1" : "(" . implode(" OR ", $conditions) . ")";
     }
 
     /**
      * Build business unit condition for header_invoice table with sub-units
      */
-    private function buildBusinessUnitCondition($businessUnits, $subBusinessUnits = null)
+    private function buildBusinessUnitCondition($businessUnits, $channel = null)
     {
-        if (empty($businessUnits) && empty($subBusinessUnits)) {
+        if (empty($businessUnits) && empty($channel)) {
             return "1=1";
         }
-        
+
         $conditions = [];
-        
-        // Prioritaskan sub_business_units
-        if (!empty($subBusinessUnits)) {
+
+        if (!empty($channel)) {
             $departmentConditions = [];
-            foreach ($subBusinessUnits as $subUnit) {
-                $departmentConditions[] = "t1.department = '{$subUnit}'";
+            foreach ($channel as $ch) {
+                $departmentConditions[] = "t1.department = '{$ch}'";
             }
-            if (!empty($departmentConditions)) {
-                $conditions[] = "(" . implode(" OR ", $departmentConditions) . ")";
-            }
-        }
-        // Main business units
-        else if (!empty($businessUnits)) {
+            $conditions[] = "(" . implode(" OR ", $departmentConditions) . ")";
+        } else {
             foreach ($businessUnits as $unit) {
                 if ($unit === 'Gosave') {
                     $conditions[] = "t1.department IN ('Gosave GT', 'Gosave B2B', 'Gosave E-Com')";
                 } elseif ($unit === 'Goto') {
-                    $conditions[] = "t1.department IN ('GOTO GT', 'Store', 'GOTO E-Com')";
+                    $conditions[] = "t1.department IN ('GOTO GT', 'Store', 'GOTO E-Com')"; // semua channel Goto
                 }
             }
         }
-        
-        if (empty($conditions)) {
-            return "1=1";
-        }
-        
-        return "(" . implode(" OR ", $conditions) . ")";
+
+        return empty($conditions) ? "1=1" : "(" . implode(" OR ", $conditions) . ")";
     }
 
     /**
      * Build business unit condition for credit_memo_item table with sub-units
      */
-    private function buildBusinessUnitConditionForCreditMemo($businessUnits, $subBusinessUnits = null)
+    private function buildBusinessUnitConditionForCreditMemo($businessUnits, $channel = null)
     {
-        if (empty($businessUnits) && empty($subBusinessUnits)) {
+        if (empty($businessUnits) && empty($channel)) {
             return "1=1";
         }
-        
+
         $conditions = [];
-        
-        if (!empty($subBusinessUnits)) {
+
+        if (!empty($channel)) {
             $departmentConditions = [];
-            foreach ($subBusinessUnits as $subUnit) {
-                $departmentConditions[] = "h_department_name = '{$subUnit}'";
+            foreach ($channel as $ch) {
+                $departmentConditions[] = "h_department_name = '{$ch}'";
             }
-            if (!empty($departmentConditions)) {
-                $conditions[] = "(" . implode(" OR ", $departmentConditions) . ")";
-            }
-        }
-        else if (!empty($businessUnits)) {
+            $conditions[] = "(" . implode(" OR ", $departmentConditions) . ")";
+        } else {
             foreach ($businessUnits as $unit) {
                 if ($unit === 'Gosave') {
                     $conditions[] = "h_department_name IN ('Gosave GT', 'Gosave B2B', 'Gosave E-Com')";
                 } elseif ($unit === 'Goto') {
-                    $conditions[] = "h_department_name IN ('GOTO GT', 'Store', 'GOTO E-Com')";
+                    $conditions[] = "h_department_name IN ('GOTO GT', 'Store', 'GOTO E-Com')"; // semua channel Goto
                 }
             }
         }
-        
-        if (empty($conditions)) {
-            return "1=1";
-        }
-        
-        return "(" . implode(" OR ", $conditions) . ")";
+
+        return empty($conditions) ? "1=1" : "(" . implode(" OR ", $conditions) . ")";
     }
 
     /**
@@ -918,7 +891,7 @@ class FinancialRepository
 
         $cacheKey = "last_update_info";
         
-        return Cache::store('file')->remember($cacheKey, 3600, function () use ($query) {
+        return Cache::store('file')->remember($cacheKey, 60, function () use ($query) {
             return $this->bigQueryService->runQuery($query);
         });
     }
