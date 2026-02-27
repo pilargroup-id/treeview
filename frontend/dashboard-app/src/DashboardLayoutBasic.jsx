@@ -2,16 +2,18 @@ import * as React from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { createTheme, GlobalStyles } from '@mui/material';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import BarChartIcon from '@mui/icons-material/BarChart';
+import Inventory2Icon from '@mui/icons-material/Inventory2';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import SettingsIcon from '@mui/icons-material/Settings';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CalendarViewWeekIcon from '@mui/icons-material/CalendarViewWeek';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
-import LayersIcon from '@mui/icons-material/Layers';
 import CategoryIcon from '@mui/icons-material/Category';
 import { AppProvider } from '@toolpad/core/AppProvider';
-import { DashboardLayout } from '@toolpad/core/DashboardLayout';
+import { DashboardLayout, DashboardSidebarPageItem } from '@toolpad/core/DashboardLayout';
 import { useDemoRouter } from '@toolpad/core/internal';
 import ChartInvoice from './chart/ChartInvoice';
 import ItemTes from './chart/TestItemCategory';
@@ -21,40 +23,121 @@ import ReportMonitorRadius from './sales/ReportMonitorRadius';
 import MonthlyRevenue from './businessUnit/MonthlyRevenue';
 import GotoRevenue from './businessUnit/GotoRevenue';
 import GosaveRevenue from './businessUnit/GosaveRevenue';
+import SidebarLogout from './login/logout';
 import { API_URL } from './config/api';
+import TreeViewWordmark from './components/TreeViewWordmark';
 
 const DASHBOARD_BACKGROUND_LIGHT =
   'linear-gradient(135deg, #F5F7FA 0%, #F8F9FA 50%, #FAFBFC 100%)';
 
-const NAVIGATION = [
-  { kind: 'header', title: 'Main items' },
+const USER_PROFILE_SEGMENT = '__sidebar_user_profile__';
+const DEFAULT_SIDEBAR_USER = {
+  displayName: 'User',
+  role: 'Programmer',
+  status: 'Online',
+  initials: 'UN',
+};
+
+const BASE_NAVIGATION = [
+  { kind: 'header', title: 'Main Items' },
   {
     segment: 'dashboard',
-    title: 'Dashboard',
-    icon: <DashboardIcon />,
+    title: 'Revenue',
+    icon: <AttachMoneyIcon />,
     children: [
       { segment: 'RevenueInvoice', title: 'Revenue', icon: <BarChartIcon /> },
-      { segment: 'MonthlyRevenue', title: 'Monthly Revenue', icon: <BarChartIcon /> },
+      { segment: 'MonthlyRevenue', title: 'Monthly Revenue', icon: <CalendarMonthIcon /> },
       { segment: 'GotoRevenue', title: 'Goto Revenue', icon: <BarChartIcon /> },
       { segment: 'GosaveRevenue', title: 'Gosave Revenue', icon: <BarChartIcon /> },
+    ],
+  },
+  {
+    segment: 'orders',
+    title: 'Item',
+    icon: <Inventory2Icon />,
+    children: [
       { segment: 'CategoryItemTes', title: 'Category Item (Tes)', icon: <CategoryIcon /> },
     ],
   },
-  { segment: 'orders', title: 'Orders', icon: <ShoppingCartIcon /> },
   { kind: 'divider' },
   { kind: 'header', title: 'Analytics' },
   {
     segment: 'reports',
     title: 'Reports',
-    icon: <BarChartIcon />,
+    icon: <AssessmentIcon />,
     children: [
       { segment: 'monthly-visit', title: 'Monthly Visit', icon: <CalendarMonthIcon /> },
       { segment: 'weekly-summary', title: 'Weekly Summary', icon: <CalendarViewWeekIcon /> },
       { segment: 'monitor-radius', title: 'Monitor Radius', icon: <MyLocationIcon /> },
     ],
   },
-  { segment: 'integrations', title: 'Integrations', icon: <LayersIcon /> },
+  { segment: 'integrations', title: 'Integrations', icon: <SettingsIcon /> },
 ];
+
+function pickFirstText(...values) {
+  for (const value of values) {
+    const text = String(value ?? '').trim();
+    if (text) return text;
+  }
+  return '';
+}
+
+function getInitials(name) {
+  const text = String(name ?? '').trim();
+  if (!text) return DEFAULT_SIDEBAR_USER.initials;
+
+  const parts = text.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
+
+function getStoredSidebarUser() {
+  if (typeof window === 'undefined') return DEFAULT_SIDEBAR_USER;
+
+  try {
+    const rawUser = localStorage.getItem('authUser');
+    if (!rawUser) return DEFAULT_SIDEBAR_USER;
+
+    const parsedUser = JSON.parse(rawUser);
+    const displayName = pickFirstText(
+      parsedUser?.name,
+      parsedUser?.full_name,
+      parsedUser?.fullname,
+      parsedUser?.username,
+      parsedUser?.email,
+    );
+    const role = pickFirstText(
+      parsedUser?.role,
+      parsedUser?.job_position,
+      parsedUser?.job_level,
+      parsedUser?.department,
+    );
+
+    return {
+      ...DEFAULT_SIDEBAR_USER,
+      displayName: displayName || DEFAULT_SIDEBAR_USER.displayName,
+      role: role || DEFAULT_SIDEBAR_USER.role,
+      initials: getInitials(displayName),
+    };
+  } catch {
+    return DEFAULT_SIDEBAR_USER;
+  }
+}
+
+function buildNavigation(userDisplayName) {
+  return [
+    {
+      segment: USER_PROFILE_SEGMENT,
+      title: userDisplayName,
+      icon: <AccountCircleRoundedIcon />,
+    },
+    { kind: 'divider' },
+    ...BASE_NAVIGATION,
+  ];
+}
 
 const demoTheme = createTheme({
   cssVariables: { colorSchemeSelector: 'data-toolpad-color-scheme' },
@@ -126,6 +209,148 @@ const demoTheme = createTheme({
     },
   },
 });
+
+function TreeViewAppTitle() {
+  return <TreeViewWordmark />;
+}
+
+function SidebarUserItem({ mini, user }) {
+  const displayName = user?.displayName || DEFAULT_SIDEBAR_USER.displayName;
+  const role = user?.role || DEFAULT_SIDEBAR_USER.role;
+  const status = user?.status || DEFAULT_SIDEBAR_USER.status;
+  const initials = user?.initials || DEFAULT_SIDEBAR_USER.initials;
+
+  if (mini) {
+    return (
+      <Box component="li" sx={{ listStyle: 'none', px: 0.5, py: 0.5 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+            minHeight: 52,
+          }}
+        >
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'rgba(107, 163, 208, 0.2)',
+              border: '1px solid rgba(107, 163, 208, 0.28)',
+            }}
+          >
+            <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#0F172A', letterSpacing: 0.35 }}>
+              {initials}
+            </Typography>
+          </Box>
+          <Box
+            sx={{
+              position: 'absolute',
+              left: 'calc(50% + 9px)',
+              bottom: 3,
+              width: 10,
+              height: 10,
+              borderRadius: '50%',
+              bgcolor: '#22C55E',
+              border: '1px solid rgba(255, 255, 255, 0.98)',
+            }}
+          />
+        </Box>
+      </Box>
+    );
+  }
+
+  return (
+    <Box component="li" sx={{ listStyle: 'none', px: 1.25, py: 0.7 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.3,
+          px: 0,
+          py: 0,
+        }}
+      >
+        <Box
+          sx={{
+            width: 52,
+            height: 52,
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(107, 163, 208, 0.2)',
+            border: '1px solid rgba(107, 163, 208, 0.28)',
+          }}
+        >
+          <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A', letterSpacing: 0.4 }}>
+            {initials}
+          </Typography>
+        </Box>
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Typography
+            variant="body2"
+            title={displayName}
+            sx={{
+              color: '#0B1220',
+              fontWeight: 600,
+              fontSize: '1rem',
+              lineHeight: 1.25,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {displayName}
+          </Typography>
+          <Typography
+            variant="caption"
+            title={role}
+            sx={{
+              mt: 0.1,
+              color: '#6B7280',
+              fontSize: '0.74rem',
+              fontWeight: 500,
+              lineHeight: 1.15,
+              display: 'block',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {role}
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mt: 0.35 }}>
+            <Box
+              sx={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                bgcolor: '#22C55E',
+              }}
+            />
+            <Typography
+              variant="caption"
+              sx={{
+                color: '#64748B',
+                fontSize: '0.69rem',
+                fontWeight: 500,
+                lineHeight: 1,
+              }}
+            >
+              {status}
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
 
 function DemoPageContent({ pathname }) {
   const currentPathname = String(pathname ?? '');
@@ -382,12 +607,28 @@ function LastUpdateHeader() {
   );
 }
 
-export default function DashboardLayoutBasic() {
-  const router = useDemoRouter('/dashboard');
+export default function DashboardLayoutBasic({ onLogout }) {
+  const router = useDemoRouter('/dashboard/MonthlyRevenue');
+  const [sidebarUser, setSidebarUser] = React.useState(() => getStoredSidebarUser());
+  const navigation = React.useMemo(
+    () => buildNavigation(sidebarUser.displayName),
+    [sidebarUser.displayName],
+  );
+
+  React.useEffect(() => {
+    setSidebarUser(getStoredSidebarUser());
+
+    const handleStorageChange = () => {
+      setSidebarUser(getStoredSidebarUser());
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   return (
     <AppProvider
-      navigation={NAVIGATION}
+      navigation={navigation}
       router={router}
       theme={demoTheme}
       branding={{
@@ -428,8 +669,40 @@ export default function DashboardLayoutBasic() {
         }}
       />
       <DashboardLayout
+        sidebarExpandedWidth={260}
+        renderPageItem={(item, { mini }) =>
+          item.segment === USER_PROFILE_SEGMENT ? (
+            <SidebarUserItem mini={mini} user={sidebarUser} />
+          ) : (
+            <DashboardSidebarPageItem item={item} />
+          )
+        }
+        sx={{
+          '& .MuiAppBar-root': {
+            boxShadow: 'none',
+          },
+          '& > .MuiBox-root:last-child > .MuiToolbar-root': {
+            position: 'relative',
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 1,
+              boxShadow: '0 4px 14px rgba(15, 23, 42, 0.08)',
+              pointerEvents: 'none',
+            },
+          },
+          '& .MuiDrawer-paper': {
+            backgroundColor: '#FFFFFF',
+            boxShadow: '4px 0 14px rgba(15, 23, 42, 0.08)',
+            borderRight: '1px solid rgba(107, 163, 208, 0.18)',
+          },
+        }}
         slots={{
-          branding: () => null,
+          appTitle: TreeViewAppTitle,
+          sidebarFooter: ({ mini }) => <SidebarLogout mini={mini} onLogout={onLogout} />,
         }}
       >
         <LastUpdateHeader />
