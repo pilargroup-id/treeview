@@ -96,6 +96,37 @@ function ChartInvoice() {
   // Get availableYears di level component
   const availableYears = getAvailableYears();
   
+  // Garis vertikal saat hover tooltip
+  useEffect(() => {
+    const hoverGuideLinePlugin = {
+      id: 'hoverGuideLine',
+      afterDatasetsDraw: (chart, _args, pluginOptions) => {
+        const { ctx, chartArea, tooltip } = chart;
+        const activeElements = tooltip?.getActiveElements?.() || tooltip?._active || [];
+        if (!activeElements.length || !chartArea) return;
+
+        const activePoint = activeElements[0];
+        const x = activePoint?.element?.x;
+        if (typeof x !== 'number') return;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x, chartArea.top);
+        ctx.lineTo(x, chartArea.bottom);
+        ctx.lineWidth = pluginOptions?.lineWidth ?? 1.2;
+        ctx.strokeStyle = pluginOptions?.color ?? 'rgba(107, 163, 208, 0.55)';
+        ctx.setLineDash(pluginOptions?.dashPattern ?? [6, 4]);
+        ctx.stroke();
+        ctx.restore();
+      }
+    };
+
+    ChartJS.register(hoverGuideLinePlugin);
+    return () => {
+      ChartJS.unregister(hoverGuideLinePlugin);
+    };
+  }, []);
+
   // Plugin 
   useEffect(() => {
     const dataLabelsPlugin = {
@@ -762,11 +793,13 @@ function ChartInvoice() {
         borderRadius: '16px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)',
         border: '1px solid #E5E7EB',
-        p: { xs: 3, md: 4 },
+        pt: { xs: 2.5, md: 3 },
+        px: { xs: 2.5, md: 3 },
+        pb: { xs: 1.5, md: 2 },
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        minHeight: { xs: 350, md: 450 },
+        minHeight: { xs: 380, md: 500 },
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         position: 'relative',
         zIndex: 1,
@@ -778,7 +811,7 @@ function ChartInvoice() {
         }
       }}>
         <Box sx={{
-          mb: 3,
+          mb: 2,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -831,7 +864,7 @@ function ChartInvoice() {
           width: '100%',
           flex: 1,
           position: 'relative',
-          minHeight: { xs: 280, md: 350 }
+          minHeight: { xs: 320, md: 420 }
         }}>
           {dateFilterType === 'specific' ? (
             <Bar
@@ -839,6 +872,7 @@ function ChartInvoice() {
               data={invoiceChartData}
               options={invoiceChartOptions}
               style={{
+                height: '100%',
                 opacity: invoiceLoading ? 0.3 : 1,
                 transition: 'opacity 0.3s ease-in-out',
                 pointerEvents: invoiceLoading ? 'none' : 'auto'
@@ -850,6 +884,7 @@ function ChartInvoice() {
               data={invoiceChartData}
               options={invoiceChartOptions}
               style={{
+                height: '100%',
                 opacity: invoiceLoading ? 0.3 : 1,
                 transition: 'opacity 0.3s ease-in-out',
                 pointerEvents: invoiceLoading ? 'none' : 'auto'

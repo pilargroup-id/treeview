@@ -120,6 +120,37 @@ function ChartInvoiceMobile() {
 
   const availableYears = getAvailableYears();
   
+  // Garis vertikal saat hover tooltip
+  useEffect(() => {
+    const hoverGuideLinePlugin = {
+      id: 'hoverGuideLine',
+      afterDatasetsDraw: (chart, _args, pluginOptions) => {
+        const { ctx, chartArea, tooltip } = chart;
+        const activeElements = tooltip?.getActiveElements?.() || tooltip?._active || [];
+        if (!activeElements.length || !chartArea) return;
+
+        const activePoint = activeElements[0];
+        const x = activePoint?.element?.x;
+        if (typeof x !== 'number') return;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x, chartArea.top);
+        ctx.lineTo(x, chartArea.bottom);
+        ctx.lineWidth = pluginOptions?.lineWidth ?? 1.2;
+        ctx.strokeStyle = pluginOptions?.color ?? 'rgba(107, 163, 208, 0.55)';
+        ctx.setLineDash(pluginOptions?.dashPattern ?? [6, 4]);
+        ctx.stroke();
+        ctx.restore();
+      }
+    };
+
+    ChartJS.register(hoverGuideLinePlugin);
+    return () => {
+      ChartJS.unregister(hoverGuideLinePlugin);
+    };
+  }, []);
+
   // Plugin 
   useEffect(() => {
     const dataLabelsPlugin = {
@@ -2617,11 +2648,13 @@ function ChartInvoiceMobile() {
         borderRadius: '12px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)',
         border: '1px solid #E5E7EB',
-        p: 2,
+        pt: 1.75,
+        px: 1.75,
+        pb: 1,
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        minHeight: 300,
+        minHeight: 360,
         position: 'relative',
         zIndex: 1
       }}>
@@ -2675,7 +2708,7 @@ function ChartInvoiceMobile() {
           width: '100%',
           flex: 1,
           position: 'relative',
-          minHeight: 250
+          minHeight: 290
         }}>
           {dateFilterType === 'specific' ? (
             <Bar
@@ -2683,6 +2716,7 @@ function ChartInvoiceMobile() {
               data={invoiceChartData}
               options={invoiceChartOptions}
               style={{
+                height: '100%',
                 opacity: invoiceLoading ? 0.3 : 1,
                 transition: 'opacity 0.3s ease-in-out',
                 pointerEvents: invoiceLoading ? 'none' : 'auto'
@@ -2694,6 +2728,7 @@ function ChartInvoiceMobile() {
               data={invoiceChartData}
               options={invoiceChartOptions}
               style={{
+                height: '100%',
                 opacity: invoiceLoading ? 0.3 : 1,
                 transition: 'opacity 0.3s ease-in-out',
                 pointerEvents: invoiceLoading ? 'none' : 'auto'
