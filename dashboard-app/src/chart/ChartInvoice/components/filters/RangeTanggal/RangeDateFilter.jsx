@@ -14,7 +14,8 @@ function RangeDateFilter({
   invoiceData = [],
   openPickerSignal = 0,
   showTitle = true,
-  showSummary = true
+  showSummary = true,
+  allowReplaceExistingRange = false
 }) {
   return (
     <DateRangePickerWithPresets
@@ -31,6 +32,7 @@ function RangeDateFilter({
       openPickerSignal={openPickerSignal}
       showTitle={showTitle}
       showSummary={showSummary}
+      allowReplaceExistingRange={allowReplaceExistingRange}
     />
   );
 }
