@@ -260,11 +260,24 @@ function createYearFilterChart({
       duration: 800,
       easing: 'easeOutCubic'
     },
+    layout: {
+      padding: {
+        top: 4,
+        right: 8,
+        bottom: 0,
+        left: 4
+      }
+    },
     interaction: {
       mode: 'index',
       intersect: false,
     },
     plugins: {
+      hoverGuideLine: {
+        color: 'rgba(107, 163, 208, 0.55)',
+        lineWidth: 1.2,
+        dashPattern: [6, 4]
+      },
       title: {
         display: false
       },
@@ -273,7 +286,7 @@ function createYearFilterChart({
         position: 'top',
         labels: {
           usePointStyle: true,
-          padding: 16,
+          padding: 12,
           font: { 
             size: 12,
             family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
@@ -283,6 +296,8 @@ function createYearFilterChart({
         }
       },
       tooltip: {
+        mode: 'index',
+        intersect: false,
         backgroundColor: 'rgba(255, 255, 255, 0.98)',
         titleColor: '#212121',
         bodyColor: '#757575',
@@ -345,6 +360,10 @@ function createYearFilterChart({
         title: {
           display: true,
           text: 'Bulan',
+          padding: {
+            top: 6,
+            bottom: 0
+          },
           font: { 
             size: 12, 
             weight: 500,
@@ -357,7 +376,8 @@ function createYearFilterChart({
             size: 11,
             family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
           },
-          color: '#9E9E9E'
+          color: '#9E9E9E',
+          padding: 4
         }
       },
       y: {
@@ -839,11 +859,24 @@ function createSpecificDateChart({
       duration: 800,
       easing: 'easeOutCubic'
     },
+    layout: {
+      padding: {
+        top: 4,
+        right: 8,
+        bottom: 0,
+        left: 4
+      }
+    },
     interaction: {
       mode: 'index',
       intersect: false,
     },
     plugins: {
+      hoverGuideLine: {
+        color: 'rgba(107, 163, 208, 0.55)',
+        lineWidth: 1.2,
+        dashPattern: [6, 4]
+      },
       title: {
         display: false
       },
@@ -852,7 +885,7 @@ function createSpecificDateChart({
         position: 'top',
         labels: {
           usePointStyle: true,
-          padding: 16,
+          padding: 12,
           font: { 
             size: 12,
             family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
@@ -863,6 +896,8 @@ function createSpecificDateChart({
       },
       tooltip: {
         enabled: true,
+        mode: 'index',
+        intersect: false,
         itemSort: function(a, b) {
           // Extract tahun dari label dataset (format: "YYYY - Penjualan" atau "YYYY - Quantity")
           const getYear = (label) => {
@@ -907,6 +942,10 @@ function createSpecificDateChart({
         title: {
           display: true,
           text: 'Tanggal',
+          padding: {
+            top: 6,
+            bottom: 0
+          },
           font: { 
             size: 12, 
             weight: 500,
@@ -921,7 +960,8 @@ function createSpecificDateChart({
           },
           color: '#9E9E9E',
           maxRotation: 45,
-          minRotation: 45
+          minRotation: 45,
+          padding: 4
         }
       },
       y: {
@@ -1249,11 +1289,24 @@ function createRangeChart({
       duration: 800,
       easing: 'easeOutCubic'
     },
+    layout: {
+      padding: {
+        top: 4,
+        right: 8,
+        bottom: 0,
+        left: 4
+      }
+    },
     interaction: {
       mode: 'index',
       intersect: false,
     },
     plugins: {
+      hoverGuideLine: {
+        color: 'rgba(107, 163, 208, 0.55)',
+        lineWidth: 1.2,
+        dashPattern: [6, 4]
+      },
       title: {
         display: false
       },
@@ -1262,7 +1315,7 @@ function createRangeChart({
         position: 'top',
         labels: {
           usePointStyle: true,
-          padding: 16,
+          padding: 12,
           font: { 
             size: 12,
             family: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
@@ -1272,6 +1325,8 @@ function createRangeChart({
         }
       },
       tooltip: {
+        mode: 'index',
+        intersect: false,
         backgroundColor: 'rgba(255, 255, 255, 0.98)',
         titleColor: '#212121',
         bodyColor: '#757575',
@@ -1341,12 +1396,17 @@ function createRangeChart({
         title: {
           display: true,
           text: 'Periode',
+          padding: {
+            top: 6,
+            bottom: 0
+          },
           font: { size: 12, weight: 500 },
           color: '#616161'
         },
         ticks: {
           font: { size: 11 },
-          color: '#757575'
+          color: '#757575',
+          padding: 4
         }
       },
       y: {
