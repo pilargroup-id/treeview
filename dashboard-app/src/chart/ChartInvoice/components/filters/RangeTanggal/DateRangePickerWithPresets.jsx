@@ -32,7 +32,8 @@ export const DateRangePickerWithPresets = ({
   invoiceData = [],
   openPickerSignal = 0,
   showTitle = true,
-  showSummary = true
+  showSummary = true,
+  allowReplaceExistingRange = false
 }) => {
   const { alertState, showWarning, showError, closeAlert } = useAlert();
   const [selectionRange, setSelectionRange] = useState({
@@ -49,6 +50,7 @@ export const DateRangePickerWithPresets = ({
   const lastOpenPickerSignalRef = useRef(openPickerSignal);
   
   const MAX_RANGE_DATES = 1;
+  const isRangeLimitReached = !allowReplaceExistingRange && rangeDates.length >= MAX_RANGE_DATES;
 
   // Fungsi untuk mendapatkan tanggal berdasarkan preset
   const getPresetDates = (preset) => {
@@ -205,7 +207,7 @@ export const DateRangePickerWithPresets = ({
       }
       
       // Cek maksimal 
-      if (MAX_RANGE_DATES === 1 && rangeDates.length >= 1) {
+      if (MAX_RANGE_DATES === 1 && rangeDates.length >= 1 && !allowReplaceExistingRange) {
         showWarning(`Maksimal ${MAX_RANGE_DATES} range yang bisa dipilih. Hapus range yang ada terlebih dahulu.`);
         return;
       }
@@ -408,7 +410,7 @@ export const DateRangePickerWithPresets = ({
           variant="outlined" 
           size="small" 
           onClick={() => setShowPicker(!showPicker)}
-          disabled={rangeDates.length >= MAX_RANGE_DATES}
+          disabled={isRangeLimitReached}
           startIcon={
             <CalendarMonthRoundedIcon 
               sx={{ 
@@ -762,7 +764,7 @@ export const DateRangePickerWithPresets = ({
                       variant="contained" 
                       size="medium" 
                       onClick={handleAddRange}
-                      disabled={rangeDates.length >= MAX_RANGE_DATES}
+                      disabled={isRangeLimitReached}
                       sx={{
                         bgcolor: '#6BA3D0',
                         color: 'white',
@@ -815,7 +817,9 @@ export const DateRangePickerWithPresets = ({
       }}>
         {showPicker 
           ? '* Pilih range tanggal menggunakan kalender, lalu klik "Tambah Range". Tahun akan diambil dari tanggal yang dipilih.'
-          : '* Klik tombol "Pilih Range Tanggal" untuk memilih range tanggal.'}
+          : allowReplaceExistingRange && rangeDates.length > 0
+            ? '* Klik tombol "Pilih Range Tanggal" untuk mengganti range yang sudah ada.'
+            : '* Klik tombol "Pilih Range Tanggal" untuk memilih range tanggal.'}
       </Typography>
 
       {showSummary ? (

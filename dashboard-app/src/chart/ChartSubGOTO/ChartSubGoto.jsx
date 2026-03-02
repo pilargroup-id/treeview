@@ -6,6 +6,7 @@ import { ChartsXAxis } from '@mui/x-charts/ChartsXAxis';
 import { ChartsYAxis } from '@mui/x-charts/ChartsYAxis';
 import { ChartsGrid } from '@mui/x-charts/ChartsGrid';
 import { ChartsTooltip } from '@mui/x-charts/ChartsTooltip';
+import { ChartsAxisHighlight } from '@mui/x-charts/ChartsAxisHighlight';
 import dayjs from 'dayjs';
 import { 
   Box, 
@@ -1653,7 +1654,7 @@ function ChartGosaveContent({
       return {
         xAxisHeight: 52,
         yAxisWidth: 78,
-        margin: { top: 20, right: 30, bottom: 56, left: 30 },
+        margin: { top: 18, right: 28, bottom: 50, left: 28 },
         axisFontSize: 10,
         tickFontSize: 10,
         minChartWidth: 620
@@ -1664,7 +1665,7 @@ function ChartGosaveContent({
       return {
         xAxisHeight: 50,
         yAxisWidth: 74,
-        margin: { top: 18, right: 26, bottom: 54, left: 26 },
+        margin: { top: 16, right: 24, bottom: 48, left: 24 },
         axisFontSize: 10,
         tickFontSize: 10,
         minChartWidth: 680
@@ -1675,7 +1676,7 @@ function ChartGosaveContent({
       return {
         xAxisHeight: 56,
         yAxisWidth: 88,
-        margin: { top: 24, right: 30, bottom: 56, left: 30 },
+        margin: { top: 22, right: 28, bottom: 50, left: 28 },
         axisFontSize: 12,
         tickFontSize: 12,
         minChartWidth: 0
@@ -1686,7 +1687,7 @@ function ChartGosaveContent({
       return {
         xAxisHeight: 52,
         yAxisWidth: 80,
-        margin: { top: 20, right: 24, bottom: 50, left: 24 },
+        margin: { top: 18, right: 22, bottom: 44, left: 22 },
         axisFontSize: 11,
         tickFontSize: 11,
         minChartWidth: 0
@@ -1696,7 +1697,7 @@ function ChartGosaveContent({
     return {
       xAxisHeight: 48,
       yAxisWidth: 70,
-      margin: { top: 16, right: 18, bottom: 46, left: 18 },
+      margin: { top: 14, right: 16, bottom: 40, left: 16 },
       axisFontSize: 11,
       tickFontSize: 11,
       minChartWidth: 0
@@ -2297,6 +2298,7 @@ function ChartGosaveContent({
                     openPickerSignal={openCalendarSignal}
                     showTitle={false}
                     showSummary={false}
+                    allowReplaceExistingRange
                   />
                 ) : (
                   <SpecificDateFilter
@@ -2341,7 +2343,9 @@ function ChartGosaveContent({
           boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)',
           border: '1px solid #E5E7EB',
           mt: { xs: 0.5, md: 1 },
-          p: { xs: 2.25, md: 2.75, xl: 3.25 },
+          pt: { xs: 2.25, md: 2.75, xl: 3.25 },
+          px: { xs: 2.25, md: 2.75, xl: 3.25 },
+          pb: { xs: 1.25, md: 1.5, xl: 1.75 },
           display: 'flex',
           flexDirection: 'column',
           transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -2419,7 +2423,7 @@ function ChartGosaveContent({
               width: '100%',
               overflowX: 'auto',
               overflowY: 'visible',
-              pb: 0.5,
+              pb: 0.25,
               scrollbarGutter: 'stable both-edges'
             }}
           >
@@ -2513,10 +2517,16 @@ function ChartGosaveContent({
                     fontSize: chartLayout.tickFontSize,
                     fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
                     fill: '#757575'
+                  },
+                  '& .MuiChartsAxisHighlight-root': {
+                    stroke: 'rgba(107, 163, 208, 0.65)',
+                    strokeDasharray: '6 4',
+                    strokeWidth: 1.2
                   }
                 }}
               >
                 <ChartsGrid horizontal />
+                <ChartsAxisHighlight x="line" y="none" />
                 {isMultiRangeMode ? (
                   <BarPlot />
                 ) : (
