@@ -1,5 +1,13 @@
 import { processData } from '../ChartMonthly/chartHelpers';
 
+function getAuthHeaders() {
+  const token = localStorage.getItem('authToken');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+}
+
 export const GOTO_SUB_BUSINESS_UNIT_OPTIONS = ['GOTO E-Com', 'GOTO GT', 'Store'];
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -283,7 +291,10 @@ const fetchYearlyInvoiceSalesData = async ({
   invoiceSalesUrl
 }) => {
   const params = buildGotoMonthlyYearQueryParams({ year, subBusinessUnit });
-  const response = await fetch(`${invoiceSalesUrl}?${params.toString()}`);
+  const response = await fetch(`${invoiceSalesUrl}?${params.toString()}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
 
   let result = null;
   try {
@@ -363,7 +374,10 @@ const fetchGotoCompareYearByRange = async ({
     throw new Error(`Range ${rangeIndex + 1} tidak valid untuk compare_year`);
   }
 
-  const response = await fetch(`${invoiceSalesUrl}?${params.toString()}`);
+  const response = await fetch(`${invoiceSalesUrl}?${params.toString()}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
 
   let result = null;
   try {

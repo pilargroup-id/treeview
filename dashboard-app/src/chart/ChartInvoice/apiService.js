@@ -1,5 +1,13 @@
 import { API_URL } from '../../config/api';
 
+function getAuthHeaders() {
+  const token = localStorage.getItem('authToken');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+}
+
 export function buildApiParams({
   businessUnits,
   dateFilterType,
@@ -185,7 +193,10 @@ export async function loadYearSummary(availableYears, setYearSummary, setYearSum
     });
     
     const url = `${API_URL}/financial/invoice-sales?${params.toString()}`;
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
     const result = await response.json();
     
     if (result.status === 'success' && Array.isArray(result.data)) {
@@ -346,7 +357,10 @@ export async function loadInvoiceSales({
           const url = `${API_URL}/financial/invoice-sales?${params.toString()}`;
           console.log(`Request URL for range ${range.start} - ${range.end} (${range.year}):`, url);
           
-          const response = await fetch(url);
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: getAuthHeaders(),
+          });
           
           if (!response.ok) {
             const errorText = await response.text();
@@ -442,7 +456,10 @@ export async function loadInvoiceSales({
       
       let response;
       try {
-        response = await fetch(url);
+        response = await fetch(url, {
+          method: 'GET',
+          headers: getAuthHeaders(),
+        });
       } catch (fetchError) {
         console.error('Fetch error:', fetchError);
         if (fetchError.message && fetchError.message.includes('Failed to fetch')) {

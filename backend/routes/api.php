@@ -13,40 +13,34 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::prefix('financial')->group(function () {
-    Route::get('/monthly-revenue', [FinancialController::class, 'getMonthlyRevenue']);
-    Route::get('/invoice-sales', [FinancialController::class, 'getInvoiceSales']);
-    Route::get('/last-update', [FinancialController::class, 'getLastUpdate']);
-});
-
-Route::prefix('activity-plans')->group(function () {
-    Route::get('/weekly-summary', [ActivityPlanController::class, 'weeklySummary']);
-    Route::get('/monthly-visit', [MonthlyVisitController::class, 'index']);
-    Route::get('/details', [ActivityDetailController::class, 'index']);
-});
-
-
-// // Tree View Auth Routes
+// Public route - login
 Route::prefix('tree-view')->group(function () {
-    // Public routes
     Route::post('/login', [TreeViewAuthController::class, 'login']);
-    
-//     // Protected routes
-//     Route::middleware('tree_view_auth')->group(function () {
-//         Route::get('/user', [TreeViewAuthController::class, 'getCurrentUser']);
-//         Route::get('/permissions', [TreeViewAuthController::class, 'getPermissions']);
-//         Route::post('/logout', [TreeViewAuthController::class, 'logout']);
+});
 
-//         // Pages dengan permission control
-//         // Page A - IT Department only
-//         Route::get('/page-a', [PageController::class, 'pageA'])
-//             ->middleware('check_permission:IT');
+// Semua route di bawah wajib login
+Route::middleware('tree_view_auth')->group(function () {
 
-//         // Page B - All access (no permission restriction)
-//         Route::get('/page-b', [PageController::class, 'pageB']);
+    // Tree View - semua user yang login bisa akses
+    Route::prefix('tree-view')->group(function () {
+        Route::get('/user', [TreeViewAuthController::class, 'getCurrentUser']);
+        Route::get('/permissions', [TreeViewAuthController::class, 'getPermissions']);
+        Route::post('/logout', [TreeViewAuthController::class, 'logout']);
+    });
 
-//         // Page C - Finance Department OR Manager role
-//         Route::get('/page-c', [PageController::class, 'pageC'])
-//             ->middleware('check_permission:Finance|Manager');
-//     });
+    // Financial - semua user yang login bisa akses
+    Route::prefix('financial')->group(function () {
+        Route::get('/monthly-revenue', [FinancialController::class, 'getMonthlyRevenue']);
+        Route::get('/invoice-sales', [FinancialController::class, 'getInvoiceSales']);
+        Route::get('/last-update', [FinancialController::class, 'getLastUpdate']);
+    });
+
+    // Activity Plans - hanya Gosave GT (department) ATAU Manager (job_level)
+    // Board of Director & IT otomatis lolos di dalam CheckPermission
+    Route::prefix('activity-plans')->middleware('check_permission:Gosave GT|Manager')->group(function () {
+        Route::get('/weekly-summary', [ActivityPlanController::class, 'weeklySummary']);
+        Route::get('/monthly-visit', [MonthlyVisitController::class, 'index']);
+        Route::get('/details', [ActivityDetailController::class, 'index']);
+    });
+
 });

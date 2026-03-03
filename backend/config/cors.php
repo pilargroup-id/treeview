@@ -14,7 +14,7 @@ return [
     'allowed_origins' => $allowedOrigins,
     'allowed_origins_patterns' => [],
     'allowed_headers' => ['*'],
-    'exposed_headers' => [],
+    'exposed_headers' => ['Authorization', 'Content-Type'],
     'max_age' => 0,
     'supports_credentials' => env('CORS_SUPPORTS_CREDENTIALS', true),
 ];

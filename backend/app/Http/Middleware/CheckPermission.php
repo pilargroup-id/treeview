@@ -15,18 +15,15 @@ class CheckPermission
         $this->bigQueryService = $bigQueryService;
     }
 
-    /**
-     * Handle an incoming request.
-     * 
-     * Usage:
-     * ->middleware('check_permission:IT') -> Check department IT
-     * ->middleware('check_permission:Manager') -> Check job_level Manager
-     * ->middleware('check_permission:Finance|Manager') -> Check Finance OR Manager
-     * ->middleware('check_permission:IT,Manager') -> Check IT department AND Manager role
-     */
     public function handle(Request $request, Closure $next, ...$params)
     {
-        $userId = session('tree_view_auth_user');
+        // Skip auth check untuk CORS preflight OPTIONS request
+        if ($request->getMethod() === 'OPTIONS') {
+            return $next($request);
+        }
+
+        // Ambil user_id yang sudah di-set oleh TreeViewAuthMiddleware
+        $userId = $request->attributes->get('tree_view_user_id');
 
         if (!$userId) {
             return response()->json([
@@ -35,7 +32,6 @@ class CheckPermission
             ], 401);
         }
 
-        // Get user permissions dari BigQuery
         $result = $this->bigQueryService->getUserPermissions($userId);
 
         if (!$result['success']) {
@@ -49,33 +45,26 @@ class CheckPermission
         $department = $permissions['department'];
         $jobLevel = $permissions['job_level'];
 
-        // Check if user has required permissions
+        // Board of Director & IT -> all access
+        $fullAccessDepartments = ['Board Of Director', 'IT'];
+        if (in_array($department, $fullAccessDepartments)) {
+            $request->attributes->set('user_permissions', $permissions);
+            return $next($request);
+        }
+
+        // Check permission berdasarkan params route
         $hasPermission = false;
 
-        // Parse parameters - misal: "Finance|Manager" atau "IT,Manager"
         foreach ($params as $param) {
-            // Split by pipe (|) untuk OR logic
             $orConditions = explode('|', $param);
-
             foreach ($orConditions as $condition) {
                 $condition = trim($condition);
-
-                // Check if department matches
-                if ($department === $condition) {
-                    $hasPermission = true;
-                    break;
-                }
-
-                // Check if job_level matches
-                if ($jobLevel === $condition) {
+                if ($department === $condition || $jobLevel === $condition) {
                     $hasPermission = true;
                     break;
                 }
             }
-
-            if ($hasPermission) {
-                break;
-            }
+            if ($hasPermission) break;
         }
 
         if (!$hasPermission) {
@@ -89,9 +78,7 @@ class CheckPermission
             ], 403);
         }
 
-        // Store permissions di request untuk digunakan di controller
         $request->attributes->set('user_permissions', $permissions);
-
         return $next($request);
     }
 }

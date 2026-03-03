@@ -1,5 +1,12 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { API_URL } from '../../config/api';
+function getAuthHeaders() {
+  const token = localStorage.getItem('authToken');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+}
 
 //  variable
 const monthNames = [
@@ -350,7 +357,10 @@ const loadInvoiceSalesCompareYearMultiRangeData = async ({
           throw new Error(`Range ${rangeIndex + 1} tidak valid untuk compare_year (${businessUnit})`);
         }
 
-        const response = await fetch(`${invoiceSalesUrl}?${params.toString()}`);
+        const response = await fetch(`${invoiceSalesUrl}?${params.toString()}`, {
+          method: 'GET',
+          headers: getAuthHeaders(),
+        });
 
         let result = null;
         try {
@@ -520,7 +530,10 @@ export const convertRangeMonthsToSelectedMonths = (rangeMonths) => {
 // Load BU from API
 export const loadBusinessUnits = async (businessUnitsUrl = DEFAULT_BUSINESS_UNITS_URL) => {
   try {
-    const response = await fetch(businessUnitsUrl);
+    const response = await fetch(businessUnitsUrl, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    })
     const result = await response.json();
     
     if (result.status === 'success' && Array.isArray(result.data)) {
@@ -559,7 +572,10 @@ export const loadRevenueData = async (
       endDate,
       businessUnits
     );
-    const response = await fetch(`${monthlyRevenueUrl}?${queryParams.toString()}`);
+    const response = await fetch(`${monthlyRevenueUrl}?${queryParams.toString()}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
     const result = await response.json();
 
     if (response.ok && result.status === 'success') {
@@ -607,7 +623,10 @@ export const loadInvoiceSalesRangeData = async (
       businessUnits,
       options?.subBusinessUnits
     );
-    const response = await fetch(`${invoiceSalesUrl}?${queryParams.toString()}`);
+    const response = await fetch(`${invoiceSalesUrl}?${queryParams.toString()}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
     const result = await response.json();
 
     if (response.ok && result.status === 'success') {
@@ -1125,7 +1144,10 @@ export async function loadYearSummary(
       );
       
       try {
-        const response = await fetch(`${monthlyRevenueUrl}?${queryParams.toString()}`);
+        const response = await fetch(`${monthlyRevenueUrl}?${queryParams.toString()}`, {
+          method: 'GET',
+          headers: getAuthHeaders(),
+        });
         
         const result = await response.json();
         

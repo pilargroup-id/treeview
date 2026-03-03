@@ -94,40 +94,48 @@ class BigQueryService
     }
 
     /**
-     * Login user - cari user dan verify password
+     * Login user - dengan validasi department/job_level
      */
     public function loginUser($username, $password)
     {
         try {
-            // Query user dari tree_view_auth
             $query = "SELECT * FROM `{$this->projectId}.ds_netbackup.tree_view_auth` 
-                      WHERE username = '{$username}' AND is_active = true LIMIT 1";
+                    WHERE username = '{$username}' AND is_active = true LIMIT 1";
             
             $result = $this->runQuery($query);
 
             if (!$result['success'] || empty($result['data'])) {
-                return [
-                    'success' => false,
-                    'message' => 'Username atau password salah'
-                ];
+                return ['success' => false, 'message' => 'Username atau password salah'];
             }
 
             $user = $result['data'][0];
 
-            // Verify password
             if (!password_verify($password, $user['password'])) {
-                return [
-                    'success' => false,
-                    'message' => 'Username atau password salah'
-                ];
+                return ['success' => false, 'message' => 'Username atau password salah'];
             }
 
-            // Get employee data dari master_employee
+            // Get employee data
             $empQuery = "SELECT * FROM `{$this->projectId}.ds_netbackup.master_employee` 
-                         WHERE internal_id = {$user['internal_id']} LIMIT 1";
+                        WHERE internal_id = {$user['internal_id']} LIMIT 1";
             
             $empResult = $this->runQuery($empQuery);
             $employee = $empResult['success'] && !empty($empResult['data']) ? $empResult['data'][0] : null;
+
+            $department = $employee['department'] ?? null;
+            $jobLevel = $employee['job_level'] ?? null;
+
+            // Validasi hak akses login
+            $allowedDepartments = ['Board Of Director', 'IT', 'Gosave GT'];
+            $allowedJobLevels = ['Manager'];
+
+            $isAllowed = in_array($department, $allowedDepartments) || in_array($jobLevel, $allowedJobLevels);
+
+            if (!$isAllowed) {
+                return [
+                    'success' => false,
+                    'message' => 'Akun Anda tidak memiliki akses ke aplikasi ini'
+                ];
+            }
 
             return [
                 'success' => true,
@@ -137,21 +145,77 @@ class BigQueryService
                     'full_name' => $user['full_name'],
                     'email' => $employee['email'] ?? null,
                     'internal_id' => $user['internal_id'],
-                    'job_level' => $employee['job_level'] ?? null,
+                    'job_level' => $jobLevel,
                     'job_position' => $employee['job_position'] ?? null,
-                    'department' => $employee['department'] ?? null,
+                    'department' => $department,
                 ]
             ];
 
         } catch (\Exception $e) {
             Log::error('BigQuery Login Error: ' . $e->getMessage());
-            
-            return [
-                'success' => false,
-                'message' => 'Terjadi kesalahan sistem'
-            ];
+            return ['success' => false, 'message' => 'Terjadi kesalahan sistem'];
         }
     }
+
+public function saveToken($userId, $token)
+{
+    try {
+        $expiredAt = now()->addHours(8);
+        
+        // Hapus token lama kalau ada
+        $oldToken = cache()->get("user_token_{$userId}");
+        if ($oldToken) {
+            cache()->forget("auth_token_{$oldToken}");
+        }
+
+        // Simpan token -> userId
+        cache()->put("auth_token_{$token}", $userId, $expiredAt);
+        // Simpan userId -> token (untuk keperluan logout)
+        cache()->put("user_token_{$userId}", $token, $expiredAt);
+
+        $this->updateLastLogin($userId);
+
+        return ['success' => true];
+
+    } catch (\Exception $e) {
+        Log::error('Save Token Error: ' . $e->getMessage());
+        return ['success' => false];
+    }
+}
+
+public function validateToken($token)
+{
+    try {
+        $userId = cache()->get("auth_token_{$token}");
+
+        if (!$userId) {
+            return ['success' => false, 'message' => 'Token invalid atau expired'];
+        }
+
+        return ['success' => true, 'user_id' => $userId];
+
+    } catch (\Exception $e) {
+        Log::error('Validate Token Error: ' . $e->getMessage());
+        return ['success' => false, 'message' => 'Terjadi kesalahan sistem'];
+    }
+}
+
+public function deleteToken($userId)
+{
+    try {
+        $token = cache()->get("user_token_{$userId}");
+        if ($token) {
+            cache()->forget("auth_token_{$token}");
+            cache()->forget("user_token_{$userId}");
+        }
+
+        return ['success' => true];
+
+    } catch (\Exception $e) {
+        Log::error('Delete Token Error: ' . $e->getMessage());
+        return ['success' => false];
+    }
+}
 
     /**
      * Get user with permissions by ID
