@@ -46,13 +46,9 @@ class TreeViewAuthController extends Controller
 
         $user = $loginResult['user'];
 
-        // Update last_login
-        $this->bigQueryService->updateLastLogin($user['id']);
-
-        // Generate token (simple token based on session)
+        // Generate token dan simpan ke BigQuery
         $token = bin2hex(random_bytes(32));
-        session(['tree_view_auth_token' => $token]);
-        session(['tree_view_auth_user' => $user['id']]);
+        $this->bigQueryService->saveToken($user['id'], $token);
 
         return response()->json([
             'success' => true,
@@ -100,7 +96,8 @@ class TreeViewAuthController extends Controller
      */
     public function logout(Request $request)
     {
-        session()->forget(['tree_view_auth_token', 'tree_view_auth_user']);
+        $userId = $request->attributes->get('tree_view_user_id');
+        $this->bigQueryService->deleteToken($userId);
 
         return response()->json([
             'success' => true,
