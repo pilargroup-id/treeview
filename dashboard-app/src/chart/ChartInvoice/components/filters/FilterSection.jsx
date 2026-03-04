@@ -84,11 +84,6 @@ function FilterSection({
         onToggle={onBusinessUnitToggle}
       />
 
-      <DataTypeFilter 
-        dataType={dataType}
-        onChange={onDataTypeChange}
-      />
-
       <Button 
         variant="contained" 
         onClick={onLoadData} 
@@ -96,7 +91,6 @@ function FilterSection({
         size="medium"
         fullWidth
         sx={{ 
-          mt: 'auto',
           bgcolor: '#6BA3D0',
           color: 'white',
           textTransform: 'none',
@@ -125,6 +119,11 @@ function FilterSection({
       >
         {isLoading ? 'Memuat...' : 'Muat Data'}
       </Button>
+
+      <DataTypeFilter 
+        dataType={dataType}
+        onChange={onDataTypeChange}
+      />
     </Card>
   );
 }

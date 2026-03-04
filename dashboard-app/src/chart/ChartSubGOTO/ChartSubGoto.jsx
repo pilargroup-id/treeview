@@ -942,6 +942,47 @@ const FilterSection = React.memo(({
         onChange={onSubBusinessUnitChange}
       />
 
+      <Button 
+        variant="contained" 
+        onClick={onLoadData} 
+        disabled={isLoading} 
+        size="medium"
+        fullWidth
+        aria-label="Load data button"
+        sx={{ 
+          bgcolor: '#6BA3D0',
+          color: 'white',
+          textTransform: 'none',
+          fontSize: '0.8125rem',
+          fontWeight: 500,
+          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+          py: 1.125,
+          borderRadius: '10px',
+          boxShadow: 'none',
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          '&:hover': {
+            bgcolor: '#5A9FD0',
+            boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)'
+          },
+          '&:active': {
+            transform: 'scale(0.98)',
+            transition: 'all 0.1s ease'
+          },
+          '&:disabled': {
+            bgcolor: '#F5F5F5',
+            color: '#BDBDBD',
+            transform: 'none',
+            boxShadow: 'none'
+          },
+          '&:focus-visible': {
+            outline: '2px solid #6BA3D0',
+            outlineOffset: '2px'
+          }
+        }}
+      >
+        {isLoading ? 'Memuat...' : 'Muat Data'}
+      </Button>
+
       <FilterTypeDropdown
         value={filterType}
         onChange={onFilterTypeChange}
@@ -1001,47 +1042,6 @@ const FilterSection = React.memo(({
         </Box>
       ) : null}
 
-      <Button 
-        variant="contained" 
-        onClick={onLoadData} 
-        disabled={isLoading} 
-        size="medium"
-        fullWidth
-        aria-label="Load data button"
-        sx={{ 
-          mt: 'auto',
-          bgcolor: '#6BA3D0',
-          color: 'white',
-          textTransform: 'none',
-          fontSize: '0.8125rem',
-          fontWeight: 500,
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-          py: 1.125,
-          borderRadius: '10px',
-          boxShadow: 'none',
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-          '&:hover': {
-            bgcolor: '#5A9FD0',
-            boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)'
-          },
-          '&:active': {
-            transform: 'scale(0.98)',
-            transition: 'all 0.1s ease'
-          },
-          '&:disabled': {
-            bgcolor: '#F5F5F5',
-            color: '#BDBDBD',
-            transform: 'none',
-            boxShadow: 'none'
-          },
-          '&:focus-visible': {
-            outline: '2px solid #6BA3D0',
-            outlineOffset: '2px'
-          }
-        }}
-      >
-        {isLoading ? 'Memuat...' : 'Muat Data'}
-      </Button>
     </Card>
   );
 });
