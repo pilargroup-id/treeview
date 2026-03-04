@@ -15,7 +15,11 @@ function SpecificDateFilter({
   invoiceData = [],
   onValidatedRangesChange = null,
   initialValidatedRanges = null,
-  openPickerSignal = 0
+  openPickerSignal = 0,
+  showTitle = true,
+  mobileModal = false,
+  mobileFullPage = false,
+  previewPlacement = 'side'
 }) {
   return (
     <SingleDatePickerWithYear
@@ -31,6 +35,10 @@ function SpecificDateFilter({
       onValidatedRangesChange={onValidatedRangesChange}
       initialValidatedRanges={initialValidatedRanges}
       openPickerSignal={openPickerSignal}
+      showTitle={showTitle}
+      mobileModal={mobileModal}
+      mobileFullPage={mobileFullPage}
+      previewPlacement={previewPlacement}
     />
   );
 }

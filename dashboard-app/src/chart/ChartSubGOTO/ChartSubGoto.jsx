@@ -5,7 +5,7 @@ import { BarPlot } from '@mui/x-charts/BarChart';
 import { ChartsXAxis } from '@mui/x-charts/ChartsXAxis';
 import { ChartsYAxis } from '@mui/x-charts/ChartsYAxis';
 import { ChartsGrid } from '@mui/x-charts/ChartsGrid';
-import { ChartsTooltip } from '@mui/x-charts/ChartsTooltip';
+import { ChartsTooltip, ChartsTooltipContainer, useAxesTooltip } from '@mui/x-charts/ChartsTooltip';
 import { ChartsAxisHighlight } from '@mui/x-charts/ChartsAxisHighlight';
 import dayjs from 'dayjs';
 import { 
@@ -29,14 +29,13 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import {
   useChartData,
   getFilteredData,
-  loadYearSummary,
   getAvailableYears,
   monthShortNames
 } from '../ChartMonthly/chartHelpers';
 import BusinessIcon from '@mui/icons-material/Business';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import YearsCardMonthly from '../ChartMonthly/YearsCardMonthly';
+import YearsCardGoto from './yearsCardGoto';
 import RangeDateFilter from '../ChartInvoice/components/filters/RangeTanggal/RangeDateFilter';
 import SpecificDateFilter from '../ChartInvoice/components/filters/TanggalTertentu/SpecificDateFilter';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -45,8 +44,10 @@ import { API_URL } from '../../config/api';
 import { buildRangeChartModel } from '../ChartMonthly/rangeChartModel';
 import {
   GOTO_SUB_BUSINESS_UNIT_OPTIONS,
-  loadGotoMultiRangeCompareYearData,
+  loadGotoMultiRangeInvoiceSalesData,
   loadGotoMonthlyInvoiceSalesData,
+  loadGotoRangeInvoiceSalesData,
+  loadGotoYearSummary,
   normalizeGotoSubBusinessUnit,
   normalizeGotoSubBusinessUnitOptions
 } from './chartHelperGoto';
@@ -79,6 +80,42 @@ const SERIES_COLORS = {
   credit: 'rgb(75, 192, 192)',
   debit: 'rgb(255, 99, 132)',
   total: 'rgb(16, 185, 129)'
+};
+
+const SALES_TOOLTIP_LABELS = {
+  credit: 'Revenue',
+  debit: 'Retur',
+  total: 'Net Revenue'
+};
+
+const DATA_TYPE_OPTIONS = [
+  { value: 'sales', label: 'Penjualan' },
+  { value: 'quantity', label: 'Quantity' },
+  { value: 'order', label: 'Order' }
+];
+
+const DATA_TYPE_CONFIG = {
+  sales: {
+    label: 'Penjualan',
+    dataKey: 'total',
+    axisLabel: 'Nilai Penjualan (M/Jt)',
+    color: SERIES_COLORS.total,
+    comparisonColorKey: 'total'
+  },
+  quantity: {
+    label: 'Quantity',
+    dataKey: 'quantity',
+    axisLabel: 'Quantity',
+    color: 'rgb(59, 130, 246)',
+    comparisonColorKey: 'credit'
+  },
+  order: {
+    label: 'Order',
+    dataKey: 'order',
+    axisLabel: 'Order',
+    color: 'rgb(245, 158, 11)',
+    comparisonColorKey: 'debit'
+  }
 };
 
 const MAX_MONTHLY_COMPARE_YEARS = 2;
@@ -306,6 +343,180 @@ const formatDetailedSeriesValue = (value) => {
   return formatValueInDynamicUnit(value);
 };
 
+const formatCountValue = (value) => {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return '';
+  }
+
+  return numericValue.toLocaleString('id-ID', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  });
+};
+
+const TOOLTIP_YEAR_REGEX = /\((\d{4})\)\s*$/;
+const TOOLTIP_METRIC_LABEL_MAP = {
+  Credit: SALES_TOOLTIP_LABELS.credit,
+  Debit: SALES_TOOLTIP_LABELS.debit,
+  Total: SALES_TOOLTIP_LABELS.total,
+  'Total (Credit - Debit)': SALES_TOOLTIP_LABELS.total
+};
+
+const normalizeTooltipMetricLabel = (label) => {
+  const normalizedLabel = String(label || '').trim();
+  if (!normalizedLabel) {
+    return 'Value';
+  }
+
+  return TOOLTIP_METRIC_LABEL_MAP[normalizedLabel] || normalizedLabel;
+};
+
+const extractTooltipYearAndLabel = (formattedLabel) => {
+  const label = String(formattedLabel || '').trim();
+  const match = label.match(TOOLTIP_YEAR_REGEX);
+  if (!match) {
+    return { year: '-', metricLabel: normalizeTooltipMetricLabel(label) };
+  }
+
+  return {
+    year: match[1],
+    metricLabel: normalizeTooltipMetricLabel(label.replace(TOOLTIP_YEAR_REGEX, '').trim())
+  };
+};
+
+const MonthlyComparisonTooltip = React.memo(({ enabled = false }) => {
+  const tooltipData = useAxesTooltip();
+  if (!enabled || !Array.isArray(tooltipData) || tooltipData.length === 0) {
+    return null;
+  }
+
+  const axisTooltip = tooltipData[0];
+  const groupedByYear = new Map();
+
+  (axisTooltip?.seriesItems || []).forEach((seriesItem) => {
+    if (seriesItem?.formattedValue == null) {
+      return;
+    }
+
+    const { year, metricLabel } = extractTooltipYearAndLabel(seriesItem.formattedLabel);
+    const yearBucket = groupedByYear.get(year) || [];
+    yearBucket.push({
+      key: `${seriesItem.seriesId}-${year}`,
+      color: seriesItem.color,
+      metricLabel,
+      value: seriesItem.formattedValue
+    });
+    groupedByYear.set(year, yearBucket);
+  });
+
+  if (groupedByYear.size === 0) {
+    return null;
+  }
+
+  const orderedYears = Array.from(groupedByYear.keys()).sort((left, right) => Number(left) - Number(right));
+  const isMultiYearTooltip = orderedYears.length > 1;
+
+  return (
+    <ChartsTooltipContainer trigger="axis">
+      <Card
+        sx={{
+          p: 1.25,
+          borderRadius: '10px',
+          border: '1px solid #E5E7EB',
+          boxShadow: '0 8px 24px rgba(15, 23, 42, 0.16)',
+          minWidth: orderedYears.length > 1 ? 260 : 180,
+          bgcolor: '#FFFFFF'
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: '0.75rem',
+            fontWeight: isMultiYearTooltip ? 400 : 700,
+            color: '#111827',
+            mb: 0.75,
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+          }}
+        >
+          {axisTooltip?.axisFormattedValue || axisTooltip?.axisValue || '-'}
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${orderedYears.length}, minmax(0, 1fr))`,
+            gap: 1.25
+          }}
+        >
+          {orderedYears.map((year) => (
+            <Box key={year} sx={{ minWidth: 0 }}>
+              <Typography
+                sx={{
+                  fontSize: '0.7rem',
+                  fontWeight: isMultiYearTooltip ? 400 : 700,
+                  color: '#4B5563',
+                  mb: 0.5,
+                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+                }}
+              >
+                {year}
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
+                {(groupedByYear.get(year) || []).map((item) => (
+                  <Box
+                    key={item.key}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 0.75
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          bgcolor: item.color,
+                          flexShrink: 0
+                        }}
+                      />
+                      <Typography
+                        sx={{
+                          fontSize: '0.69rem',
+                          color: '#6B7280',
+                          lineHeight: 1.2,
+                          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+                        }}
+                      >
+                        {item.metricLabel}
+                      </Typography>
+                    </Box>
+                    <Typography
+                      sx={{
+                        fontSize: '0.7rem',
+                        fontWeight: isMultiYearTooltip ? 400 : 700,
+                        color: '#111827',
+                        lineHeight: 1.2,
+                        whiteSpace: 'nowrap',
+                        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+                      }}
+                    >
+                      {item.value}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      </Card>
+    </ChartsTooltipContainer>
+  );
+});
+
+MonthlyComparisonTooltip.displayName = 'MonthlyComparisonTooltip';
+
 const SubBusinessUnitDropdown = React.memo(({ value, options = [], onChange }) => {
   const formControlRef = useRef(null);
   const [menuWidth, setMenuWidth] = useState(null);
@@ -330,6 +541,7 @@ const SubBusinessUnitDropdown = React.memo(({ value, options = [], onChange }) =
 
   const hasValue = Boolean(value && options.includes(value));
   const dropdownValue = hasValue ? value : (options[0] || '');
+  const subBusinessUnitLabel = 'Goto Channel';
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -339,20 +551,23 @@ const SubBusinessUnitDropdown = React.memo(({ value, options = [], onChange }) =
           sx={{
             fontSize: '0.875rem',
             color: '#757575',
+            lineHeight: 1.2,
+            px: 0.5,
+            bgcolor: '#FFFFFF',
             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
             '&.Mui-focused': {
               color: '#6BA3D0'
             }
           }}
         >
-          Chanel
+          {subBusinessUnitLabel}
         </InputLabel>
         <Select
           labelId="goto-sub-bu-label"
           value={dropdownValue}
           onChange={handleChange}
           onOpen={handleOpen}
-          label="Chanel"
+          label={subBusinessUnitLabel}
           displayEmpty={false}
           MenuProps={{
             PaperProps: {
@@ -569,18 +784,12 @@ const FilterTypeDropdown = React.memo(({ value, onChange }) => {
 
 FilterTypeDropdown.displayName = 'FilterTypeDropdown';
 
-const DATA_TYPE_OPTIONS = ['Penjualan', 'Quantity', 'Order'];
-
-const DataTypeButtons = React.memo(() => {
-  const [selectedDataTypes, setSelectedDataTypes] = useState(['Penjualan']);
-
-  const handleToggleDataType = useCallback((option) => {
-    setSelectedDataTypes((prevSelected) => (
-      prevSelected.includes(option)
-        ? prevSelected.filter((item) => item !== option)
-        : [...prevSelected, option]
-    ));
-  }, []);
+const DataTypeButtons = React.memo(({ value = 'sales', onChange }) => {
+  const handleSelectDataType = useCallback((nextValue) => {
+    if (typeof onChange === 'function') {
+      onChange(nextValue);
+    }
+  }, [onChange]);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -604,13 +813,13 @@ const DataTypeButtons = React.memo(() => {
         }}
       >
         {DATA_TYPE_OPTIONS.map((option) => {
-          const isSelected = selectedDataTypes.includes(option);
+          const isSelected = value === option.value;
 
           return (
             <Button
-              key={option}
+              key={option.value}
               type="button"
-              onClick={() => handleToggleDataType(option)}
+              onClick={() => handleSelectDataType(option.value)}
               aria-pressed={isSelected}
               variant={isSelected ? 'contained' : 'outlined'}
               sx={{
@@ -639,7 +848,7 @@ const DataTypeButtons = React.memo(() => {
                     })
               }}
             >
-              {option}
+              {option.label}
             </Button>
           );
         })}
@@ -657,6 +866,8 @@ const FilterSection = React.memo(({
   onSubBusinessUnitChange,
   filterType,
   onFilterTypeChange,
+  dataType,
+  onDataTypeChange,
   onOpenCalendarModal,
   onLoadData,
   onRefreshData,
@@ -736,7 +947,10 @@ const FilterSection = React.memo(({
         onChange={onFilterTypeChange}
       />
 
-      <DataTypeButtons />
+      <DataTypeButtons
+        value={dataType}
+        onChange={onDataTypeChange}
+      />
 
       {isCalendarFilterType(filterType) ? (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
@@ -1306,6 +1520,7 @@ function ChartGosaveContent({
     return 430;
   }, [isCompactScreen, isFullHdScreen, isLargeDesktopScreen, isMobileScreen, isWuxgaScreen]);
   const [filterType, setFilterType] = useState('monthly');
+  const [dataType, setDataType] = useState('sales');
   const [showCredit, setShowCredit] = useState(true);
   const [showDebit, setShowDebit] = useState(true);
   const [showTotal, setShowTotal] = useState(true);
@@ -1328,6 +1543,8 @@ function ChartGosaveContent({
   const [yearSummaryLoading, setYearSummaryLoading] = useState(false);
   const [monthlySubBusinessUnitData, setMonthlySubBusinessUnitData] = useState({ data: [] });
   const [monthlySubBusinessUnitLoading, setMonthlySubBusinessUnitLoading] = useState(false);
+  const [rangeSubBusinessUnitData, setRangeSubBusinessUnitData] = useState({ data: [] });
+  const [rangeSubBusinessUnitLoading, setRangeSubBusinessUnitLoading] = useState(false);
   const [multiRangeSubBusinessUnitData, setMultiRangeSubBusinessUnitData] = useState({ data: [] });
   const [multiRangeSubBusinessUnitLoading, setMultiRangeSubBusinessUnitLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
@@ -1352,9 +1569,18 @@ function ChartGosaveContent({
   );
 
   const businessUnits = useMemo(() => Array.from(selectedBusinessUnits), [selectedBusinessUnits]);
+  const dataTypeConfig = useMemo(
+    () => DATA_TYPE_CONFIG[dataType] || DATA_TYPE_CONFIG.sales,
+    [dataType]
+  );
+  const isSalesDataType = dataType === 'sales';
   const activeData = useMemo(() => {
     if (filterType === 'monthly') {
       return monthlySubBusinessUnitData;
+    }
+
+    if (filterType === 'range') {
+      return rangeSubBusinessUnitData;
     }
 
     if (filterType === 'multi_range') {
@@ -1362,8 +1588,8 @@ function ChartGosaveContent({
     }
 
     return allData;
-  }, [allData, filterType, monthlySubBusinessUnitData, multiRangeSubBusinessUnitData]);
-  const isDataLoading = loading || monthlySubBusinessUnitLoading || multiRangeSubBusinessUnitLoading;
+  }, [allData, filterType, monthlySubBusinessUnitData, multiRangeSubBusinessUnitData, rangeSubBusinessUnitData]);
+  const isDataLoading = loading || monthlySubBusinessUnitLoading || rangeSubBusinessUnitLoading || multiRangeSubBusinessUnitLoading;
 
   useEffect(() => {
     if (!Array.isArray(normalizedSubBusinessUnitOptions) || normalizedSubBusinessUnitOptions.length === 0) {
@@ -1429,10 +1655,15 @@ function ChartGosaveContent({
   const yearTotals = useMemo(() => {
     return availableYears.reduce((totals, year) => {
       const yearData = yearSummary?.[year] || yearSummary?.[String(year)] || {};
+      const monthlySalesSource = Array.isArray(yearData.monthlySales) ? yearData.monthlySales : [];
       totals[year] = {
         sales: Number(yearData.sales ?? 0),
         quantity: Number(yearData.quantity ?? 0),
-        order: Number(yearData.order ?? 0)
+        order: Number(yearData.order ?? 0),
+        monthlySales: Array.from({ length: 12 }, (_, index) => {
+          const monthlyValue = Number(monthlySalesSource[index]);
+          return Number.isFinite(monthlyValue) ? monthlyValue : 0;
+        })
       };
       return totals;
     }, {});
@@ -1517,12 +1748,14 @@ function ChartGosaveContent({
       if (monthIndex < 0) return;
 
       const monthKey = monthShortNames[monthIndex];
-      const previousValue = aggregatedByMonth.get(monthKey) || { credit: 0, debit: 0, total: 0 };
+      const previousValue = aggregatedByMonth.get(monthKey) || { credit: 0, debit: 0, total: 0, quantity: 0, order: 0 };
 
       aggregatedByMonth.set(monthKey, {
         credit: previousValue.credit + Number(item.credit || 0),
         debit: previousValue.debit + Number(item.debit || 0),
-        total: previousValue.total + Number(item.total || 0)
+        total: previousValue.total + Number(item.total || 0),
+        quantity: previousValue.quantity + Number(item.quantity || 0),
+        order: previousValue.order + Number(item.order || 0)
       });
     });
 
@@ -1530,10 +1763,17 @@ function ChartGosaveContent({
       const monthData = aggregatedByMonth.get(monthShort);
 
       if (monthData) {
-        return { monthShort, credit: monthData.credit, debit: monthData.debit, total: monthData.total };
+        return {
+          monthShort,
+          credit: monthData.credit,
+          debit: monthData.debit,
+          total: monthData.total,
+          quantity: monthData.quantity,
+          order: monthData.order
+        };
       }
 
-      return { monthShort, credit: 0, debit: 0, total: 0 };
+      return { monthShort, credit: 0, debit: 0, total: 0, quantity: 0, order: 0 };
     });
   }, [filteredData.data]);
 
@@ -1558,12 +1798,20 @@ function ChartGosaveContent({
       }
 
       const monthKey = monthShortNames[monthIndex];
-      const previousValue = groupedByYear[resolvedYear]?.get(monthKey) || { credit: 0, debit: 0, total: 0 };
+      const previousValue = groupedByYear[resolvedYear]?.get(monthKey) || {
+        credit: 0,
+        debit: 0,
+        total: 0,
+        quantity: 0,
+        order: 0
+      };
 
       groupedByYear[resolvedYear].set(monthKey, {
         credit: previousValue.credit + Number(item.credit || 0),
         debit: previousValue.debit + Number(item.debit || 0),
-        total: previousValue.total + Number(item.total || 0)
+        total: previousValue.total + Number(item.total || 0),
+        quantity: previousValue.quantity + Number(item.quantity || 0),
+        order: previousValue.order + Number(item.order || 0)
       });
     });
 
@@ -1578,7 +1826,9 @@ function ChartGosaveContent({
             monthShort,
             credit: monthData?.credit || 0,
             debit: monthData?.debit || 0,
-            total: monthData?.total || 0
+            total: monthData?.total || 0,
+            quantity: monthData?.quantity || 0,
+            order: monthData?.order || 0
           };
         })
       };
@@ -1612,8 +1862,8 @@ function ChartGosaveContent({
   const isMonthlyComparisonMode = filterType === 'monthly' && normalizedSelectedYears.length > 1;
   const isMultiRangeMode = filterType === 'multi_range';
 
-  const hasLeftAxisSeries = showCredit || showTotal;
-  const hasRightAxisSeries = showDebit;
+  const hasLeftAxisSeries = isSalesDataType ? (showCredit || showTotal) : true;
+  const hasRightAxisSeries = isSalesDataType ? showDebit : false;
 
   const xAxisLabels = useMemo(() => {
     if (filterType === 'multi_range') {
@@ -1762,28 +2012,48 @@ function ChartGosaveContent({
           curve: 'linear',
           showMark: true
         };
+    const valueFormatter = isSalesDataType ? formatDetailedSeriesValue : formatCountValue;
 
     if (isMonthlyComparisonMode) {
+      if (!isSalesDataType) {
+        monthlyComparisonChartData.forEach((yearSeries, yearIndex) => {
+          const colors = COMPARISON_SERIES_COLORS[yearIndex] || COMPARISON_SERIES_COLORS[0];
+          const colorKey = dataTypeConfig.comparisonColorKey || 'total';
+
+          series.push({
+            id: `${dataTypeConfig.dataKey}SeriesYear${yearSeries.year}`,
+            data: yearSeries.data.map((item) => item[dataTypeConfig.dataKey] || 0),
+            label: `${dataTypeConfig.label} (${yearSeries.year})`,
+            yAxisId: 'leftAxisId',
+            color: colors[colorKey] || dataTypeConfig.color,
+            valueFormatter: (value) => formatSeriesValue(value, valueFormatter),
+            ...baseSeriesConfig
+          });
+        });
+
+        return series;
+      }
+
       const comparisonSeriesGroups = [
         {
           enabled: showCredit,
           idPrefix: 'creditSeriesYear',
           dataKey: 'credit',
-          labelPrefix: 'Credit',
+          labelPrefix: SALES_TOOLTIP_LABELS.credit,
           yAxisId: 'leftAxisId'
         },
         {
           enabled: showDebit,
           idPrefix: 'debitSeriesYear',
           dataKey: 'debit',
-          labelPrefix: 'Debit',
+          labelPrefix: SALES_TOOLTIP_LABELS.debit,
           yAxisId: 'rightAxisId'
         },
         {
           enabled: showTotal,
           idPrefix: 'totalSeriesYear',
           dataKey: 'total',
-          labelPrefix: 'Total',
+          labelPrefix: SALES_TOOLTIP_LABELS.total,
           yAxisId: 'leftAxisId'
         }
       ];
@@ -1802,10 +2072,30 @@ function ChartGosaveContent({
             label: `${group.labelPrefix} (${yearSeries.year})`,
             yAxisId: group.yAxisId,
             color: colors[group.dataKey],
-            valueFormatter: (value) => formatSeriesValue(value, formatDetailedSeriesValue),
+            valueFormatter: (value) => formatSeriesValue(value, valueFormatter),
             ...baseSeriesConfig
           });
         });
+      });
+
+      return series;
+    }
+
+    if (!isSalesDataType) {
+      series.push({
+        id: `${dataTypeConfig.dataKey}Series`,
+        ...(isMultiRangeMode
+          ? { type: 'bar' }
+          : {
+              type: 'line',
+              curve: 'linear',
+              showMark: true
+            }),
+        data: activeSingleSeriesData.map((item) => item[dataTypeConfig.dataKey] || 0),
+        label: dataTypeConfig.label,
+        yAxisId: 'leftAxisId',
+        color: dataTypeConfig.color,
+        valueFormatter: (value) => formatSeriesValue(value, valueFormatter)
       });
 
       return series;
@@ -1815,10 +2105,10 @@ function ChartGosaveContent({
       series.push({
         id: 'creditSeries',
         data: activeSingleSeriesData.map((item) => item.credit),
-        label: 'Credit',
+        label: SALES_TOOLTIP_LABELS.credit,
         yAxisId: 'leftAxisId',
         color: SERIES_COLORS.credit,
-        valueFormatter: (value) => formatSeriesValue(value, formatDetailedSeriesValue),
+        valueFormatter: (value) => formatSeriesValue(value, valueFormatter),
         ...baseSeriesConfig
       });
     }
@@ -1827,10 +2117,10 @@ function ChartGosaveContent({
       series.push({
         id: 'debitSeries',
         data: activeSingleSeriesData.map((item) => item.debit),
-        label: 'Debit',
+        label: SALES_TOOLTIP_LABELS.debit,
         yAxisId: 'rightAxisId',
         color: SERIES_COLORS.debit,
-        valueFormatter: (value) => formatSeriesValue(value, formatDetailedSeriesValue),
+        valueFormatter: (value) => formatSeriesValue(value, valueFormatter),
         ...baseSeriesConfig
       });
     }
@@ -1846,16 +2136,21 @@ function ChartGosaveContent({
               showMark: true
             }),
         data: activeSingleSeriesData.map((item) => item.total),
-        label: 'Total (Credit - Debit)',
+        label: SALES_TOOLTIP_LABELS.total,
         yAxisId: 'leftAxisId',
         color: SERIES_COLORS.total,
-        valueFormatter: (value) => formatSeriesValue(value, formatDetailedSeriesValue)
+        valueFormatter: (value) => formatSeriesValue(value, valueFormatter)
       });
     }
 
     return series;
   }, [
     activeSingleSeriesData,
+    dataTypeConfig.color,
+    dataTypeConfig.comparisonColorKey,
+    dataTypeConfig.dataKey,
+    dataTypeConfig.label,
+    isSalesDataType,
     isMonthlyComparisonMode,
     isMultiRangeMode,
     monthlyComparisonChartData,
@@ -1891,13 +2186,20 @@ function ChartGosaveContent({
           return;
         }
 
-        dynamicStyles[`& .MuiLineElement-series-creditSeriesYear${year}`] = {
-          strokeDasharray: '6 4'
-        };
-        dynamicStyles[`& .MuiLineElement-series-debitSeriesYear${year}`] = {
-          strokeDasharray: '6 4'
-        };
-        dynamicStyles[`& .MuiLineElement-series-totalSeriesYear${year}`] = {
+        if (isSalesDataType) {
+          dynamicStyles[`& .MuiLineElement-series-creditSeriesYear${year}`] = {
+            strokeDasharray: '6 4'
+          };
+          dynamicStyles[`& .MuiLineElement-series-debitSeriesYear${year}`] = {
+            strokeDasharray: '6 4'
+          };
+          dynamicStyles[`& .MuiLineElement-series-totalSeriesYear${year}`] = {
+            strokeDasharray: '6 4'
+          };
+          return;
+        }
+
+        dynamicStyles[`& .MuiLineElement-series-${dataTypeConfig.dataKey}SeriesYear${year}`] = {
           strokeDasharray: '6 4'
         };
       });
@@ -1905,16 +2207,20 @@ function ChartGosaveContent({
       return dynamicStyles;
     }
 
-    if (!isMultiRangeMode) {
+    if (!isMultiRangeMode && isSalesDataType) {
       dynamicStyles['& .MuiLineElement-series-totalSeries'] = {
         strokeDasharray: '7 5'
       };
     }
 
     return dynamicStyles;
-  }, [chartSeries, isMonthlyComparisonMode, isMultiRangeMode, normalizedSelectedYears]);
+  }, [chartSeries, dataTypeConfig.dataKey, isMonthlyComparisonMode, isMultiRangeMode, isSalesDataType, normalizedSelectedYears]);
 
   const leftAxisLabel = useMemo(() => {
+    if (!isSalesDataType) {
+      return dataTypeConfig.axisLabel;
+    }
+
     if (showCredit && showTotal) {
       return 'Credit / Total (M/Jt)';
     }
@@ -1925,9 +2231,10 @@ function ChartGosaveContent({
       return 'Total (M/Jt)';
     }
     return 'Credit (M/Jt)';
-  }, [showCredit, showTotal]);
+  }, [dataTypeConfig.axisLabel, isSalesDataType, showCredit, showTotal]);
 
   const yAxisConfig = useMemo(() => {
+    const valueFormatter = isSalesDataType ? formatValueInDynamicUnit : formatCountValue;
     const axes = [];
 
     if (hasLeftAxisSeries) {
@@ -1935,7 +2242,7 @@ function ChartGosaveContent({
         id: 'leftAxisId',
         label: leftAxisLabel,
         width: chartLayout.yAxisWidth,
-        valueFormatter: (value) => formatValueInDynamicUnit(value)
+        valueFormatter
       });
     }
 
@@ -1945,7 +2252,7 @@ function ChartGosaveContent({
         position: 'right',
         label: 'Debit (M/Jt)',
         width: chartLayout.yAxisWidth,
-        valueFormatter: (value) => formatValueInDynamicUnit(value)
+        valueFormatter
       });
     }
 
@@ -1953,9 +2260,9 @@ function ChartGosaveContent({
       id: 'leftAxisId',
       label: leftAxisLabel,
       width: chartLayout.yAxisWidth,
-      valueFormatter: (value) => formatValueInDynamicUnit(value)
+      valueFormatter
     }];
-  }, [chartLayout.yAxisWidth, hasLeftAxisSeries, hasRightAxisSeries, leftAxisLabel]);
+  }, [chartLayout.yAxisWidth, hasLeftAxisSeries, hasRightAxisSeries, isSalesDataType, leftAxisLabel]);
 
   const toggleBusinessUnit = useCallback((unit) => {
     const newSet = new Set(selectedBusinessUnits);
@@ -2091,15 +2398,14 @@ function ChartGosaveContent({
   }, [filterType, multiRangeDates, rangeDates]);
 
   useEffect(() => {
-    loadYearSummary(
+    loadGotoYearSummary(
       availableYears,
       setYearSummary,
       setYearSummaryLoading,
-      '4000.01.00',
-      selectedBusinessUnits,
-      MONTHLY_REVENUE_URL
+      selectedSubBusinessUnit,
+      INVOICE_SALES_URL
     );
-  }, [availableYears, selectedBusinessUnits]);
+  }, [availableYears, selectedSubBusinessUnit]);
 
   const runLoadRevenue = useCallback(async (showSuccessMessage = true) => {
     if (!validateFilterSelection()) {
@@ -2138,7 +2444,7 @@ function ChartGosaveContent({
 
       const baseCompareYear = Number.isInteger(selectedYear) ? selectedYear : currentYear;
       const compareYears = [baseCompareYear - 1, baseCompareYear];
-      const multiRangeResult = await loadGotoMultiRangeCompareYearData({
+      const multiRangeResult = await loadGotoMultiRangeInvoiceSalesData({
         dateRanges: multiRangeDates,
         compareYears,
         subBusinessUnit: selectedSubBusinessUnit,
@@ -2163,6 +2469,49 @@ function ChartGosaveContent({
       return;
     }
 
+    if (filterType === 'range') {
+      const parsedRange = Array.isArray(rangeDates) && rangeDates.length > 0
+        ? convertRangeFilterValueToApiRange(rangeDates[0])
+        : null;
+
+      if (!parsedRange) {
+        setRangeSubBusinessUnitData({ data: [] });
+        setSnackbar({
+          open: true,
+          message: 'Range tanggal tidak valid',
+          severity: 'warning'
+        });
+        return;
+      }
+
+      setRangeSubBusinessUnitLoading(true);
+
+      const rangeResult = await loadGotoRangeInvoiceSalesData({
+        startDate: parsedRange.startDate,
+        endDate: parsedRange.endDate,
+        subBusinessUnit: selectedSubBusinessUnit,
+        invoiceSalesUrl: INVOICE_SALES_URL,
+        businessUnit: 'Goto'
+      });
+
+      setRangeSubBusinessUnitLoading(false);
+
+      if (rangeResult.success) {
+        setRangeSubBusinessUnitData({ data: rangeResult.data || [] });
+        if (showSuccessMessage) {
+          setSnackbar({ open: true, message: 'Data berhasil dimuat', severity: 'success' });
+        }
+      } else {
+        setRangeSubBusinessUnitData({ data: [] });
+        setSnackbar({
+          open: true,
+          message: rangeResult.error || 'Gagal memuat data range',
+          severity: 'error'
+        });
+      }
+      return;
+    }
+
     const loadOptions = getLoadOptions();
     await loadRevenue((error) => {
       if (error) {
@@ -2178,6 +2527,7 @@ function ChartGosaveContent({
     loadRevenue,
     multiRangeDates,
     normalizedSelectedYears,
+    rangeDates,
     selectedYear,
     selectedSubBusinessUnit,
     validateFilterSelection
@@ -2227,6 +2577,26 @@ function ChartGosaveContent({
           zIndex: 0
         }
       }}>
+        {isMobileScreen ? (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'start',
+              position: 'relative',
+              zIndex: 1
+            }}
+          >
+            <YearsCardGoto
+              availableYears={availableYears}
+              selectedYears={normalizedSelectedYears}
+              yearTotals={yearTotals}
+              onToggleYear={toggleYear}
+              isLoading={yearSummaryLoading}
+              dateFilterType={filterType}
+            />
+          </Box>
+        ) : null}
+
         {/* Baris Atas: Filter Section dan SummaryCard */}
         <Box sx={{
           display: 'flex',
@@ -2250,6 +2620,8 @@ function ChartGosaveContent({
               onSubBusinessUnitChange={setSelectedSubBusinessUnit}
               filterType={filterType}
               onFilterTypeChange={handleFilterTypeChange}
+              dataType={dataType}
+              onDataTypeChange={setDataType}
               onOpenCalendarModal={handleOpenCalendarModal}
               onLoadData={handleLoadData}
               onRefreshData={handleRefreshData}
@@ -2267,11 +2639,11 @@ function ChartGosaveContent({
             height: '100%'
           }}>
             <Box sx={{
-              display: 'flex',
+              display: isMobileScreen ? 'none' : 'flex',
               alignItems: 'start',
               flexShrink: 0
             }}>
-              <YearsCardMonthly
+              <YearsCardGoto
                 availableYears={availableYears}
                 selectedYears={normalizedSelectedYears}
                 yearTotals={yearTotals}
@@ -2403,18 +2775,41 @@ function ChartGosaveContent({
               >
                 Filter Chart
               </Typography>
-              <LegendToggles
-                showCredit={showCredit}
-                showDebit={showDebit}
-                showTotal={showTotal}
-                onToggleCredit={() => setShowCredit(!showCredit)}
-                onToggleDebit={() => setShowDebit(!showDebit)}
-                onToggleTotal={() => setShowTotal(!showTotal)}
-                sx={{
-                  mb: 0,
-                  gap: 0.5
-                }}
-              />
+              {isSalesDataType ? (
+                <LegendToggles
+                  showCredit={showCredit}
+                  showDebit={showDebit}
+                  showTotal={showTotal}
+                  onToggleCredit={() => setShowCredit(!showCredit)}
+                  onToggleDebit={() => setShowDebit(!showDebit)}
+                  onToggleTotal={() => setShowTotal(!showTotal)}
+                  sx={{
+                    mb: 0,
+                    gap: 0.5
+                  }}
+                />
+              ) : (
+                <Box
+                  sx={{
+                    px: 1,
+                    py: 0.4,
+                    borderRadius: '8px',
+                    border: '1px solid #D1D5DB',
+                    bgcolor: '#F9FAFB'
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: '0.75rem',
+                      color: '#374151',
+                      fontWeight: 600,
+                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+                    }}
+                  >
+                    {dataTypeConfig.label}
+                  </Typography>
+                </Box>
+              )}
             </Box>
           </Box>
 
@@ -2538,7 +2933,11 @@ function ChartGosaveContent({
                 <ChartsXAxis axisId="monthAxisId" />
                 {hasLeftAxisSeries ? <ChartsYAxis axisId="leftAxisId" /> : null}
                 {hasRightAxisSeries ? <ChartsYAxis axisId="rightAxisId" /> : null}
-                <ChartsTooltip trigger="axis" />
+                {isMonthlyComparisonMode ? (
+                  <MonthlyComparisonTooltip enabled />
+                ) : (
+                  <ChartsTooltip trigger="axis" />
+                )}
               </ChartContainer>
             ) : null}
 

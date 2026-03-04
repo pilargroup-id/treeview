@@ -8,18 +8,20 @@ function getAuthHeaders() {
   };
 }
 
-export const GOSAVE_SUB_BUSINESS_UNIT_OPTIONS = ['Gosave GT', 'Store', 'Gosave B2B'];
+export const GOSAVE_SUB_BUSINESS_UNIT_OPTIONS = ['Gosave GT', 'Gosave E-Com', 'Gosave B2B'];
+const GOSAVE_BUSINESS_UNIT = 'Gosave';
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const MONTH_SHORT_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+const EMPTY_MONTHLY_SALES = Array.from({ length: 12 }, () => 0);
 
 const SUB_BUSINESS_UNIT_ALIASES = {
   'gosave gt': 'Gosave GT',
   gt: 'Gosave GT',
   'gosave b2b': 'Gosave B2B',
   b2b: 'Gosave B2B',
-  store: 'Store',
-  'gosave store': 'Store',
+  store: 'Gosave E-Com',
+  'gosave store': 'Gosave E-Com',
   'gosave e-com': 'Gosave E-Com',
   'gosave ecom': 'Gosave E-Com',
   'gosave e-commerce': 'Gosave E-Com',
@@ -163,6 +165,8 @@ const resolveInvoiceMetrics = (item) => {
   const parsedDebit = Number.parseFloat(item?.total_debit);
   const parsedDifference = Number.parseFloat(item?.total_difference);
   const parsedSales = Number.parseFloat(item?.total_sales);
+  const parsedQuantity = Number.parseFloat(item?.total_quantity ?? item?.quantity);
+  const parsedOrder = Number.parseFloat(item?.invoice_count ?? item?.order);
 
   const hasCredit = Number.isFinite(parsedCredit);
   const hasDebit = Number.isFinite(parsedDebit);
@@ -184,8 +188,10 @@ const resolveInvoiceMetrics = (item) => {
       : hasSales
         ? parsedSales
         : 0;
+  const quantity = Number.isFinite(parsedQuantity) ? parsedQuantity : 0;
+  const order = Number.isFinite(parsedOrder) ? parsedOrder : 0;
 
-  return { credit, debit, total };
+  return { credit, debit, total, quantity, order };
 };
 
 const aggregateInvoiceRowsByRange = (rows) => {
@@ -195,12 +201,62 @@ const aggregateInvoiceRowsByRange = (rows) => {
     accumulator.credit += metrics.credit;
     accumulator.debit += metrics.debit;
     accumulator.total += metrics.total;
+    accumulator.quantity += metrics.quantity;
+    accumulator.order += metrics.order;
     return accumulator;
   }, {
     credit: 0,
     debit: 0,
-    total: 0
+    total: 0,
+    quantity: 0,
+    order: 0
   });
+};
+
+const extractInvoiceSalesRows = (payload) => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload?.rows)) {
+    return payload.rows;
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+
+  return [];
+};
+
+const resolveRowSubBusinessUnit = (item) => {
+  const candidates = [
+    item?.sub_business_unit,
+    item?.subBusinessUnit,
+    item?.channel,
+    item?.business_unit,
+    item?.businessUnit
+  ];
+
+  const firstNonEmpty = candidates.find((candidate) => String(candidate || '').trim() !== '');
+  return normalizeGosaveSubBusinessUnit(firstNonEmpty || '');
+};
+
+const resolveMonthIndex = (item) => {
+  const parsedMonth = Number.parseInt(item?.month, 10);
+  if (Number.isInteger(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12) {
+    return parsedMonth - 1;
+  }
+
+  const periodValue = String(item?.period || '').trim();
+  if (periodValue.length >= 7) {
+    const parsedPeriodMonth = Number.parseInt(periodValue.slice(5, 7), 10);
+    if (Number.isInteger(parsedPeriodMonth) && parsedPeriodMonth >= 1 && parsedPeriodMonth <= 12) {
+      return parsedPeriodMonth - 1;
+    }
+  }
+
+  return null;
 };
 
 const buildGosaveCompareYearQueryParams = ({
@@ -230,7 +286,8 @@ const buildGosaveCompareYearQueryParams = ({
     params.append('compare_years[]', String(year));
   });
 
-  params.append('sub_business_units[]', normalizeGosaveSubBusinessUnit(subBusinessUnit));
+  params.append('business_units[]', GOSAVE_BUSINESS_UNIT);
+  params.append('channel[]', normalizeGosaveSubBusinessUnit(subBusinessUnit));
   return params;
 };
 
@@ -262,7 +319,8 @@ export const buildGosaveMonthlyYearQueryParams = ({ year, subBusinessUnit }) => 
   const params = new URLSearchParams();
   params.append('date_type', 'year');
   params.append('years[]', String(year));
-  params.append('sub_business_units[]', normalizeGosaveSubBusinessUnit(subBusinessUnit));
+  params.append('business_units[]', GOSAVE_BUSINESS_UNIT);
+  params.append('channel[]', normalizeGosaveSubBusinessUnit(subBusinessUnit));
   return params;
 };
 
@@ -310,7 +368,7 @@ const fetchYearlyInvoiceSalesData = async ({
     throw new Error(extractApiErrorMessage(result, fallbackMessage));
   }
 
-  return normalizeInvoiceRowsForChart(result?.data, year, subBusinessUnit);
+  return normalizeInvoiceRowsForChart(extractInvoiceSalesRows(result?.data), year, subBusinessUnit);
 };
 
 export const loadGosaveMonthlyInvoiceSalesData = async ({
@@ -355,6 +413,133 @@ export const loadGosaveMonthlyInvoiceSalesData = async ({
       success: false,
       error: error?.message || 'Failed to load invoice sales data'
     };
+  }
+};
+
+export const loadGosaveYearSummary = async (
+  availableYears,
+  setYearSummary,
+  setYearSummaryLoading,
+  subBusinessUnit,
+  invoiceSalesUrl
+) => {
+  try {
+    setYearSummaryLoading(true);
+
+    const normalizedYears = normalizeYears(availableYears);
+    if (normalizedYears.length === 0) {
+      setYearSummary({});
+      return;
+    }
+
+    if (!invoiceSalesUrl) {
+      setYearSummary(
+        normalizedYears.reduce((accumulator, year) => {
+          accumulator[year] = { sales: 0, quantity: 0, order: 0, monthlySales: [...EMPTY_MONTHLY_SALES] };
+          return accumulator;
+        }, {})
+      );
+      return;
+    }
+
+    const normalizedSubBusinessUnit = normalizeGosaveSubBusinessUnit(subBusinessUnit);
+    const allowedYears = new Set(normalizedYears);
+
+    const aggregateRowsToSummary = (rows, targetSubBusinessUnit) => {
+      const summary = normalizedYears.reduce((accumulator, year) => {
+        accumulator[year] = { sales: 0, quantity: 0, order: 0, monthlySales: [...EMPTY_MONTHLY_SALES] };
+        return accumulator;
+      }, {});
+
+      rows.forEach((item) => {
+        const parsedYear = Number.parseInt(item?.year, 10);
+        const periodYear = Number.parseInt(String(item?.period || '').slice(0, 4), 10);
+        const resolvedYear = Number.isInteger(parsedYear)
+          ? parsedYear
+          : Number.isInteger(periodYear)
+            ? periodYear
+            : null;
+
+        if (!Number.isInteger(resolvedYear) || !allowedYears.has(resolvedYear)) {
+          return;
+        }
+
+        if (targetSubBusinessUnit) {
+          const normalizedRowSubBusinessUnit = resolveRowSubBusinessUnit(item);
+          if (normalizedRowSubBusinessUnit !== targetSubBusinessUnit) {
+            return;
+          }
+        }
+
+        const metrics = resolveInvoiceMetrics(item);
+        const monthIndex = resolveMonthIndex(item);
+        summary[resolvedYear].sales += metrics.total;
+        summary[resolvedYear].quantity += metrics.quantity;
+        summary[resolvedYear].order += metrics.order;
+        if (monthIndex !== null) {
+          summary[resolvedYear].monthlySales[monthIndex] += metrics.total;
+        }
+      });
+
+      return summary;
+    };
+
+    const requestYearRows = async (includeChannelFilter) => {
+      const params = new URLSearchParams();
+      params.append('date_type', 'year');
+      normalizedYears.forEach((year) => {
+        params.append('years[]', String(year));
+      });
+      params.append('business_units[]', GOSAVE_BUSINESS_UNIT);
+
+      if (includeChannelFilter) {
+        params.append('channel[]', normalizedSubBusinessUnit);
+      }
+
+      const response = await fetch(`${invoiceSalesUrl}?${params.toString()}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      let result = null;
+      try {
+        result = await response.json();
+      } catch (error) {
+        throw new Error('Response API tidak valid untuk ringkasan tahunan Gosave');
+      }
+
+      if (!response.ok || result?.status !== 'success') {
+        throw new Error(extractApiErrorMessage(result, 'Gagal memuat ringkasan tahunan Gosave'));
+      }
+
+      return extractInvoiceSalesRows(result?.data);
+    };
+
+    const primaryRows = await requestYearRows(true);
+    let summary = aggregateRowsToSummary(primaryRows, null);
+
+    const hasAnyValue = normalizedYears.some((year) => {
+      const yearSummary = summary[year] || { sales: 0, quantity: 0, order: 0 };
+      return yearSummary.sales !== 0 || yearSummary.quantity !== 0 || yearSummary.order !== 0;
+    });
+
+    if (!hasAnyValue) {
+      const fallbackRows = await requestYearRows(false);
+      summary = aggregateRowsToSummary(fallbackRows, normalizedSubBusinessUnit);
+    }
+
+    setYearSummary(summary);
+  } catch (error) {
+    console.error('Error loading Gosave year summary:', error);
+    const normalizedYears = normalizeYears(availableYears);
+    setYearSummary(
+      normalizedYears.reduce((accumulator, year) => {
+        accumulator[year] = { sales: 0, quantity: 0, order: 0, monthlySales: [...EMPTY_MONTHLY_SALES] };
+        return accumulator;
+      }, {})
+    );
+  } finally {
+    setYearSummaryLoading(false);
   }
 };
 

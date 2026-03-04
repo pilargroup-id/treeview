@@ -22,10 +22,12 @@ import {
   IconButton,
   Snackbar,
   Alert,
+  Drawer,
   useMediaQuery
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import CloseIcon from '@mui/icons-material/Close';
 import {
   useChartData,
   getFilteredData,
@@ -38,8 +40,11 @@ import BusinessIcon from '@mui/icons-material/Business';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import YearsCardMonthly from './YearsCardMonthly';
+import SummaryCardMonthlyMobile from './SummaryCardMonthlyMobile';
 import RangeDateFilter from '../ChartInvoice/components/filters/RangeTanggal/RangeDateFilter';
 import SpecificDateFilter from '../ChartInvoice/components/filters/TanggalTertentu/SpecificDateFilter';
+import RangeDateMobile from '../../mobile/templateMobile/RangeDateMobile';
+import MultiRangeMobile from '../../mobile/templateMobile/MultiRangeMobile';
 import { useQuery, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ErrorBoundary from './ErrorBoundary';
 import { API_URL } from '../../config/api';
@@ -348,9 +353,15 @@ const FilterTypeDropdown = React.memo(({ value, onChange }) => {
           label="Tipe Filter"
           displayEmpty={false}
           MenuProps={{
+            disablePortal: false,
+            keepMounted: true,
+            sx: {
+              zIndex: (theme) => theme.zIndex.modal + 10
+            },
             PaperProps: {
               sx: {
                 mt: 1,
+                zIndex: (theme) => theme.zIndex.modal + 11,
                 width: menuWidth ? `${menuWidth}px !important` : 'auto',
                 minWidth: menuWidth ? `${menuWidth}px !important` : '0 !important',
                 maxWidth: menuWidth ? `${menuWidth}px !important` : 'none',
@@ -515,31 +526,37 @@ const FilterSection = React.memo(({
   onBusinessUnitToggle,
   onLoadData,
   onRefreshData,
-  isLoading
+  isLoading,
+  isMobile = false,
+  showLoadButton = true
 }) => {
+  const ContainerComponent = isMobile ? Box : Card;
+
   return (
-    <Card sx={{ 
-      bgcolor: '#FFFFFF', 
-      borderRadius: '14px', 
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
-      border: '1px solid #E5E7EB',
-      p: { xs: 2.25, md: 2.5 },
+    <ContainerComponent sx={{
+      bgcolor: isMobile ? 'transparent' : '#FFFFFF',
+      borderRadius: isMobile ? 0 : '14px',
+      boxShadow: isMobile ? 'none' : '0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
+      border: isMobile ? 'none' : '1px solid #E5E7EB',
+      p: isMobile ? 0 : { xs: 2.25, md: 2.5 },
       display: 'flex',
       flexDirection: 'column',
-      gap: 2,
+      gap: isMobile ? 1.5 : 2,
       height: '100%',
       transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
       fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
       position: 'relative',
       zIndex: 1,
-      '&:hover': {
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06)',
-        borderColor: '#D1D5DB',
-        transform: 'translateY(-1px)'
-      }
+      '&:hover': isMobile
+        ? undefined
+        : {
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06)',
+            borderColor: '#D1D5DB',
+            transform: 'translateY(-1px)'
+          }
     }}>
-      <Box sx={{ 
-        display: 'flex', 
+      <Box sx={{
+        display: isMobile ? 'none' : 'flex',
         alignItems: 'center', 
         justifyContent: 'space-between',
         mb: 0
@@ -640,48 +657,50 @@ const FilterSection = React.memo(({
         </Box>
       ) : null}
 
-      <Button 
-        variant="contained" 
-        onClick={onLoadData} 
-        disabled={isLoading} 
-        size="medium"
-        fullWidth
-        aria-label="Load data button"
-        sx={{ 
-          mt: 'auto',
-          bgcolor: '#6BA3D0',
-          color: 'white',
-          textTransform: 'none',
-          fontSize: '0.8125rem',
-          fontWeight: 500,
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-          py: 1.125,
-          borderRadius: '10px',
-          boxShadow: 'none',
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-          '&:hover': {
-            bgcolor: '#5A9FD0',
-            boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)'
-          },
-          '&:active': {
-            transform: 'scale(0.98)',
-            transition: 'all 0.1s ease'
-          },
-          '&:disabled': {
-            bgcolor: '#F5F5F5',
-            color: '#BDBDBD',
-            transform: 'none',
-            boxShadow: 'none'
-          },
-          '&:focus-visible': {
-            outline: '2px solid #6BA3D0',
-            outlineOffset: '2px'
-          }
-        }}
-      >
-        {isLoading ? 'Memuat...' : 'Muat Data'}
-      </Button>
-    </Card>
+      {showLoadButton ? (
+        <Button 
+          variant="contained" 
+          onClick={onLoadData} 
+          disabled={isLoading} 
+          size="medium"
+          fullWidth
+          aria-label="Load data button"
+          sx={{ 
+            mt: isMobile ? 0.5 : 'auto',
+            bgcolor: '#6BA3D0',
+            color: 'white',
+            textTransform: 'none',
+            fontSize: '0.8125rem',
+            fontWeight: 500,
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+            py: 1.125,
+            borderRadius: '10px',
+            boxShadow: 'none',
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            '&:hover': {
+              bgcolor: '#5A9FD0',
+              boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)'
+            },
+            '&:active': {
+              transform: 'scale(0.98)',
+              transition: 'all 0.1s ease'
+            },
+            '&:disabled': {
+              bgcolor: '#F5F5F5',
+              color: '#BDBDBD',
+              transform: 'none',
+              boxShadow: 'none'
+            },
+            '&:focus-visible': {
+              outline: '2px solid #6BA3D0',
+              outlineOffset: '2px'
+            }
+          }}
+        >
+          {isLoading ? 'Memuat...' : 'Muat Data'}
+        </Button>
+      ) : null}
+    </ContainerComponent>
   );
 });
 
@@ -859,7 +878,9 @@ const SummaryCardCompact = React.memo(({
   dateRangeLabel = 'Belum dipilih',
   businessUnits, 
   invoiceData,
-  onClearRangeData
+  onClearRangeData,
+  onLoadData,
+  isLoading = false
 }) => {
   const getBusinessUnitText = () => {
     if (businessUnits && businessUnits.length > 0) {
@@ -880,6 +901,7 @@ const SummaryCardCompact = React.memo(({
     dateRangeLabel !== 'Belum dipilih' &&
     typeof onClearRangeData === 'function'
   );
+  const canLoadData = typeof onLoadData === 'function';
 
   const multiRangeSummaryPoints = useMemo(() => {
     if (filterType !== 'multi_range') {
@@ -932,32 +954,87 @@ const SummaryCardCompact = React.memo(({
 
   return (
     <Card sx={{
-      bgcolor: '#FFFFFF',
+      bgcolor: 'rgba(255, 255, 255, 0.58)',
       borderRadius: '14px',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
+      boxShadow: '0 2px 8px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.05)',
       border: '1px solid #E5E7EB',
       p: { xs: 2.25, md: 2.5 },
       width: '100%',
       fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
       position: 'relative',
       zIndex: 1,
+      backdropFilter: 'blur(4px)',
+      WebkitBackdropFilter: 'blur(4px)',
       transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
       '&:hover': {
         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06)',
-        borderColor: '#D1D5DB'
+        borderColor: '#D1D5DB',
+        bgcolor: 'rgba(255, 255, 255, 0.66)'
       }
     }}>
-      <Typography sx={{
-        fontSize: { xs: '0.9375rem', md: '1rem' },
-        fontWeight: 600,
-        color: '#212121',
-        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-        letterSpacing: '-0.01em',
-        lineHeight: 1.4,
-        mb: 0.5
-      }}>
-        Ringkasan Data
-      </Typography>
+      <Box
+        sx={{
+          mb: 1.25,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 1,
+          flexWrap: 'wrap'
+        }}
+      >
+        <Typography sx={{
+          fontSize: { xs: '0.9375rem', md: '1rem' },
+          fontWeight: 600,
+          color: '#212121',
+          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+          letterSpacing: '-0.01em',
+          lineHeight: 1.4
+        }}>
+          Ringkasan Data
+        </Typography>
+        {canLoadData ? (
+          <Button
+            variant="contained"
+            onClick={onLoadData}
+            disabled={isLoading}
+            size="small"
+            aria-label="Load data button"
+            sx={{
+              bgcolor: '#6BA3D0',
+              color: 'white',
+              textTransform: 'none',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+              py: 0.625,
+              px: 1.5,
+              borderRadius: '9px',
+              boxShadow: 'none',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              '&:hover': {
+                bgcolor: '#5A9FD0',
+                boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)'
+              },
+              '&:active': {
+                transform: 'scale(0.98)',
+                transition: 'all 0.1s ease'
+              },
+              '&:disabled': {
+                bgcolor: '#F5F5F5',
+                color: '#BDBDBD',
+                transform: 'none',
+                boxShadow: 'none'
+              },
+              '&:focus-visible': {
+                outline: '2px solid #6BA3D0',
+                outlineOffset: '2px'
+              }
+            }}
+          >
+            {isLoading ? 'Memuat...' : 'Muat Data'}
+          </Button>
+        ) : null}
+      </Box>
 
       <Box sx={{
         display: { xs: 'flex', sm: 'grid' },
@@ -1205,6 +1282,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
   const [rangeDates, setRangeDates] = useState([]);
   const [multiRangeDates, setMultiRangeDates] = useState([]);
   const [openCalendarSignal, setOpenCalendarSignal] = useState(0);
+  const [mobileFilterDrawerOpen, setMobileFilterDrawerOpen] = useState(false);
 
   const availableYears = useMemo(() => getAvailableYears(), []);
   const summaryDateRangeLabel = useMemo(() => {
@@ -1232,10 +1310,15 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
   const yearTotals = useMemo(() => {
     return availableYears.reduce((totals, year) => {
       const yearData = yearSummary?.[year] || yearSummary?.[String(year)] || {};
+      const monthlySalesSource = Array.isArray(yearData.monthlySales) ? yearData.monthlySales : [];
       totals[year] = {
         sales: Number(yearData.sales ?? 0),
         quantity: Number(yearData.quantity ?? 0),
-        order: Number(yearData.order ?? 0)
+        order: Number(yearData.order ?? 0),
+        monthlySales: Array.from({ length: 12 }, (_, index) => {
+          const monthlyValue = Number(monthlySalesSource[index]);
+          return Number.isFinite(monthlyValue) ? monthlyValue : 0;
+        })
       };
       return totals;
     }, {});
@@ -1904,6 +1987,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
   }, [currentYear, filterType, multiRangeDates, normalizedSelectedYears, rangeDates, selectedYear]);
 
   const handleOpenCalendarModal = useCallback(() => {
+    setMobileFilterDrawerOpen(false);
     setOpenCalendarSignal((prev) => prev + 1);
   }, []);
 
@@ -2004,6 +2088,26 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
           zIndex: 0
         }
       }}>
+        {isMobileScreen ? (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'start',
+              position: 'relative',
+              zIndex: 1
+            }}
+          >
+            <YearsCardMonthly
+              availableYears={availableYears}
+              selectedYears={normalizedSelectedYears}
+              yearTotals={yearTotals}
+              onToggleYear={toggleYear}
+              isLoading={yearSummaryLoading}
+              dateFilterType={filterType}
+            />
+          </Box>
+        ) : null}
+
         {/* Baris Atas: Filter Section dan SummaryCard */}
         <Box sx={{
           display: 'flex',
@@ -2018,7 +2122,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
             width: { xs: '100%', lg: 300, xl: 320 },
             minWidth: { xs: '100%', lg: 300, xl: 320 },
             flexShrink: 0,
-            display: 'flex',
+            display: isMobileScreen ? 'none' : 'flex',
             flexDirection: 'column'
           }}>
             <FilterSection
@@ -2031,6 +2135,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
               onLoadData={handleLoadData}
               onRefreshData={handleRefreshData}
               isLoading={loading}
+              showLoadButton={false}
             />
           </Box>
 
@@ -2044,7 +2149,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
             height: '100%'
           }}>
             <Box sx={{
-              display: 'flex',
+              display: isMobileScreen ? 'none' : 'flex',
               alignItems: 'start',
               flexShrink: 0
             }}>
@@ -2058,9 +2163,21 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
               />
             </Box>
 
-            {isCalendarFilterType(filterType) ? (
-              <Box sx={{ display: 'none' }}>
-                {filterType === 'range' ? (
+            {filterType === 'range' ? (
+              isMobileScreen ? (
+                <RangeDateMobile
+                  rangeDates={rangeDates}
+                  onAddRange={handleAddRangeDate}
+                  onRemoveRange={handleRemoveRangeDate}
+                  availableYears={availableYears}
+                  selectedYears={normalizedSelectedYears}
+                  businessUnits={businessUnits}
+                  onBusinessUnitToggle={toggleBusinessUnit}
+                  invoiceData={allData.data || []}
+                  openPickerSignal={openCalendarSignal}
+                />
+              ) : (
+                <Box sx={{ display: 'none' }}>
                   <RangeDateFilter
                     rangeDates={rangeDates}
                     onAddRange={handleAddRangeDate}
@@ -2077,7 +2194,24 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
                     showSummary={false}
                     allowReplaceExistingRange
                   />
-                ) : (
+                </Box>
+              )
+            ) : null}
+
+            {filterType === 'multi_range' ? (
+              isMobileScreen ? (
+                <MultiRangeMobile
+                  availableYears={availableYears}
+                  businessUnits={businessUnits}
+                  onBusinessUnitToggle={toggleBusinessUnit}
+                  invoiceData={allData.data || []}
+                  onValidatedRangesChange={handleValidatedMultiRangesChange}
+                  onApplyFilter={handleLoadData}
+                  initialValidatedRanges={multiRangeDates}
+                  openPickerSignal={openCalendarSignal}
+                />
+              ) : (
+                <Box sx={{ display: 'none' }}>
                   <SpecificDateFilter
                     specificDates={[]}
                     onAddDate={() => {}}
@@ -2092,8 +2226,8 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
                     initialValidatedRanges={multiRangeDates}
                     openPickerSignal={openCalendarSignal}
                   />
-                )}
-              </Box>
+                </Box>
+              )
             ) : null}
 
             <Box sx={{
@@ -2101,13 +2235,29 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
               alignItems: 'start',
               flexShrink: 0
             }}>
-              <SummaryCardCompact
-                filterType={filterType}
-                dateRangeLabel={summaryDateRangeLabel}
-                businessUnits={businessUnits}
-                invoiceData={allData.data || []}
-                onClearRangeData={handleClearRangeData}
-              />
+              {isMobileScreen ? (
+                <SummaryCardMonthlyMobile
+                  filterType={filterType}
+                  filterTypeLabel={getFilterTypeLabel(filterType)}
+                  dateRangeLabel={summaryDateRangeLabel}
+                  businessUnits={businessUnits}
+                  invoiceData={allData.data || []}
+                  onClearRangeData={handleClearRangeData}
+                  onOpenFilter={() => setMobileFilterDrawerOpen(true)}
+                  onLoadData={handleLoadData}
+                  isLoading={loading}
+                />
+              ) : (
+                <SummaryCardCompact
+                  filterType={filterType}
+                  dateRangeLabel={summaryDateRangeLabel}
+                  businessUnits={businessUnits}
+                  invoiceData={allData.data || []}
+                  onClearRangeData={handleClearRangeData}
+                  onLoadData={handleLoadData}
+                  isLoading={loading}
+                />
+              )}
             </Box>
           </Box>
         </Box>
@@ -2354,6 +2504,90 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
             </Box>
           </Box>
         </Card>
+
+        {isMobileScreen ? (
+          <Drawer
+            anchor="bottom"
+            open={mobileFilterDrawerOpen}
+            onClose={() => setMobileFilterDrawerOpen(false)}
+            ModalProps={{
+              keepMounted: true
+            }}
+            BackdropProps={{
+              sx: {
+                backgroundColor: 'rgba(15, 23, 42, 0.52)',
+                backdropFilter: 'blur(1.5px)'
+              }
+            }}
+            sx={{
+              zIndex: (theme) => theme.zIndex.modal + 2
+            }}
+            PaperProps={{
+              sx: {
+                borderTopLeftRadius: '18px',
+                borderTopRightRadius: '18px',
+                height: 'auto',
+                maxHeight: 'calc(100dvh - 84px)',
+                pb: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+                overflow: 'hidden',
+                zIndex: (theme) => theme.zIndex.modal + 3
+              }
+            }}
+          >
+            <Box
+              sx={{
+                p: 2,
+                pb: 1,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                position: 'sticky',
+                top: 0,
+                zIndex: 1,
+                bgcolor: '#FFFFFF',
+                borderBottom: '1px solid #F1F5F9'
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: '1.125rem',
+                  fontWeight: 600,
+                  color: '#212121',
+                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+                }}
+              >
+                Filter
+              </Typography>
+              <IconButton onClick={() => setMobileFilterDrawerOpen(false)} size="small" aria-label="Close filter drawer">
+                <CloseIcon />
+              </IconButton>
+            </Box>
+            <Box
+              sx={{
+                px: 2,
+                pt: 1.5,
+                pb: 'calc(env(safe-area-inset-bottom, 0px) + 6px)',
+                overflow: 'auto',
+                maxHeight: 'calc(100dvh - 240px)',
+                WebkitOverflowScrolling: 'touch'
+              }}
+            >
+              <FilterSection
+                filterType={filterType}
+                onFilterTypeChange={handleFilterTypeChange}
+                onOpenCalendarModal={handleOpenCalendarModal}
+                availableBusinessUnits={availableBusinessUnits}
+                businessUnits={businessUnits}
+                onBusinessUnitToggle={toggleBusinessUnit}
+                onLoadData={handleLoadData}
+                onRefreshData={handleRefreshData}
+                isLoading={loading}
+                isMobile
+                showLoadButton={false}
+              />
+            </Box>
+          </Drawer>
+        ) : null}
 
         {/* Snackbar for notifications */}
         <Snackbar

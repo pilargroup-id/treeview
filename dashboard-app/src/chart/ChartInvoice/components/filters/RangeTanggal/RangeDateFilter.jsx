@@ -15,7 +15,12 @@ function RangeDateFilter({
   openPickerSignal = 0,
   showTitle = true,
   showSummary = true,
-  allowReplaceExistingRange = false
+  allowReplaceExistingRange = false,
+  calendarMonths = 2,
+  calendarDirection = 'horizontal',
+  hidePresetPanel = false,
+  mobileModal = false,
+  mobileFullPage = false
 }) {
   return (
     <DateRangePickerWithPresets
@@ -33,6 +38,11 @@ function RangeDateFilter({
       showTitle={showTitle}
       showSummary={showSummary}
       allowReplaceExistingRange={allowReplaceExistingRange}
+      calendarMonths={calendarMonths}
+      calendarDirection={calendarDirection}
+      hidePresetPanel={hidePresetPanel}
+      mobileModal={mobileModal}
+      mobileFullPage={mobileFullPage}
     />
   );
 }

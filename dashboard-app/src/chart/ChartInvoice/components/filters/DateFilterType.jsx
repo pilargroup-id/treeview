@@ -48,9 +48,15 @@ function DateFilterType({ value, onChange }) {
           label="Tipe Filter"
           displayEmpty={false}
           MenuProps={{
+            disablePortal: false,
+            keepMounted: true,
+            sx: {
+              zIndex: (theme) => theme.zIndex.modal + 10
+            },
             PaperProps: {
               sx: {
                 mt: 1,
+                zIndex: (theme) => theme.zIndex.modal + 11,
                 width: menuWidth ? `${menuWidth}px !important` : 'auto',
                 minWidth: menuWidth ? `${menuWidth}px !important` : '0 !important',
                 maxWidth: menuWidth ? `${menuWidth}px !important` : 'none',

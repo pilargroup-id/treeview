@@ -9,9 +9,11 @@ function getAuthHeaders() {
 }
 
 export const GOTO_SUB_BUSINESS_UNIT_OPTIONS = ['GOTO E-Com', 'GOTO GT', 'Store'];
+const GOTO_BUSINESS_UNIT = 'Goto';
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const MONTH_SHORT_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+const EMPTY_MONTHLY_SALES = Array.from({ length: 12 }, () => 0);
 
 const SUB_BUSINESS_UNIT_ALIASES = {
   'goto e-com': 'GOTO E-Com',
@@ -161,6 +163,8 @@ const resolveInvoiceMetrics = (item) => {
   const parsedDebit = Number.parseFloat(item?.total_debit);
   const parsedDifference = Number.parseFloat(item?.total_difference);
   const parsedSales = Number.parseFloat(item?.total_sales);
+  const parsedQuantity = Number.parseFloat(item?.total_quantity ?? item?.quantity);
+  const parsedOrder = Number.parseFloat(item?.invoice_count ?? item?.order);
 
   const hasCredit = Number.isFinite(parsedCredit);
   const hasDebit = Number.isFinite(parsedDebit);
@@ -182,8 +186,10 @@ const resolveInvoiceMetrics = (item) => {
       : hasSales
         ? parsedSales
         : 0;
+  const quantity = Number.isFinite(parsedQuantity) ? parsedQuantity : 0;
+  const order = Number.isFinite(parsedOrder) ? parsedOrder : 0;
 
-  return { credit, debit, total };
+  return { credit, debit, total, quantity, order };
 };
 
 const aggregateInvoiceRowsByRange = (rows) => {
@@ -193,19 +199,40 @@ const aggregateInvoiceRowsByRange = (rows) => {
     accumulator.credit += metrics.credit;
     accumulator.debit += metrics.debit;
     accumulator.total += metrics.total;
+    accumulator.quantity += metrics.quantity;
+    accumulator.order += metrics.order;
     return accumulator;
   }, {
     credit: 0,
     debit: 0,
-    total: 0
+    total: 0,
+    quantity: 0,
+    order: 0
   });
+};
+
+const extractInvoiceSalesRows = (payload) => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload?.rows)) {
+    return payload.rows;
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+
+  return [];
 };
 
 const buildGotoCompareYearQueryParams = ({
   startDate,
   endDate,
   compareYears,
-  subBusinessUnit
+  subBusinessUnit,
+  businessUnit = 'Goto'
 }) => {
   const compareStartMonthDay = toMonthDay(startDate);
   const compareEndMonthDay = toMonthDay(endDate);
@@ -228,7 +255,8 @@ const buildGotoCompareYearQueryParams = ({
     params.append('compare_years[]', String(year));
   });
 
-  params.append('sub_business_units[]', normalizeGotoSubBusinessUnit(subBusinessUnit));
+  params.append('business_units[]', String(businessUnit || 'Goto'));
+  params.append('channel[]', resolveGotoChannelForApi(subBusinessUnit));
   return params;
 };
 
@@ -240,6 +268,10 @@ export const normalizeGotoSubBusinessUnit = (subBusinessUnit) => {
 
   const aliasKey = rawValue.toLowerCase();
   return SUB_BUSINESS_UNIT_ALIASES[aliasKey] || rawValue;
+};
+
+const resolveGotoChannelForApi = (subBusinessUnit) => {
+  return normalizeGotoSubBusinessUnit(subBusinessUnit);
 };
 
 export const normalizeGotoSubBusinessUnitOptions = (options) => {
@@ -256,11 +288,37 @@ export const normalizeGotoSubBusinessUnitOptions = (options) => {
   return [...GOTO_SUB_BUSINESS_UNIT_OPTIONS];
 };
 
-export const buildGotoMonthlyYearQueryParams = ({ year, subBusinessUnit }) => {
+export const buildGotoMonthlyYearQueryParams = ({
+  year,
+  subBusinessUnit,
+  businessUnit = 'Goto'
+}) => {
   const params = new URLSearchParams();
+  params.append('business_units[]', String(businessUnit || 'Goto'));
+  params.append('channel[]', resolveGotoChannelForApi(subBusinessUnit));
   params.append('date_type', 'year');
   params.append('years[]', String(year));
-  params.append('sub_business_units[]', normalizeGotoSubBusinessUnit(subBusinessUnit));
+  return params;
+};
+
+const buildGotoRangeQueryParams = ({
+  startDate,
+  endDate,
+  subBusinessUnit,
+  businessUnit = 'Goto'
+}) => {
+  const start = parseIsoDate(startDate);
+  const end = parseIsoDate(endDate);
+  if (!start || !end || end.date < start.date) {
+    return null;
+  }
+
+  const params = new URLSearchParams();
+  params.append('business_units[]', String(businessUnit || 'Goto'));
+  params.append('channel[]', resolveGotoChannelForApi(subBusinessUnit));
+  params.append('date_type', 'range');
+  params.append('start_date', start.iso);
+  params.append('end_date', end.iso);
   return params;
 };
 
@@ -283,6 +341,114 @@ const normalizeInvoiceRowsForChart = (rows, fallbackYear, subBusinessUnit) => {
       mainBusinessUnit: 'Goto'
     };
   });
+};
+
+const resolveRowSubBusinessUnit = (item) => {
+  const candidates = [
+    item?.sub_business_unit,
+    item?.subBusinessUnit,
+    item?.channel,
+    item?.business_unit,
+    item?.businessUnit
+  ];
+
+  const firstNonEmpty = candidates.find((candidate) => String(candidate || '').trim() !== '');
+  return normalizeGotoSubBusinessUnit(firstNonEmpty || '');
+};
+
+const resolveMonthIndex = (item) => {
+  const parsedMonth = Number.parseInt(item?.month, 10);
+  if (Number.isInteger(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12) {
+    return parsedMonth - 1;
+  }
+
+  const periodValue = String(item?.period || '').trim();
+  if (periodValue.length >= 7) {
+    const parsedPeriodMonth = Number.parseInt(periodValue.slice(5, 7), 10);
+    if (Number.isInteger(parsedPeriodMonth) && parsedPeriodMonth >= 1 && parsedPeriodMonth <= 12) {
+      return parsedPeriodMonth - 1;
+    }
+  }
+
+  return null;
+};
+
+export const loadGotoRangeInvoiceSalesData = async ({
+  startDate,
+  endDate,
+  subBusinessUnit,
+  invoiceSalesUrl,
+  businessUnit = 'Goto'
+}) => {
+  if (!invoiceSalesUrl) {
+    return {
+      success: false,
+      error: 'URL API invoice sales tidak tersedia'
+    };
+  }
+
+  const normalizedSubBusinessUnit = normalizeGotoSubBusinessUnit(subBusinessUnit);
+  const queryParams = buildGotoRangeQueryParams({
+    startDate,
+    endDate,
+    subBusinessUnit: normalizedSubBusinessUnit,
+    businessUnit
+  });
+
+  if (!queryParams) {
+    return {
+      success: false,
+      error: 'Range tanggal tidak valid'
+    };
+  }
+
+  try {
+    const response = await fetch(`${invoiceSalesUrl}?${queryParams.toString()}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    let result = null;
+    try {
+      result = await response.json();
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Response API tidak valid untuk range'
+      };
+    }
+
+    if (!response.ok || result?.status !== 'success') {
+      return {
+        success: false,
+        error: extractApiErrorMessage(result, 'Gagal memuat data range')
+      };
+    }
+
+    const fallbackYear = parseIsoDate(startDate)?.year || new Date().getFullYear();
+    const normalizedRows = (Array.isArray(result?.data) ? result.data : []).map((item) => ({
+      ...item,
+      business_unit: item?.business_unit || item?.businessUnit || businessUnit,
+      sub_business_unit: item?.sub_business_unit || item?.subBusinessUnit || item?.channel || normalizedSubBusinessUnit
+    }));
+    const processedData = normalizeInvoiceRowsForChart(normalizedRows, fallbackYear, normalizedSubBusinessUnit).map((item) => ({
+      ...item,
+      business_unit: String(item?.business_unit || businessUnit).trim(),
+      sub_business_unit: String(item?.sub_business_unit || normalizedSubBusinessUnit).trim(),
+      channel: normalizedSubBusinessUnit,
+      mainBusinessUnit: 'Goto'
+    }));
+
+    return {
+      success: true,
+      data: processedData
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error?.message || 'Failed to load range invoice sales data'
+    };
+  }
 };
 
 const fetchYearlyInvoiceSalesData = async ({
@@ -308,7 +474,7 @@ const fetchYearlyInvoiceSalesData = async ({
     throw new Error(extractApiErrorMessage(result, fallbackMessage));
   }
 
-  return normalizeInvoiceRowsForChart(result?.data, year, subBusinessUnit);
+  return normalizeInvoiceRowsForChart(extractInvoiceSalesRows(result?.data), year, subBusinessUnit);
 };
 
 export const loadGotoMonthlyInvoiceSalesData = async ({
@@ -361,13 +527,15 @@ const fetchGotoCompareYearByRange = async ({
   rangeIndex,
   compareYears,
   subBusinessUnit,
-  invoiceSalesUrl
+  invoiceSalesUrl,
+  businessUnit = 'Goto'
 }) => {
   const params = buildGotoCompareYearQueryParams({
     startDate: range.startDate,
     endDate: range.endDate,
     compareYears,
-    subBusinessUnit
+    subBusinessUnit,
+    businessUnit
   });
 
   if (!params) {
@@ -391,7 +559,14 @@ const fetchGotoCompareYearByRange = async ({
     throw new Error(extractApiErrorMessage(result, fallbackMessage));
   }
 
-  const aggregated = aggregateInvoiceRowsByRange(result?.data);
+  const sourceRows = Array.isArray(result?.data)
+    ? result.data
+    : Array.isArray(result?.data?.rows)
+      ? result.data.rows
+      : [];
+  const aggregated = aggregateInvoiceRowsByRange(sourceRows);
+  const normalizedBusinessUnit = String(businessUnit || 'Goto').trim() || 'Goto';
+  const normalizedSubBusinessUnit = normalizeGotoSubBusinessUnit(subBusinessUnit);
   const formattedRangeLabel = `${formatDateLabel(range.startDate)} - ${formatDateLabel(range.endDate)}`;
   return {
     id: `range-${rangeIndex + 1}`,
@@ -399,18 +574,20 @@ const fetchGotoCompareYearByRange = async ({
     rangeLabel: formattedRangeLabel,
     startDate: range.startDate,
     endDate: range.endDate,
-    business_unit: normalizeGotoSubBusinessUnit(subBusinessUnit),
-    sub_business_unit: normalizeGotoSubBusinessUnit(subBusinessUnit),
+    business_unit: normalizedBusinessUnit,
+    sub_business_unit: normalizedSubBusinessUnit,
+    channel: normalizedSubBusinessUnit,
     mainBusinessUnit: 'Goto',
     ...aggregated
   };
 };
 
-export const loadGotoMultiRangeCompareYearData = async ({
+export const loadGotoMultiRangeInvoiceSalesData = async ({
   dateRanges,
   compareYears,
   subBusinessUnit,
-  invoiceSalesUrl
+  invoiceSalesUrl,
+  businessUnit = 'Goto'
 }) => {
   const normalizedRanges = normalizeDateRanges(dateRanges);
   const normalizedSubBusinessUnit = normalizeGotoSubBusinessUnit(subBusinessUnit);
@@ -437,7 +614,8 @@ export const loadGotoMultiRangeCompareYearData = async ({
           rangeIndex,
           compareYears,
           subBusinessUnit: normalizedSubBusinessUnit,
-          invoiceSalesUrl
+          invoiceSalesUrl,
+          businessUnit
         })
       )
     );
@@ -452,4 +630,135 @@ export const loadGotoMultiRangeCompareYearData = async ({
       error: error?.message || 'Failed to load compare year data'
     };
   }
+};
+
+export const loadGotoYearSummary = async (
+  availableYears,
+  setYearSummary,
+  setYearSummaryLoading,
+  subBusinessUnit,
+  invoiceSalesUrl
+) => {
+  try {
+    setYearSummaryLoading(true);
+
+    const normalizedYears = normalizeYears(availableYears);
+    if (normalizedYears.length === 0) {
+      setYearSummary({});
+      return;
+    }
+
+    if (!invoiceSalesUrl) {
+      setYearSummary(
+        normalizedYears.reduce((accumulator, year) => {
+          accumulator[year] = { sales: 0, quantity: 0, order: 0, monthlySales: [...EMPTY_MONTHLY_SALES] };
+          return accumulator;
+        }, {})
+      );
+      return;
+    }
+
+    const normalizedSubBusinessUnit = normalizeGotoSubBusinessUnit(subBusinessUnit);
+    const allowedYears = new Set(normalizedYears);
+
+    const aggregateRowsToSummary = (rows, targetSubBusinessUnit) => {
+      const summary = normalizedYears.reduce((accumulator, year) => {
+        accumulator[year] = { sales: 0, quantity: 0, order: 0, monthlySales: [...EMPTY_MONTHLY_SALES] };
+        return accumulator;
+      }, {});
+
+      rows.forEach((item) => {
+        const parsedYear = Number.parseInt(item?.year, 10);
+        const periodYear = Number.parseInt(String(item?.period || '').slice(0, 4), 10);
+        const resolvedYear = Number.isInteger(parsedYear)
+          ? parsedYear
+          : Number.isInteger(periodYear)
+            ? periodYear
+            : null;
+
+        if (!Number.isInteger(resolvedYear) || !allowedYears.has(resolvedYear)) {
+          return;
+        }
+
+        if (targetSubBusinessUnit) {
+          const normalizedRowSubBusinessUnit = resolveRowSubBusinessUnit(item);
+          if (normalizedRowSubBusinessUnit !== targetSubBusinessUnit) {
+            return;
+          }
+        }
+
+        const metrics = resolveInvoiceMetrics(item);
+        const monthIndex = resolveMonthIndex(item);
+        summary[resolvedYear].sales += metrics.total;
+        summary[resolvedYear].quantity += metrics.quantity;
+        summary[resolvedYear].order += metrics.order;
+        if (monthIndex !== null) {
+          summary[resolvedYear].monthlySales[monthIndex] += metrics.total;
+        }
+      });
+
+      return summary;
+    };
+
+    const requestYearRows = async (includeChannelFilter) => {
+      const params = new URLSearchParams();
+      params.append('date_type', 'year');
+      normalizedYears.forEach((year) => {
+        params.append('years[]', String(year));
+      });
+      params.append('business_units[]', GOTO_BUSINESS_UNIT);
+
+      if (includeChannelFilter) {
+        params.append('channel[]', resolveGotoChannelForApi(normalizedSubBusinessUnit));
+      }
+
+      const response = await fetch(`${invoiceSalesUrl}?${params.toString()}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      let result = null;
+      try {
+        result = await response.json();
+      } catch (error) {
+        throw new Error('Response API tidak valid untuk ringkasan tahunan Goto');
+      }
+
+      if (!response.ok || result?.status !== 'success') {
+        throw new Error(extractApiErrorMessage(result, 'Gagal memuat ringkasan tahunan Goto'));
+      }
+
+      return extractInvoiceSalesRows(result?.data);
+    };
+
+    const primaryRows = await requestYearRows(true);
+    let summary = aggregateRowsToSummary(primaryRows, null);
+
+    const hasAnyValue = normalizedYears.some((year) => {
+      const yearSummary = summary[year] || { sales: 0, quantity: 0, order: 0 };
+      return yearSummary.sales !== 0 || yearSummary.quantity !== 0 || yearSummary.order !== 0;
+    });
+
+    if (!hasAnyValue) {
+      const fallbackRows = await requestYearRows(false);
+      summary = aggregateRowsToSummary(fallbackRows, normalizedSubBusinessUnit);
+    }
+
+    setYearSummary(summary);
+  } catch (error) {
+    console.error('Error loading Goto year summary:', error);
+    const normalizedYears = normalizeYears(availableYears);
+    setYearSummary(
+      normalizedYears.reduce((accumulator, year) => {
+        accumulator[year] = { sales: 0, quantity: 0, order: 0, monthlySales: [...EMPTY_MONTHLY_SALES] };
+        return accumulator;
+      }, {})
+    );
+  } finally {
+    setYearSummaryLoading(false);
+  }
+};
+
+export const loadGotoMultiRangeCompareYearData = async (options = {}) => {
+  return loadGotoMultiRangeInvoiceSalesData(options);
 };
