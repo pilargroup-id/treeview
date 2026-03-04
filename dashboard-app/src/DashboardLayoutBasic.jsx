@@ -1,7 +1,7 @@
 import * as React from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { createTheme, GlobalStyles } from '@mui/material';
+import { Tab, Tabs, createTheme, GlobalStyles, useMediaQuery } from '@mui/material';
 import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
 import PriceChangeIcon from '@mui/icons-material/PriceChange';
 import BarChartIcon from '@mui/icons-material/BarChart';
@@ -26,6 +26,7 @@ import GosaveRevenue from './businessUnit/GosaveRevenue';
 import SidebarLogout from './login/logout';
 import { API_URL } from './config/api';
 import TreeViewWordmark from './components/TreeViewWordmark';
+import NavBottom from './mobile/templateMobile/NavBottom';
 
 function getAuthHeaders() {
   const token = localStorage.getItem('authToken');
@@ -53,8 +54,7 @@ const BASE_NAVIGATION = [
     title: 'Revenue',
     icon: <PriceChangeIcon />,
     children: [
-      { segment: 'RevenueInvoice', title: 'Revenue', icon: <BarChartIcon /> },
-      { segment: 'MonthlyRevenue', title: 'Monthly Revenue', icon: <BarChartIcon /> },
+      { segment: 'MonthlyRevenue', title: 'BU Revenue', icon: <BarChartIcon /> },
       { segment: 'GotoRevenue', title: 'Goto Revenue', icon: <BarChartIcon /> },
       { segment: 'GosaveRevenue', title: 'Gosave Revenue', icon: <BarChartIcon /> },
     ],
@@ -81,6 +81,86 @@ const BASE_NAVIGATION = [
   },
   { segment: 'integrations', title: 'Integrations', icon: <SettingsIcon /> },
 ];
+
+function a11yProps(index) {
+  return {
+    id: `mobile-tab-${index}`,
+    'aria-controls': `mobile-tabpanel-${index}`,
+  };
+}
+
+const MOBILE_CHILD_TABS_BY_GROUP = {
+  revenue: [
+    {
+      label: 'BU Revenue',
+      value: '/dashboard/MonthlyRevenue',
+      matchers: ['MonthlyRevenue', 'RevenueInvoice'],
+    },
+    {
+      label: 'Goto Revenue',
+      value: '/dashboard/GotoRevenue',
+      matchers: ['GotoRevenue'],
+    },
+    {
+      label: 'Gosave Revenue',
+      value: '/dashboard/GosaveRevenue',
+      matchers: ['GosaveRevenue'],
+    },
+  ],
+  item: [
+    {
+      label: 'Category Item (Tes)',
+      value: '/orders/CategoryItemTes',
+      matchers: ['CategoryItemTes'],
+    },
+  ],
+  report: [
+    {
+      label: 'Monthly Visit',
+      value: '/reports/monthly-visit',
+      matchers: ['reports/monthly-visit', 'reports/sales'],
+    },
+    {
+      label: 'Weekly Summary',
+      value: '/reports/weekly-summary',
+      matchers: ['reports/weekly-summary', 'reports/customers'],
+    },
+    {
+      label: 'Monitor Radius',
+      value: '/reports/monitor-radius',
+      matchers: ['reports/monitor-radius', 'reports/result'],
+    },
+  ],
+  user: [
+    {
+      label: 'Integrations',
+      value: '/integrations',
+      matchers: ['integrations'],
+    },
+  ],
+};
+
+function resolveMobileTabGroup(pathname) {
+  const currentPathname = String(pathname ?? '');
+  if (
+    currentPathname.includes('MonthlyRevenue') ||
+    currentPathname.includes('GotoRevenue') ||
+    currentPathname.includes('GosaveRevenue') ||
+    currentPathname.includes('RevenueInvoice')
+  ) {
+    return 'revenue';
+  }
+  if (currentPathname.includes('CategoryItemTes')) return 'item';
+  if (currentPathname.includes('reports/')) return 'report';
+  if (currentPathname.includes('integrations')) return 'user';
+  return 'revenue';
+}
+
+function resolveMobileChildTabValue(pathname, tabs) {
+  const currentPathname = String(pathname ?? '');
+  const activeTab = tabs.find((tab) => tab.matchers.some((matcher) => currentPathname.includes(matcher)));
+  return activeTab ? activeTab.value : tabs[0]?.value ?? false;
+}
 
 function pickFirstText(...values) {
   for (const value of values) {
@@ -620,10 +700,31 @@ function LastUpdateHeader() {
 
 export default function DashboardLayoutBasic({ onLogout }) {
   const router = useDemoRouter('/dashboard/MonthlyRevenue');
+  const isMobileScreen = useMediaQuery('(max-width:600px)');
   const [sidebarUser, setSidebarUser] = React.useState(() => getStoredSidebarUser());
   const navigation = React.useMemo(
     () => buildNavigation(sidebarUser.displayName),
     [sidebarUser.displayName],
+  );
+  const activeMobileTabGroup = React.useMemo(
+    () => resolveMobileTabGroup(router.pathname),
+    [router.pathname],
+  );
+  const mobileChildTabs = React.useMemo(
+    () => MOBILE_CHILD_TABS_BY_GROUP[activeMobileTabGroup] ?? [],
+    [activeMobileTabGroup],
+  );
+  const activeMobileChildTab = React.useMemo(
+    () => resolveMobileChildTabValue(router.pathname, mobileChildTabs),
+    [router.pathname, mobileChildTabs],
+  );
+
+  const handleMobileChildTabChange = React.useCallback(
+    (_event, nextPath) => {
+      if (typeof nextPath !== 'string' || !nextPath || nextPath === router.pathname) return;
+      router.navigate(nextPath);
+    },
+    [router],
   );
 
   React.useEffect(() => {
@@ -680,6 +781,7 @@ export default function DashboardLayoutBasic({ onLogout }) {
         }}
       />
       <DashboardLayout
+        hideNavigation={isMobileScreen}
         sidebarExpandedWidth={260}
         renderPageItem={(item, { mini }) =>
           item.segment === USER_PROFILE_SEGMENT ? (
@@ -745,8 +847,62 @@ export default function DashboardLayoutBasic({ onLogout }) {
             },
           })}
         >
-          <Box sx={{ position: 'relative', zIndex: 1, flex: 1, overflow: 'hidden' }}>
-            <DemoPageContent pathname={router.pathname} />
+          <Box
+            sx={{
+              position: 'relative',
+              zIndex: 1,
+              flex: 1,
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              minHeight: 0,
+            }}
+          >
+            {isMobileScreen ? (
+              <Box
+                sx={{
+                  px: 1.05,
+                  pt: 0.55,
+                  bgcolor: 'rgba(255, 255, 255, 0.76)',
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                }}
+              >
+                {mobileChildTabs.length > 0 ? (
+                  <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                    <Tabs
+                      value={activeMobileChildTab}
+                      onChange={handleMobileChildTabChange}
+                      aria-label="mobile tabs"
+                    >
+                      {mobileChildTabs.map((tab, index) => (
+                        <Tab
+                          key={tab.value}
+                          value={tab.value}
+                          label={tab.label}
+                          {...a11yProps(index)}
+                        />
+                      ))}
+                    </Tabs>
+                  </Box>
+                ) : null}
+              </Box>
+            ) : null}
+            <Box
+              sx={{
+                position: 'relative',
+                zIndex: 1,
+                flex: 1,
+                overflow: 'hidden',
+                minHeight: 0,
+                pb: isMobileScreen ? 'calc(env(safe-area-inset-bottom, 0px) + 78px)' : 0,
+              }}
+            >
+              <DemoPageContent pathname={router.pathname} />
+            </Box>
+            {isMobileScreen ? (
+              <NavBottom pathname={router.pathname} onNavigate={router.navigate} />
+            ) : null}
           </Box>
         </Box>
       </DashboardLayout>

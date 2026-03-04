@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Box, Typography, Button, Chip, Paper, Portal, Backdrop, Fade, Card } from "@mui/material";
+import React, { useState, useEffect, useRef, useId } from "react";
+import { Box, Typography, Button, Chip, Paper, Portal, Backdrop, Fade, Card, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import BusinessIcon from '@mui/icons-material/Business';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
@@ -33,7 +33,12 @@ export const DateRangePickerWithPresets = ({
   openPickerSignal = 0,
   showTitle = true,
   showSummary = true,
-  allowReplaceExistingRange = false
+  allowReplaceExistingRange = false,
+  calendarMonths = 2,
+  calendarDirection = 'horizontal',
+  hidePresetPanel = false,
+  mobileModal = false,
+  mobileFullPage = false
 }) => {
   const { alertState, showWarning, showError, closeAlert } = useAlert();
   const [selectionRange, setSelectionRange] = useState({
@@ -47,7 +52,13 @@ export const DateRangePickerWithPresets = ({
 
   const anchorRef = useRef(null);
   const pickerRef = useRef(null);
+  const presetSelectId = useId();
+  const presetSelectLabelId = `${presetSelectId}-label`;
   const lastOpenPickerSignalRef = useRef(openPickerSignal);
+  const resolvedCalendarMonths = Math.max(1, Number(calendarMonths) || 1);
+  const isSingleCalendar = resolvedCalendarMonths === 1;
+  const isMobilePicker = mobileModal || mobileFullPage;
+  const isMobileFullPage = mobileFullPage;
   
   const MAX_RANGE_DATES = 1;
   const isRangeLimitReached = !allowReplaceExistingRange && rangeDates.length >= MAX_RANGE_DATES;
@@ -273,20 +284,20 @@ export const DateRangePickerWithPresets = ({
 
       if (dateRange) {
         dateRange.style.setProperty('display', 'flex', 'important');
-        dateRange.style.setProperty('flex-direction', 'row', 'important');
+        dateRange.style.setProperty('flex-direction', isSingleCalendar ? 'column' : 'row', 'important');
         dateRange.style.setProperty('width', '100%', 'important');
       }
       if (calendarWrapper) {
         calendarWrapper.style.setProperty('display', 'flex', 'important');
-        calendarWrapper.style.setProperty('flex-direction', 'row', 'important');
+        calendarWrapper.style.setProperty('flex-direction', isSingleCalendar ? 'column' : 'row', 'important');
         calendarWrapper.style.setProperty('width', '100%', 'important');
       }
       if (calendars.length > 0) {
         calendars.forEach(calendar => {
           calendar.style.setProperty('font-size', '0.875rem', 'important');
-          calendar.style.setProperty('width', '50%', 'important');
-          calendar.style.setProperty('max-width', '50%', 'important');
-          calendar.style.setProperty('flex', '1 1 50%', 'important');
+          calendar.style.setProperty('width', isSingleCalendar ? '100%' : '50%', 'important');
+          calendar.style.setProperty('max-width', isSingleCalendar ? '100%' : '50%', 'important');
+          calendar.style.setProperty('flex', isSingleCalendar ? '1 1 100%' : '1 1 50%', 'important');
         });
       }
       if (month) {
@@ -375,7 +386,7 @@ export const DateRangePickerWithPresets = ({
       timeouts.forEach(timeout => clearTimeout(timeout));
       observer.disconnect();
     };
-  }, [showPicker]);
+  }, [isSingleCalendar, showPicker]);
 
   return (
     <Box sx={{ 
@@ -459,18 +470,20 @@ export const DateRangePickerWithPresets = ({
         {/* Backdrop Overlay dengan Portal */}
         {showPicker && (
           <Portal>
-            <Backdrop
-              open={showPicker}
-              onClick={() => setShowPicker(false)}
-              sx={{
-                zIndex: 1299,
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                backdropFilter: 'blur(4px)',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              }}
-            />
+            {!isMobileFullPage ? (
+              <Backdrop
+                open={showPicker}
+                onClick={() => setShowPicker(false)}
+                sx={{
+                  zIndex: (theme) => theme.zIndex.modal + 29,
+                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                  backdropFilter: 'blur(4px)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
+              />
+            ) : null}
             
-            {/* DateRangePicker Modal - Terpusat dan Besar */}
+            {/* DateRangePicker Overlay */}
             <Fade in={showPicker} timeout={300}>
               <Paper
                 ref={pickerRef}
@@ -478,18 +491,31 @@ export const DateRangePickerWithPresets = ({
                 onClick={(e) => e.stopPropagation()}
                 sx={{
                   position: 'fixed',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  zIndex: 1300,
-                  borderRadius: 3,
+                  top: isMobileFullPage ? 0 : '50%',
+                  left: isMobileFullPage ? 0 : '50%',
+                  right: isMobileFullPage ? 0 : 'auto',
+                  bottom: isMobileFullPage ? 0 : 'auto',
+                  transform: isMobileFullPage ? 'none' : 'translate(-50%, -50%)',
+                  zIndex: (theme) => theme.zIndex.modal + 30,
+                  borderRadius: isMobileFullPage ? 0 : 3,
                   overflow: 'hidden',
                   bgcolor: 'white',
-                  border: '1px solid #E2E8F0',
-                  boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.2)',
-                  width: { xs: '95%', sm: '90%', md: '800px', lg: '950px' },
-                  maxWidth: '950px',
-                  maxHeight: '90vh',
+                  border: isMobileFullPage ? 'none' : '1px solid #E2E8F0',
+                  boxShadow: isMobileFullPage ? 'none' : '0 20px 60px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.2)',
+                  width: isMobileFullPage
+                    ? '100vw'
+                    : isMobilePicker
+                      ? { xs: 'min(calc(100vw - 20px), 420px)', sm: 'min(92vw, 440px)', md: isSingleCalendar ? '520px' : '760px' }
+                      : { xs: '95%', sm: '90%', md: isSingleCalendar ? '620px' : '800px', lg: isSingleCalendar ? '680px' : '950px' },
+                  maxWidth: isMobileFullPage
+                    ? '100vw'
+                    : isMobilePicker
+                      ? (isSingleCalendar ? '440px' : '760px')
+                      : (isSingleCalendar ? '680px' : '950px'),
+                  height: isMobileFullPage ? '100dvh' : 'auto',
+                  maxHeight: isMobileFullPage ? '100dvh' : (isMobilePicker ? 'calc(100dvh - 28px)' : '90vh'),
+                  display: 'flex',
+                  flexDirection: 'column',
                   overflowY: 'auto',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                   '& *': {
@@ -509,20 +535,20 @@ export const DateRangePickerWithPresets = ({
                     width: '100%',
                     maxWidth: '100%',
                     display: 'flex !important',
-                    flexDirection: 'row !important',
+                    flexDirection: isSingleCalendar ? 'column !important' : 'row !important',
                   },
                   '& .rdr-CalendarWrapper': {
                     display: 'flex !important',
-                    flexDirection: 'row !important',
+                    flexDirection: isSingleCalendar ? 'column !important' : 'row !important',
                     width: '100% !important',
                   },
                   '& .rdr-Calendar': {
                     borderRadius: 3,
-                    width: '50% !important',
-                    maxWidth: '50% !important',
+                    width: isSingleCalendar ? '100% !important' : '50% !important',
+                    maxWidth: isSingleCalendar ? '100% !important' : '50% !important',
                     fontSize: '0.875rem !important',
                     minHeight: 'auto !important',
-                    flex: '1 1 50% !important',
+                    flex: isSingleCalendar ? '1 1 100% !important' : '1 1 50% !important',
                   },
                   '& .rdr-Month': {
                     width: '100% !important',
@@ -595,9 +621,14 @@ export const DateRangePickerWithPresets = ({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  p: 2,
+                  px: 2,
+                  pt: isMobileFullPage ? 'calc(env(safe-area-inset-top, 0px) + 12px)' : 2,
+                  pb: 1.5,
                   borderBottom: '1px solid #F1F5F9',
-                  bgcolor: '#FAFBFC'
+                  bgcolor: '#FAFBFC',
+                  position: isMobileFullPage ? 'sticky' : 'static',
+                  top: 0,
+                  zIndex: 1
                 }}>
                   <Typography sx={{
                     fontSize: '1.125rem',
@@ -631,62 +662,150 @@ export const DateRangePickerWithPresets = ({
                       }
                     }}
                   >
-                    ✕
+                    X
                   </Button>
                 </Box>
 
                 <Box sx={{
-                  p: 2,
+                  p: isMobilePicker ? 1.25 : 2,
+                  pb: isMobileFullPage ? 'calc(env(safe-area-inset-bottom, 0px) + 12px)' : undefined,
                   bgcolor: 'white',
+                  flex: isMobileFullPage ? 1 : 'none',
+                  overflowY: isMobileFullPage ? 'auto' : 'visible'
                 }}>
+                  {hidePresetPanel ? (
+                    <FormControl fullWidth size="small" sx={{ mb: 1.25 }}>
+                      <InputLabel
+                        id={presetSelectLabelId}
+                        sx={{
+                          fontSize: '0.8125rem',
+                          color: '#64748B',
+                          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                          '&.Mui-focused': {
+                            color: '#6BA3D0'
+                          }
+                        }}
+                      >
+                        Preset Range
+                      </InputLabel>
+                      <Select
+                        labelId={presetSelectLabelId}
+                        id={presetSelectId}
+                        value={selectedPreset || ''}
+                        label="Preset Range"
+                        MenuProps={{
+                          sx: {
+                            zIndex: (theme) => theme.zIndex.modal + 40
+                          },
+                          PaperProps: {
+                            sx: {
+                              mt: 0.5,
+                              borderRadius: 1.5,
+                              boxShadow: '0 12px 32px rgba(15, 23, 42, 0.18)',
+                              border: '1px solid #E2E8F0'
+                            }
+                          }
+                        }}
+                        onChange={(event) => {
+                          const presetValue = event.target.value;
+                          if (!presetValue) {
+                            setSelectedPreset(null);
+                            return;
+                          }
+                          handlePresetSelect(presetValue);
+                        }}
+                        sx={{
+                          fontSize: '0.875rem',
+                          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                          borderRadius: 1.5,
+                          '& .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#E2E8F0'
+                          },
+                          '&:hover .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#CBD5E1'
+                          },
+                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#6BA3D0'
+                          }
+                        }}
+                      >
+                        <MenuItem
+                          value=""
+                          sx={{
+                            fontSize: '0.875rem',
+                            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                            color: '#64748B'
+                          }}
+                        >
+                          Pilih Preset
+                        </MenuItem>
+                        {presetRanges.map((preset) => (
+                          <MenuItem
+                            key={`dropdown-${preset.key}`}
+                            value={preset.key}
+                            sx={{
+                              fontSize: '0.875rem',
+                              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                            }}
+                          >
+                            {preset.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  ) : null}
+
                   <Box sx={{
                     display: 'flex',
-                    flexDirection: 'row',
+                    flexDirection: hidePresetPanel ? 'column' : { xs: 'column', md: 'row' },
                     width: '100%',
                     bgcolor: 'white',
                     borderRadius: 3,
                     overflow: 'hidden',
                   }}>
                     {/* Panel Preset Ranges di Sisi Kiri */}
-                    <Box sx={{
-                      width: '200px',
-                      minWidth: '200px',
-                      borderRight: '1px solid #F1F5F9',
-                      bgcolor: '#FAFBFC',
-                      p: 2,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 0.5,
-                    }}>
-                      {presetRanges.map((preset) => (
-                        <Button
-                          key={preset.key}
-                          onClick={() => handlePresetSelect(preset.key)}
-                          sx={{
-                            justifyContent: 'flex-start',
-                            textTransform: 'none',
-                            fontSize: '0.875rem',
-                            fontWeight: selectedPreset === preset.key ? 600 : 400,
-                            color: selectedPreset === preset.key ? '#6BA3D0' : '#475569',
-                            bgcolor: selectedPreset === preset.key ? 'rgba(107, 163, 208, 0.08)' : 'transparent',
-                            borderRadius: 1.5,
-                            px: 1.5,
-                            py: 0.875,
-                            minHeight: '36px',
-                            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                            '&:hover': {
-                              bgcolor: selectedPreset === preset.key 
-                                ? 'rgba(107, 163, 208, 0.12)' 
-                                : 'rgba(107, 163, 208, 0.06)',
-                              color: '#6BA3D0',
-                            },
-                          }}
-                        >
-                          {preset.label}
-                        </Button>
-                      ))}
-                    </Box>
+                    {!hidePresetPanel ? (
+                      <Box sx={{
+                        width: { xs: '100%', md: '200px' },
+                        minWidth: { md: '200px' },
+                        borderRight: { md: '1px solid #F1F5F9' },
+                        borderBottom: { xs: '1px solid #F1F5F9', md: 'none' },
+                        bgcolor: '#FAFBFC',
+                        p: 2,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 0.5,
+                      }}>
+                        {presetRanges.map((preset) => (
+                          <Button
+                            key={preset.key}
+                            onClick={() => handlePresetSelect(preset.key)}
+                            sx={{
+                              justifyContent: 'flex-start',
+                              textTransform: 'none',
+                              fontSize: '0.875rem',
+                              fontWeight: selectedPreset === preset.key ? 600 : 400,
+                              color: selectedPreset === preset.key ? '#6BA3D0' : '#475569',
+                              bgcolor: selectedPreset === preset.key ? 'rgba(107, 163, 208, 0.08)' : 'transparent',
+                              borderRadius: 1.5,
+                              px: 1.5,
+                              py: 0.875,
+                              minHeight: '36px',
+                              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                              '&:hover': {
+                                bgcolor: selectedPreset === preset.key
+                                  ? 'rgba(107, 163, 208, 0.12)'
+                                  : 'rgba(107, 163, 208, 0.06)',
+                                color: '#6BA3D0',
+                              },
+                            }}
+                          >
+                            {preset.label}
+                          </Button>
+                        ))}
+                      </Box>
+                    ) : null}
 
                     {/* Kalender di Sisi Kanan */}
                     <Box sx={{
@@ -707,8 +826,8 @@ export const DateRangePickerWithPresets = ({
                         }}
                         minDate={getMinDate()}
                         maxDate={getMaxDate()}
-                        months={2}
-                        direction="horizontal"
+                        months={resolvedCalendarMonths}
+                        direction={calendarDirection}
                         showDateDisplay={true}
                         showMonthAndYearPickers={true}
                         locale={enGB}
@@ -720,10 +839,11 @@ export const DateRangePickerWithPresets = ({
                   <Box sx={{ 
                     display: 'flex', 
                     gap: 1,
-                    mt: 2,
+                    mt: 1.5,
                     pt: 2,
                     borderTop: '1px solid #F1F5F9',
-                    justifyContent: 'flex-end'
+                    justifyContent: isMobilePicker ? 'stretch' : 'flex-end',
+                    flexDirection: 'row'
                   }}>
                     <Button 
                       variant="outlined" 
@@ -745,9 +865,10 @@ export const DateRangePickerWithPresets = ({
                         fontWeight: 500,
                         fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
                         borderRadius: 1.5,
+                        flex: isMobilePicker ? 1 : '0 0 auto',
                         px: 2.5,
                         py: 0.75,
-                        minWidth: '100px',
+                        minWidth: isMobilePicker ? 0 : '100px',
                         height: '40px',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         '&:hover': {
@@ -773,9 +894,10 @@ export const DateRangePickerWithPresets = ({
                         fontWeight: 600,
                         fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
                         borderRadius: 1.5,
+                        flex: isMobilePicker ? 1 : '0 0 auto',
                         px: 3,
                         py: 0.75,
-                        minWidth: '140px',
+                        minWidth: isMobilePicker ? 0 : '140px',
                         height: '40px',
                         boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',

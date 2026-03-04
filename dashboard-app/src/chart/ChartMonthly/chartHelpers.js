@@ -17,6 +17,7 @@ const monthShortNames = [
   'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
   'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'
 ];
+const EMPTY_MONTHLY_SALES = Array.from({ length: 12 }, () => 0);
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -66,7 +67,8 @@ const buildInvoiceSalesRangeQueryParams = (
   startDate,
   endDate,
   businessUnits,
-  subBusinessUnits = []
+  subBusinessUnits = [],
+  channels = []
 ) => {
   const params = new URLSearchParams();
   params.append('date_type', 'range');
@@ -76,6 +78,20 @@ const buildInvoiceSalesRangeQueryParams = (
   const normalizedSubBusinessUnits = normalizeSubBusinessUnits(subBusinessUnits)
     .map((subBusinessUnit) => String(subBusinessUnit || '').trim())
     .filter(Boolean);
+  const normalizedChannels = normalizeSubBusinessUnits(channels)
+    .map((channel) => String(channel || '').trim())
+    .filter(Boolean);
+
+  if (normalizedChannels.length > 0) {
+    normalizeBusinessUnits(businessUnits).forEach((businessUnit) => {
+      params.append('business_units[]', businessUnit);
+    });
+
+    normalizedChannels.forEach((channel) => {
+      params.append('channel[]', channel);
+    });
+    return params;
+  }
 
   if (normalizedSubBusinessUnits.length > 0) {
     normalizedSubBusinessUnits.forEach((subBusinessUnit) => {
@@ -223,6 +239,8 @@ const resolveInvoiceMetrics = (item) => {
   const parsedDebit = Number.parseFloat(item?.total_debit);
   const parsedDifference = Number.parseFloat(item?.total_difference);
   const parsedSales = Number.parseFloat(item?.total_sales);
+  const parsedQuantity = Number.parseFloat(item?.total_quantity ?? item?.quantity);
+  const parsedOrder = Number.parseFloat(item?.invoice_count ?? item?.order);
 
   const hasCredit = Number.isFinite(parsedCredit);
   const hasDebit = Number.isFinite(parsedDebit);
@@ -244,8 +262,10 @@ const resolveInvoiceMetrics = (item) => {
       : hasSales
         ? parsedSales
         : 0;
+  const quantity = Number.isFinite(parsedQuantity) ? parsedQuantity : 0;
+  const order = Number.isFinite(parsedOrder) ? parsedOrder : 0;
 
-  return { credit, debit, total };
+  return { credit, debit, total, quantity, order };
 };
 
 const aggregateInvoiceRowsByRange = (rows) => {
@@ -255,11 +275,15 @@ const aggregateInvoiceRowsByRange = (rows) => {
     accumulator.credit += metrics.credit;
     accumulator.debit += metrics.debit;
     accumulator.total += metrics.total;
+    accumulator.quantity += metrics.quantity;
+    accumulator.order += metrics.order;
     return accumulator;
   }, {
     credit: 0,
     debit: 0,
-    total: 0
+    total: 0,
+    quantity: 0,
+    order: 0
   });
 };
 
@@ -443,6 +467,8 @@ export const processData = (apiData) => {
     const parsedDebit = parseFloat(item.total_debit);
     const parsedDifference = parseFloat(item.total_difference);
     const parsedSales = parseFloat(item.total_sales);
+    const parsedQuantity = parseFloat(item.total_quantity ?? item.quantity);
+    const parsedOrder = parseFloat(item.invoice_count ?? item.order);
     const hasCredit = Number.isFinite(parsedCredit);
     const hasDebit = Number.isFinite(parsedDebit);
     const hasDifference = Number.isFinite(parsedDifference);
@@ -463,6 +489,8 @@ export const processData = (apiData) => {
         : hasSales
           ? parsedSales
           : 0;
+    const quantity = Number.isFinite(parsedQuantity) ? parsedQuantity : 0;
+    const order = Number.isFinite(parsedOrder) ? parsedOrder : 0;
     const parsedYearFromPeriod = typeof item.period === 'string'
       ? parseInt(item.period.split('-')[0], 10)
       : NaN;
@@ -488,7 +516,9 @@ export const processData = (apiData) => {
       mainBusinessUnit,
       credit: credit,
       debit: debit,
-      total: total
+      total: total,
+      quantity: quantity,
+      order: order
     });
   });
   
@@ -621,7 +651,8 @@ export const loadInvoiceSalesRangeData = async (
       startDate,
       endDate,
       businessUnits,
-      options?.subBusinessUnits
+      options?.subBusinessUnits,
+      options?.channels
     );
     const response = await fetch(`${invoiceSalesUrl}?${queryParams.toString()}`, {
       method: 'GET',
@@ -790,13 +821,19 @@ export const useChartData = (
       const targetSubBusinessUnits = normalizeSubBusinessUnits(options?.subBusinessUnits)
         .map((subBusinessUnit) => String(subBusinessUnit || '').trim())
         .filter(Boolean);
+      const targetChannels = normalizeSubBusinessUnits(options?.channels)
+        .map((channel) => String(channel || '').trim())
+        .filter(Boolean);
       const result = useInvoiceSalesRangeApi
         ? await loadInvoiceSalesRangeData(
             targetStartDate,
             targetEndDate,
             selectedBusinessUnits,
             invoiceSalesUrl,
-            { subBusinessUnits: targetSubBusinessUnits }
+            {
+              subBusinessUnits: targetSubBusinessUnits,
+              channels: targetChannels
+            }
           )
         : await loadRevenueData(
             accountHeader,
@@ -1118,6 +1155,23 @@ export function getAvailableYears() {
   return availableYears;
 }
 
+const resolveMonthIndexFromSummaryItem = (item) => {
+  const parsedMonth = Number.parseInt(item?.month, 10);
+  if (Number.isInteger(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12) {
+    return parsedMonth - 1;
+  }
+
+  const periodValue = String(item?.period || '').trim();
+  if (periodValue.length >= 7) {
+    const parsedPeriodMonth = Number.parseInt(periodValue.slice(5, 7), 10);
+    if (Number.isInteger(parsedPeriodMonth) && parsedPeriodMonth >= 1 && parsedPeriodMonth <= 12) {
+      return parsedPeriodMonth - 1;
+    }
+  }
+
+  return null;
+};
+
 // year summary monthly revenue
 export async function loadYearSummary(
   availableYears,
@@ -1129,55 +1183,71 @@ export async function loadYearSummary(
 ) {
   try {
     setYearSummaryLoading(true);
-    
-    // Load data for each year
-    const summary = {};
-    
-    for (const year of availableYears) {
-      const startDate = `${year}-01-01`;
-      const endDate = `${year}-12-31`;
-      const queryParams = buildMonthlyRevenueQueryParams(
-        accountHeader,
-        startDate,
-        endDate,
-        businessUnits
-      );
-      
-      try {
-        const response = await fetch(`${monthlyRevenueUrl}?${queryParams.toString()}`, {
-          method: 'GET',
-          headers: getAuthHeaders(),
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok && result.status === 'success' && Array.isArray(result.data)) {
-          let totalSales = 0;
-          let totalQuantity = 0;
-          
-          // Calculate total from monthly data
-          result.data.forEach(item => {
-            const credit = parseFloat(item.total_credit) || 0;
-            const debit = parseFloat(item.total_debit) || 0;
-            const difference = parseFloat(item.total_difference) || (credit - debit);
-            totalSales += difference;
-            // For quantity, we'll use the count of records as a proxy
-            totalQuantity += 1;
-          });
-          
-          summary[year] = {
-            sales: totalSales,
-            quantity: totalQuantity
-          };
-        } else {
-          summary[year] = { sales: 0, quantity: 0 };
-        }
-      } catch (error) {
-        console.error(`Error loading data for year ${year}:`, error);
-        summary[year] = { sales: 0, quantity: 0 };
-      }
+
+    const normalizedYears = Array.isArray(availableYears) ? availableYears : [];
+    if (normalizedYears.length === 0) {
+      setYearSummary({});
+      return;
     }
-    
+
+    const summaryEntries = await Promise.all(
+      normalizedYears.map(async (year) => {
+        const startDate = `${year}-01-01`;
+        const endDate = `${year}-12-31`;
+        const queryParams = buildMonthlyRevenueQueryParams(
+          accountHeader,
+          startDate,
+          endDate,
+          businessUnits
+        );
+
+        try {
+          const response = await fetch(`${monthlyRevenueUrl}?${queryParams.toString()}`, {
+            method: 'GET',
+            headers: getAuthHeaders(),
+          });
+
+          const result = await response.json();
+
+          if (response.ok && result.status === 'success' && Array.isArray(result.data)) {
+            let totalSales = 0;
+            let totalQuantity = 0;
+            let totalOrder = 0;
+            const monthlySales = [...EMPTY_MONTHLY_SALES];
+
+            result.data.forEach((item) => {
+              const credit = parseFloat(item.total_credit) || 0;
+              const debit = parseFloat(item.total_debit) || 0;
+              const difference = parseFloat(item.total_difference) || (credit - debit);
+              const parsedQuantity = parseFloat(item.total_quantity ?? item.quantity);
+              const parsedOrder = parseFloat(item.invoice_count ?? item.order);
+              const monthIndex = resolveMonthIndexFromSummaryItem(item);
+
+              totalSales += difference;
+              totalQuantity += Number.isFinite(parsedQuantity) ? parsedQuantity : 0;
+              totalOrder += Number.isFinite(parsedOrder) ? parsedOrder : 0;
+
+              if (monthIndex !== null) {
+                monthlySales[monthIndex] += difference;
+              }
+            });
+
+            return [year, { sales: totalSales, quantity: totalQuantity, order: totalOrder, monthlySales }];
+          }
+
+          return [year, { sales: 0, quantity: 0, order: 0, monthlySales: [...EMPTY_MONTHLY_SALES] }];
+        } catch (error) {
+          console.error(`Error loading data for year ${year}:`, error);
+          return [year, { sales: 0, quantity: 0, order: 0, monthlySales: [...EMPTY_MONTHLY_SALES] }];
+        }
+      })
+    );
+
+    const summary = summaryEntries.reduce((accumulator, [year, totals]) => {
+      accumulator[year] = totals;
+      return accumulator;
+    }, {});
+
     setYearSummary(summary);
   } catch (error) {
     console.error('Error loading year summary:', error);
@@ -1187,4 +1257,5 @@ export async function loadYearSummary(
 }
 
 export { monthNames, monthShortNames };
+
 

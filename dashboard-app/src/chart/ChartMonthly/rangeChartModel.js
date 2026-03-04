@@ -65,11 +65,13 @@ const parseRangeBounds = (range) => {
 };
 
 const accumulateChartValues = (targetMap, key, item) => {
-  const previousValue = targetMap.get(key) || { credit: 0, debit: 0, total: 0 };
+  const previousValue = targetMap.get(key) || { credit: 0, debit: 0, total: 0, quantity: 0, order: 0 };
   targetMap.set(key, {
     credit: previousValue.credit + toNumericValue(item.credit),
     debit: previousValue.debit + toNumericValue(item.debit),
-    total: previousValue.total + toNumericValue(item.total)
+    total: previousValue.total + toNumericValue(item.total),
+    quantity: previousValue.quantity + toNumericValue(item.quantity),
+    order: previousValue.order + toNumericValue(item.order)
   });
 };
 
@@ -142,13 +144,15 @@ const extractPeriodMonthKey = (item) => {
 
 const buildChartRowsFromTimeline = (timeline, valuesMap) => {
   return timeline.map((timelineItem) => {
-    const values = valuesMap.get(timelineItem.key) || { credit: 0, debit: 0, total: 0 };
+    const values = valuesMap.get(timelineItem.key) || { credit: 0, debit: 0, total: 0, quantity: 0, order: 0 };
     return {
       xKey: timelineItem.key,
       xLabel: timelineItem.label,
       credit: values.credit,
       debit: values.debit,
-      total: values.total
+      total: values.total,
+      quantity: values.quantity,
+      order: values.order
     };
   });
 };

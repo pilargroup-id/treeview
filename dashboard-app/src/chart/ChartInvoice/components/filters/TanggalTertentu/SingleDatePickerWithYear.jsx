@@ -21,7 +21,11 @@ export const SingleDatePickerWithYear = ({
   invoiceData = [],
   onValidatedRangesChange = null,
   initialValidatedRanges = null,
-  openPickerSignal = 0
+  openPickerSignal = 0,
+  showTitle = true,
+  mobileModal = false,
+  mobileFullPage = false,
+  previewPlacement = 'side'
 }) => {
   const { alertState, showWarning, showError, closeAlert } = useAlert();
   
@@ -42,6 +46,9 @@ export const SingleDatePickerWithYear = ({
   const anchorRef = useRef(null);
   const pickerRef = useRef(null);
   const lastOpenPickerSignalRef = useRef(openPickerSignal);
+  const isMobilePicker = mobileModal || mobileFullPage;
+  const isMobileFullPage = mobileFullPage;
+  const isPreviewBottom = previewPlacement === 'bottom' || isMobileFullPage;
 
   // State Preview
   const [showManualMode, setShowManualMode] = useState(true);
@@ -261,23 +268,25 @@ export const SingleDatePickerWithYear = ({
       gap: 1.5,
       position: 'relative'
     }}>
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        mb: 1
-      }}>
-        <Typography sx={{ 
-          fontWeight: 600, 
-          fontSize: '0.875rem', 
-          color: '#0F172A',
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-          letterSpacing: '-0.01em',
-          lineHeight: 1.3
+      {showTitle ? (
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          mb: 1
         }}>
-          Tanggal Tertentu (Perbandingan Range) 
-        </Typography>
-      </Box>
+          <Typography sx={{ 
+            fontWeight: 600, 
+            fontSize: '0.875rem', 
+            color: '#0F172A',
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            letterSpacing: '-0.01em',
+            lineHeight: 1.3
+          }}>
+            Tanggal Tertentu (Perbandingan Range) 
+          </Typography>
+        </Box>
+      ) : null}
 
       {/* Icon Delete All */}
       {validatedRanges.length > 0 && (
@@ -362,22 +371,24 @@ export const SingleDatePickerWithYear = ({
             }
           }}
         >
-          {showPicker ? 'Tutup Kalender' : 'Pilih Tanggal'}
+          {showPicker ? 'Tutup Kalender' : 'Pilih Range Tanggal'}
         </Button>
 
         {/* Backdrop Overlay dengan Portal */}
         {showPicker && (
           <Portal>
-            <Backdrop
-              open={showPicker}
-              onClick={() => setShowPicker(false)}
-              sx={{
-                zIndex: 1299,
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                backdropFilter: 'blur(4px)',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              }}
-            />
+            {!isMobileFullPage ? (
+              <Backdrop
+                open={showPicker}
+                onClick={() => setShowPicker(false)}
+                sx={{
+                  zIndex: (theme) => theme.zIndex.modal + 29,
+                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                  backdropFilter: 'blur(4px)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
+              />
+            ) : null}
             
             {/* DatePicker Modal */}
             <Fade in={showPicker} timeout={300}>
@@ -387,22 +398,29 @@ export const SingleDatePickerWithYear = ({
                 onClick={(e) => e.stopPropagation()}
                 sx={{
                   position: 'fixed',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  zIndex: 1300,
-                  borderRadius: 3,
+                  top: isMobileFullPage ? 0 : '50%',
+                  left: isMobileFullPage ? 0 : '50%',
+                  right: isMobileFullPage ? 0 : 'auto',
+                  bottom: isMobileFullPage ? 0 : 'auto',
+                  transform: isMobileFullPage ? 'none' : 'translate(-50%, -50%)',
+                  zIndex: (theme) => theme.zIndex.modal + 30,
+                  borderRadius: isMobileFullPage ? 0 : 3,
                   overflow: 'hidden',
                   bgcolor: 'white',
-                  border: '1px solid #E2E8F0',
-                  boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.2)',
-                  width: { xs: '95%', sm: '90%', md: '800px', lg: '950px' },
-                  maxWidth: '950px',
-                  maxHeight: '75vh',
-                  height: 'auto',
+                  border: isMobileFullPage ? 'none' : '1px solid #E2E8F0',
+                  boxShadow: isMobileFullPage ? 'none' : '0 20px 60px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.2)',
+                  width: isMobileFullPage
+                    ? '100vw'
+                    : isMobilePicker
+                      ? { xs: 'min(calc(100vw - 20px), 420px)', sm: 'min(92vw, 440px)', md: '760px' }
+                      : { xs: '95%', sm: '90%', md: '800px', lg: '950px' },
+                  maxWidth: isMobileFullPage ? '100vw' : (isMobilePicker ? '760px' : '950px'),
+                  maxHeight: isMobileFullPage ? '100dvh' : (isMobilePicker ? 'calc(100dvh - 28px)' : '75vh'),
+                  height: isMobileFullPage ? '100dvh' : 'auto',
                   display: 'flex',
                   flexDirection: 'column',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  overflowY: isMobileFullPage ? 'hidden' : 'auto',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                 }}
               >
                 {/* Header */}
@@ -410,10 +428,14 @@ export const SingleDatePickerWithYear = ({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  px: 2.5,
-                  py: 1.75,
+                  px: 2,
+                  pt: isMobileFullPage ? 'calc(env(safe-area-inset-top, 0px) + 12px)' : 1.75,
+                  pb: 1.5,
                   borderBottom: '1px solid #E2E8F0',
-                  bgcolor: '#FAFBFC'
+                  bgcolor: '#FAFBFC',
+                  position: isMobileFullPage ? 'sticky' : 'static',
+                  top: 0,
+                  zIndex: 1
                 }}>
                   <Typography sx={{
                     fontSize: '1.0625rem',
@@ -439,8 +461,8 @@ export const SingleDatePickerWithYear = ({
                     }}
                     sx={{
                       minWidth: 'auto',
-                      width: '28px',
-                      height: '28px',
+                      width: '32px',
+                      height: '32px',
                       p: 0,
                       borderRadius: '50%',
                       color: '#64748B',
@@ -450,7 +472,7 @@ export const SingleDatePickerWithYear = ({
                       }
                     }}
                   >
-                    ✕
+                    X
                   </Button>
                 </Box>
 
@@ -458,32 +480,36 @@ export const SingleDatePickerWithYear = ({
                   flex: 1,
                   display: 'flex',
                   flexDirection: 'column',
-                  overflow: 'hidden',
+                  overflowX: 'hidden',
+                  overflowY: isMobileFullPage ? 'auto' : 'hidden',
+                  WebkitOverflowScrolling: 'touch',
                   bgcolor: 'white',
                   width: '100%',
+                  p: isMobilePicker ? 1.25 : 0,
+                  pb: isMobileFullPage ? 'calc(env(safe-area-inset-bottom, 0px) + 12px)' : undefined
                 }}>
                   <Box sx={{
                     flex: 1,
                     display: 'flex',
-                    flexDirection: { xs: 'column', md: 'row' },
+                    flexDirection: isPreviewBottom ? 'column' : { xs: 'column', md: 'row' },
                     gap: 0,
-                    overflow: 'hidden',
-                    minHeight: { md: 'calc(75vh - 180px)' },
+                    overflow: isMobileFullPage ? 'visible' : 'hidden',
+                    minHeight: isPreviewBottom ? 'auto' : { md: 'calc(75vh - 180px)' },
                   }}>
                     {/* Left Section - Filter Controls */}
                     <Box sx={{
-                      width: { xs: '100%', md: 450 },
+                      width: isPreviewBottom ? '100%' : { xs: '100%', md: 450 },
                       flexShrink: 0,
-                      borderRight: { md: '1px solid #E2E8F0' },
-                      borderBottom: { xs: '1px solid #E2E8F0', md: 'none' },
+                      borderRight: isPreviewBottom ? 'none' : { md: '1px solid #E2E8F0' },
+                      borderBottom: isPreviewBottom ? '1px solid #E2E8F0' : { xs: '1px solid #E2E8F0', md: 'none' },
                       bgcolor: '#FAFBFC',
-                      p: 2.25,
+                      p: isMobilePicker ? 1.5 : 2.25,
                       display: 'flex',
                       flexDirection: 'column',
                       gap: 1.25,
-                      overflowY: 'auto',
-                      maxHeight: { md: 'calc(75vh - 180px)' },
-                      minHeight: { md: 'calc(75vh - 180px)' },
+                      overflowY: isPreviewBottom ? 'visible' : 'auto',
+                      maxHeight: isPreviewBottom ? 'none' : { md: 'calc(75vh - 180px)' },
+                      minHeight: isPreviewBottom ? 'auto' : { md: 'calc(75vh - 180px)' },
                     }}>
                       {/* Render content - hanya mode manual */}
                       {showManualMode && (
@@ -502,17 +528,17 @@ export const SingleDatePickerWithYear = ({
                     {showManualMode && (
                       <Box sx={{ 
                         flex: 1,
-                        p: 2.25,
+                        p: isMobilePicker ? 1.5 : 2.25,
                         m: 0,
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'stretch',
                         justifyContent: 'flex-start',
-                        minHeight: { md: 'calc(75vh - 180px)' },
-                        overflow: 'hidden',
+                        minHeight: isPreviewBottom ? 'auto' : { md: 'calc(75vh - 180px)' },
+                        overflow: isPreviewBottom ? 'visible' : 'hidden',
                         bgcolor: '#FFFFFF',
-                        borderLeft: { md: '1px solid #E2E8F0' },
-                        borderTop: { xs: '1px solid #E2E8F0', md: 'none' },
+                        borderLeft: isPreviewBottom ? 'none' : { md: '1px solid #E2E8F0' },
+                        borderTop: isPreviewBottom ? '1px solid #E2E8F0' : { xs: '1px solid #E2E8F0', md: 'none' },
                       }}>
                         <Box sx={{
                           display: 'flex',
@@ -560,9 +586,9 @@ export const SingleDatePickerWithYear = ({
                             display: 'flex',
                             flexDirection: 'column',
                             gap: 0.75,
-                            maxHeight: 'calc(75vh - 250px)',
-                            overflowY: 'auto',
-                            pr: 0.5,
+                            maxHeight: isPreviewBottom ? 'none' : 'calc(75vh - 250px)',
+                            overflowY: isPreviewBottom ? 'visible' : 'auto',
+                            pr: isPreviewBottom ? 0 : 0.5,
                             '&::-webkit-scrollbar': {
                               width: '4px',
                             },
@@ -672,7 +698,7 @@ export const SingleDatePickerWithYear = ({
                               lineHeight: 1.6,
                               maxWidth: '250px'
                             }}>
-                              Belum ada tanggal yang dipilih. Gunakan kalender di panel kiri untuk memilih tanggal.
+                              Belum ada tanggal yang dipilih. Gunakan kalender di bagian atas untuk memilih tanggal.
                             </Typography>
                           </Box>
                         )}
@@ -683,13 +709,16 @@ export const SingleDatePickerWithYear = ({
                   {/* Tombol Batal dan Tambah Tanggal */}
                   <Box sx={{ 
                     display: 'flex', 
-                    gap: 1.25,
-                    px: 2.5,
-                    py: 1.75,
+                    gap: 1,
+                    px: isMobilePicker ? 1.25 : 2.5,
+                    py: isMobilePicker ? 1.25 : 1.75,
                     borderTop: '1px solid #E2E8F0',
                     bgcolor: '#FAFBFC',
-                    justifyContent: 'flex-end',
-                    flexShrink: 0
+                    justifyContent: isMobilePicker ? 'stretch' : 'flex-end',
+                    flexShrink: 0,
+                    position: isMobileFullPage ? 'sticky' : 'static',
+                    bottom: 0,
+                    zIndex: 1
                   }}>
                     <Button 
                       variant="outlined" 
@@ -714,9 +743,10 @@ export const SingleDatePickerWithYear = ({
                         fontWeight: 500,
                         fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
                         borderRadius: 1.5,
+                        flex: isMobilePicker ? 1 : '0 0 auto',
                         px: 2.25,
                         py: 0.75,
-                        minWidth: '90px',
+                        minWidth: isMobilePicker ? 0 : '90px',
                         height: '38px',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         '&:hover': {
@@ -748,9 +778,10 @@ export const SingleDatePickerWithYear = ({
                         fontWeight: 600,
                         fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
                         borderRadius: 1.5,
+                        flex: isMobilePicker ? 1 : '0 0 auto',
                         px: 2.5,
                         py: 0.75,
-                        minWidth: '180px',
+                        minWidth: isMobilePicker ? 0 : '180px',
                         height: '38px',
                         boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -772,7 +803,7 @@ export const SingleDatePickerWithYear = ({
                         }
                       }}
                     >
-                      Gunakan Range untuk Perbandingan ({validatedRanges.length})
+                      Perbandingan ({validatedRanges.length})
                     </Button>
                   </Box>
                 </Box>
@@ -922,3 +953,4 @@ export const SingleDatePickerWithYear = ({
 };
 
 export default SingleDatePickerWithYear;
+
