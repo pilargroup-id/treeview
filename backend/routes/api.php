@@ -28,16 +28,18 @@ Route::middleware('tree_view_auth')->group(function () {
         Route::post('/logout', [TreeViewAuthController::class, 'logout']);
     });
 
-    // Financial - semua user yang login bisa akses
     Route::prefix('financial')->group(function () {
-        Route::get('/monthly-revenue', [FinancialController::class, 'getMonthlyRevenue']);
-        Route::get('/invoice-sales', [FinancialController::class, 'getInvoiceSales']);
         Route::get('/last-update', [FinancialController::class, 'getLastUpdate']);
     });
 
-    // Activity Plans - hanya Gosave GT (department) ATAU Manager (job_level)
-    // Board of Director & IT otomatis lolos di dalam CheckPermission
-    Route::prefix('activity-plans')->middleware('check_permission:Gosave GT|Manager')->group(function () {
+    // Financial - KECUALI Gosave GT dan Manager (hanya Board Of Director & IT)
+    Route::prefix('financial')->middleware('check_permission:Board Of Director|IT')->group(function () {
+        Route::get('/monthly-revenue', [FinancialController::class, 'getMonthlyRevenue']);
+        Route::get('/invoice-sales', [FinancialController::class, 'getInvoiceSales']);
+    });
+
+    // Activity Plans - semua user yang login bisa akses (no check_permission)
+    Route::prefix('activity-plans')->group(function () {
         Route::get('/weekly-summary', [ActivityPlanController::class, 'weeklySummary']);
         Route::get('/monthly-visit', [MonthlyVisitController::class, 'index']);
         Route::get('/details', [ActivityDetailController::class, 'index']);

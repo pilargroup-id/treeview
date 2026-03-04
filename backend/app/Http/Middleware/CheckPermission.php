@@ -17,12 +17,6 @@ class CheckPermission
 
     public function handle(Request $request, Closure $next, ...$params)
     {
-        // Skip auth check untuk CORS preflight OPTIONS request
-        if ($request->getMethod() === 'OPTIONS') {
-            return $next($request);
-        }
-
-        // Ambil user_id yang sudah di-set oleh TreeViewAuthMiddleware
         $userId = $request->attributes->get('tree_view_user_id');
 
         if (!$userId) {
@@ -45,14 +39,6 @@ class CheckPermission
         $department = $permissions['department'];
         $jobLevel = $permissions['job_level'];
 
-        // Board of Director & IT -> all access
-        $fullAccessDepartments = ['Board Of Director', 'IT'];
-        if (in_array($department, $fullAccessDepartments)) {
-            $request->attributes->set('user_permissions', $permissions);
-            return $next($request);
-        }
-
-        // Check permission berdasarkan params route
         $hasPermission = false;
 
         foreach ($params as $param) {
