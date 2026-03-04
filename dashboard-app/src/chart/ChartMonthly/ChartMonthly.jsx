@@ -878,9 +878,7 @@ const SummaryCardCompact = React.memo(({
   dateRangeLabel = 'Belum dipilih',
   businessUnits, 
   invoiceData,
-  onClearRangeData,
-  onLoadData,
-  isLoading = false
+  onClearRangeData
 }) => {
   const getBusinessUnitText = () => {
     if (businessUnits && businessUnits.length > 0) {
@@ -901,7 +899,6 @@ const SummaryCardCompact = React.memo(({
     dateRangeLabel !== 'Belum dipilih' &&
     typeof onClearRangeData === 'function'
   );
-  const canLoadData = typeof onLoadData === 'function';
 
   const multiRangeSummaryPoints = useMemo(() => {
     if (filterType !== 'multi_range') {
@@ -992,48 +989,6 @@ const SummaryCardCompact = React.memo(({
         }}>
           Ringkasan Data
         </Typography>
-        {canLoadData ? (
-          <Button
-            variant="contained"
-            onClick={onLoadData}
-            disabled={isLoading}
-            size="small"
-            aria-label="Load data button"
-            sx={{
-              bgcolor: '#6BA3D0',
-              color: 'white',
-              textTransform: 'none',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-              py: 0.625,
-              px: 1.5,
-              borderRadius: '9px',
-              boxShadow: 'none',
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              '&:hover': {
-                bgcolor: '#5A9FD0',
-                boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)'
-              },
-              '&:active': {
-                transform: 'scale(0.98)',
-                transition: 'all 0.1s ease'
-              },
-              '&:disabled': {
-                bgcolor: '#F5F5F5',
-                color: '#BDBDBD',
-                transform: 'none',
-                boxShadow: 'none'
-              },
-              '&:focus-visible': {
-                outline: '2px solid #6BA3D0',
-                outlineOffset: '2px'
-              }
-            }}
-          >
-            {isLoading ? 'Memuat...' : 'Muat Data'}
-          </Button>
-        ) : null}
       </Box>
 
       <Box sx={{
@@ -2135,7 +2090,6 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
               onLoadData={handleLoadData}
               onRefreshData={handleRefreshData}
               isLoading={loading}
-              showLoadButton={false}
             />
           </Box>
 
@@ -2254,8 +2208,6 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
                   businessUnits={businessUnits}
                   invoiceData={allData.data || []}
                   onClearRangeData={handleClearRangeData}
-                  onLoadData={handleLoadData}
-                  isLoading={loading}
                 />
               )}
             </Box>
