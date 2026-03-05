@@ -1,12 +1,5 @@
 import { processData } from '../ChartMonthly/chartHelpers';
-
-function getAuthHeaders() {
-  const token = localStorage.getItem('authToken');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-  };
-}
+import { fetchWithAuth } from '../../utils/fetchWithAuth';
 
 export const GOSAVE_SUB_BUSINESS_UNIT_OPTIONS = ['Gosave GT', 'Gosave E-Com', 'Gosave B2B'];
 const GOSAVE_BUSINESS_UNIT = 'Gosave';
@@ -351,9 +344,8 @@ const fetchYearlyInvoiceSalesData = async ({
   invoiceSalesUrl
 }) => {
   const params = buildGosaveMonthlyYearQueryParams({ year, subBusinessUnit });
-  const response = await fetch(`${invoiceSalesUrl}?${params.toString()}`, {
+  const response = await fetchWithAuth(`${invoiceSalesUrl}?${params.toString()}`, {
     method: 'GET',
-    headers: getAuthHeaders(),
   });
 
   let result = null;
@@ -496,9 +488,8 @@ export const loadGosaveYearSummary = async (
         params.append('channel[]', normalizedSubBusinessUnit);
       }
 
-      const response = await fetch(`${invoiceSalesUrl}?${params.toString()}`, {
+      const response = await fetchWithAuth(`${invoiceSalesUrl}?${params.toString()}`, {
         method: 'GET',
-        headers: getAuthHeaders(),
       });
 
       let result = null;
@@ -561,9 +552,8 @@ const fetchGosaveCompareYearByRange = async ({
     throw new Error(`Range ${rangeIndex + 1} tidak valid untuk compare_year`);
   }
 
-  const response = await fetch(`${invoiceSalesUrl}?${params.toString()}`, {
+  const response = await fetchWithAuth(`${invoiceSalesUrl}?${params.toString()}`, {
     method: 'GET',
-    headers: getAuthHeaders(),
   });
 
   let result = null;
