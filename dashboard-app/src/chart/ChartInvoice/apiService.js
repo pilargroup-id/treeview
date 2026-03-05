@@ -1,12 +1,5 @@
 import { API_URL } from '../../config/api';
-
-function getAuthHeaders() {
-  const token = localStorage.getItem('authToken');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-  };
-}
+import { fetchWithAuth } from '../../utils/fetchWithAuth';
 
 export function buildApiParams({
   businessUnits,
@@ -193,9 +186,8 @@ export async function loadYearSummary(availableYears, setYearSummary, setYearSum
     });
     
     const url = `${API_URL}/financial/invoice-sales?${params.toString()}`;
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'GET',
-      headers: getAuthHeaders(),
     });
     const result = await response.json();
     
@@ -357,9 +349,8 @@ export async function loadInvoiceSales({
           const url = `${API_URL}/financial/invoice-sales?${params.toString()}`;
           console.log(`Request URL for range ${range.start} - ${range.end} (${range.year}):`, url);
           
-          const response = await fetch(url, {
+          const response = await fetchWithAuth(url, {
             method: 'GET',
-            headers: getAuthHeaders(),
           });
           
           if (!response.ok) {

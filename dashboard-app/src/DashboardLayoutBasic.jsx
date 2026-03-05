@@ -27,14 +27,8 @@ import SidebarLogout from './login/logout';
 import { API_URL } from './config/api';
 import TreeViewWordmark from './components/TreeViewWordmark';
 import NavBottom from './mobile/templateMobile/NavBottom';
+import { fetchWithAuth } from './utils/fetchWithAuth';
 
-function getAuthHeaders() {
-  const token = localStorage.getItem('authToken');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-  };
-}
 
 const DASHBOARD_BACKGROUND_LIGHT =
   'linear-gradient(135deg, #F5F7FA 0%, #F8F9FA 50%, #FAFBFC 100%)';
@@ -558,9 +552,8 @@ function LastUpdateHeader() {
 
   React.useEffect(() => {
     setIsLoading(true);
-    fetch(`${API_URL}/financial/last-update`, {
+    fetchWithAuth(`${API_URL}/financial/last-update`, {
       method: 'GET',
-      headers: getAuthHeaders(),
     })
       .then(response => response.json())
       .then(data => {
