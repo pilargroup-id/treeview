@@ -8,6 +8,14 @@ import 'w2ui/w2ui-2.0.min.css';
 import { API_URL } from '../config/api';
 import SummarySales from './SummaryMonthlyVisit';
 
+function getAuthHeaders() {
+  const token = localStorage.getItem('authToken');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+}
+
 const GRID_NAME = 'reportSalesGrid';
 const LAYOUT_NAME = 'reportSalesLayout';
 
@@ -123,7 +131,10 @@ export default function ReportTableSales() {
     setIsLoading(true);
     setLoadError(null);
 
-    fetch(url, { signal: controller.signal })
+    fetch(url, { 
+      signal: controller.signal,
+      headers: getAuthHeaders(),
+    })
       .then(async (response) => {
         const body = await response.json().catch(() => null);
         if (!response.ok) {
