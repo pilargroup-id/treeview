@@ -1172,85 +1172,80 @@ const resolveMonthIndexFromSummaryItem = (item) => {
   return null;
 };
 
-// year summary monthly revenue
+// year summary (invoice-sales)
 export async function loadYearSummary(
   availableYears,
   setYearSummary,
   setYearSummaryLoading,
-  accountHeader = '4000.01.00',
+  _accountHeader = '4000.01.00',
   businessUnits = new Set(['Gosave', 'Goto']),
-  monthlyRevenueUrl = DEFAULT_MONTHLY_REVENUE_URL
+  invoiceSalesUrl = DEFAULT_INVOICE_SALES_URL
 ) {
+  const normalizedYears = normalizeYears(Array.isArray(availableYears) ? availableYears : []);
+  const summaryTemplate = normalizedYears.reduce((accumulator, year) => {
+    accumulator[year] = { sales: 0, quantity: 0, order: 0, monthlySales: [...EMPTY_MONTHLY_SALES] };
+    return accumulator;
+  }, {});
+
   try {
     setYearSummaryLoading(true);
 
-    const normalizedYears = Array.isArray(availableYears) ? availableYears : [];
     if (normalizedYears.length === 0) {
       setYearSummary({});
       return;
     }
 
-    const summaryEntries = await Promise.all(
-      normalizedYears.map(async (year) => {
-        const startDate = `${year}-01-01`;
-        const endDate = `${year}-12-31`;
-        const queryParams = buildMonthlyRevenueQueryParams(
-          accountHeader,
-          startDate,
-          endDate,
-          businessUnits
-        );
+    const queryParams = new URLSearchParams();
+    queryParams.append('date_type', 'year');
 
-        try {
-          const response = await fetch(`${monthlyRevenueUrl}?${queryParams.toString()}`, {
-            method: 'GET',
-            headers: getAuthHeaders(),
-          });
+    normalizedYears.forEach((year) => {
+      queryParams.append('years[]', String(year));
+    });
 
-          const result = await response.json();
+    normalizeBusinessUnits(businessUnits)
+      .map((businessUnit) => String(businessUnit || '').trim())
+      .filter(Boolean)
+      .forEach((businessUnit) => {
+        queryParams.append('business_units[]', businessUnit);
+      });
 
-          if (response.ok && result.status === 'success' && Array.isArray(result.data)) {
-            let totalSales = 0;
-            let totalQuantity = 0;
-            let totalOrder = 0;
-            const monthlySales = [...EMPTY_MONTHLY_SALES];
+    const response = await fetch(`${invoiceSalesUrl}?${queryParams.toString()}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    const result = await response.json();
 
-            result.data.forEach((item) => {
-              const credit = parseFloat(item.total_credit) || 0;
-              const debit = parseFloat(item.total_debit) || 0;
-              const difference = parseFloat(item.total_difference) || (credit - debit);
-              const parsedQuantity = parseFloat(item.total_quantity ?? item.quantity);
-              const parsedOrder = parseFloat(item.invoice_count ?? item.order);
-              const monthIndex = resolveMonthIndexFromSummaryItem(item);
+    if (response.ok && result?.status === 'success' && Array.isArray(result?.data)) {
+      result.data.forEach((item) => {
+        const parsedYear = Number.parseInt(item?.year, 10);
+        const periodYear = Number.parseInt(String(item?.period || '').slice(0, 4), 10);
+        const year = Number.isInteger(parsedYear)
+          ? parsedYear
+          : Number.isInteger(periodYear)
+            ? periodYear
+            : null;
 
-              totalSales += difference;
-              totalQuantity += Number.isFinite(parsedQuantity) ? parsedQuantity : 0;
-              totalOrder += Number.isFinite(parsedOrder) ? parsedOrder : 0;
-
-              if (monthIndex !== null) {
-                monthlySales[monthIndex] += difference;
-              }
-            });
-
-            return [year, { sales: totalSales, quantity: totalQuantity, order: totalOrder, monthlySales }];
-          }
-
-          return [year, { sales: 0, quantity: 0, order: 0, monthlySales: [...EMPTY_MONTHLY_SALES] }];
-        } catch (error) {
-          console.error(`Error loading data for year ${year}:`, error);
-          return [year, { sales: 0, quantity: 0, order: 0, monthlySales: [...EMPTY_MONTHLY_SALES] }];
+        if (!Number.isInteger(year) || !summaryTemplate[year]) {
+          return;
         }
-      })
-    );
 
-    const summary = summaryEntries.reduce((accumulator, [year, totals]) => {
-      accumulator[year] = totals;
-      return accumulator;
-    }, {});
+        const metrics = resolveInvoiceMetrics(item);
+        const monthIndex = resolveMonthIndexFromSummaryItem(item);
 
-    setYearSummary(summary);
+        summaryTemplate[year].sales += metrics.total;
+        summaryTemplate[year].quantity += metrics.quantity;
+        summaryTemplate[year].order += metrics.order;
+
+        if (monthIndex !== null) {
+          summaryTemplate[year].monthlySales[monthIndex] += metrics.total;
+        }
+      });
+    }
+
+    setYearSummary(summaryTemplate);
   } catch (error) {
     console.error('Error loading year summary:', error);
+    setYearSummary(summaryTemplate);
   } finally {
     setYearSummaryLoading(false);
   }

@@ -4,13 +4,11 @@ import { Box, Tab, Tabs } from '@mui/material';
 const SWIPE_DISTANCE_THRESHOLD = 46;
 const SWIPE_VELOCITY_THRESHOLD = 0.36;
 const SLIDE_GAP = 14;
-const CONTAINER_PADDING = 16;
+const DEFAULT_CONTAINER_PADDING = 16;
 const TRACK_TRANSITION = 'transform 460ms cubic-bezier(0.22, 1, 0.36, 1)';
 const MAX_ROTATE_Y = 52;
 const MAX_SCALE_REDUCTION = 0.08;
 const MAX_OPACITY_REDUCTION = 0.34;
-const INDICATOR_SIZE = 8;
-const INDICATOR_GAP = 9;
 
 function clamp(value, min, max) {
   if (max < min) return min;
@@ -32,8 +30,13 @@ function CardCarousel({
   initialIndex = 0,
   showTabs = false,
   showIndicators = true,
-  sx
+  indicatorsPlacement = 'bottom',
+  sx,
+  containerPadding = DEFAULT_CONTAINER_PADDING
 }) {
+  const normalizedContainerPadding = Number.isFinite(Number(containerPadding))
+    ? Math.max(Number(containerPadding), 0)
+    : DEFAULT_CONTAINER_PADDING;
   const safeItems = Array.isArray(items) ? items : [];
   const totalItems = safeItems.length;
   const maxIndex = Math.max(totalItems - 1, 0);
@@ -160,15 +163,110 @@ function CardCarousel({
     return null;
   }
 
-  const fallbackSlideWidth = `calc(100% - ${CONTAINER_PADDING * 2}px)`;
-  const slideWidth = Math.max(viewportWidth - CONTAINER_PADDING * 2, 0);
+  const fallbackSlideWidth = `calc(100% - ${normalizedContainerPadding * 2}px)`;
+  const slideWidth = Math.max(viewportWidth - normalizedContainerPadding * 2, 0);
   const stepWidth = slideWidth + SLIDE_GAP;
-  const baseTranslate = CONTAINER_PADDING - activeIndex * stepWidth;
+  const baseTranslate = normalizedContainerPadding - activeIndex * stepWidth;
   const transformX = baseTranslate + dragOffset;
   const progressIndex = stepWidth > 0 ? activeIndex - dragOffset / stepWidth : activeIndex;
   const perspectiveOriginX =
     stepWidth > 0 ? progressIndex * stepWidth + slideWidth / 2 : slideWidth / 2;
-  const indicatorTrackWidth = totalItems * INDICATOR_SIZE + (totalItems - 1) * INDICATOR_GAP;
+  const shouldRenderIndicators = hasMultipleItems && showIndicators && !showTabs;
+  const showIndicatorsOnTop = indicatorsPlacement === 'top';
+
+  const renderIndicators = () => {
+    if (!shouldRenderIndicators) {
+      return null;
+    }
+
+    return (
+      <Box
+        sx={{
+          mt: showIndicatorsOnTop ? 0 : 1.25,
+          mb: showIndicatorsOnTop ? 1.1 : 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <Tabs
+          value={activeIndex}
+          onChange={handleTabChange}
+          variant="fullWidth"
+          aria-label="mobile carousel year tabs"
+          sx={{
+            width: '100%',
+            minHeight: 34,
+            '& .MuiTabs-flexContainer': {
+              gap: 0.75
+            },
+            '& .MuiTabs-indicator': {
+              display: 'none'
+            }
+          }}
+        >
+          {safeItems.map((item, index) => {
+            const key = getItemKey ? getItemKey(item, index) : index;
+            const tabLabel = resolveTabLabel(item, index);
+            return (
+              <Tab
+                key={`indicator-tab-${key}`}
+                value={index}
+                label={
+                  <Box
+                    component="span"
+                    sx={{
+                      position: 'relative',
+                      zIndex: 1,
+                      lineHeight: 1
+                    }}
+                  >
+                    {tabLabel}
+                  </Box>
+                }
+                aria-label={`Pilih card ${index + 1}`}
+                sx={{
+                  minHeight: 34,
+                  py: 0.45,
+                  px: 1.25,
+                  borderRadius: '999px',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  color: 'rgba(71, 85, 105, 0.9)',
+                  minWidth: 0,
+                  maxWidth: 'none',
+                  flex: 1,
+                  border: '1px solid rgba(148, 163, 184, 0.45)',
+                  transition: 'all 220ms ease',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    inset: 0,
+                    borderRadius: '999px',
+                    background: 'linear-gradient(90deg, #6BA3D0 0%, #87BBE3 100%)',
+                    opacity: 0,
+                    transition: 'opacity 220ms ease',
+                    zIndex: 0
+                  },
+                  '&.Mui-selected': {
+                    color: '#FFFFFF !important',
+                    borderColor: 'transparent',
+                    boxShadow: '0 4px 12px rgba(107, 163, 208, 0.32)'
+                  },
+                  '&.Mui-selected::before': {
+                    opacity: 1
+                  }
+                }}
+              />
+            );
+          })}
+        </Tabs>
+      </Box>
+    );
+  };
 
   return (
     <Box
@@ -199,6 +297,8 @@ function CardCarousel({
         </Box>
       ) : null}
 
+      {showIndicatorsOnTop ? renderIndicators() : null}
+
       <Box
         ref={viewportRef}
         onTouchStart={handleTouchStart}
@@ -208,40 +308,10 @@ function CardCarousel({
         sx={{
           overflow: 'hidden',
           width: '100%',
-          borderRadius: '24px',
-          border: '1px solid rgba(148, 163, 184, 0.34)',
-          background:
-            'linear-gradient(178deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 251, 255, 0.92) 100%)',
-          boxShadow:
-            '0 18px 36px rgba(15, 23, 42, 0.11), 0 8px 18px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.62)',
           position: 'relative',
           px: 0,
-          py: 1.2,
+          py: 0,
           touchAction: hasMultipleItems ? 'pan-y' : 'auto',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            inset: 0,
-            borderRadius: '24px',
-            background:
-              'radial-gradient(circle at 100% 0%, rgba(107, 163, 208, 0.24), transparent 58%), radial-gradient(circle at 0% 100%, rgba(151, 194, 225, 0.22), transparent 54%)',
-            pointerEvents: 'none',
-            zIndex: 0
-          },
-          '&::after': {
-            content: '""',
-            position: 'absolute',
-            left: 12,
-            right: 12,
-            bottom: 8,
-            height: 44,
-            borderRadius: '16px',
-            background: 'linear-gradient(180deg, rgba(173, 208, 233, 0), rgba(173, 208, 233, 0.23))',
-            pointerEvents: 'none',
-            zIndex: 0
-          }
         }}
       >
         <Box
@@ -286,11 +356,13 @@ function CardCarousel({
                     ? 'none'
                     : 'opacity 360ms ease, transform 460ms cubic-bezier(0.22, 1, 0.36, 1)',
                   '& > .MuiCard-root': {
-                    borderRadius: '20px',
+                    borderRadius: '18px',
                     boxShadow:
                       isActive
-                        ? '0 22px 36px rgba(15, 23, 42, 0.14), 0 8px 18px rgba(15, 23, 42, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.38)'
-                        : '0 12px 24px rgba(15, 23, 42, 0.08), 0 5px 12px rgba(15, 23, 42, 0.06)',
+                        ? '0 8px 14px rgba(15, 23, 42, 0.08)'
+                        : '0 4px 10px rgba(15, 23, 42, 0.05)',
+                    backgroundColor: '#FFFFFF',
+                    overflow: 'hidden',
                     transition:
                       'box-shadow 320ms ease, transform 320ms cubic-bezier(0.22, 1, 0.36, 1)'
                   }
@@ -303,55 +375,7 @@ function CardCarousel({
         </Box>
       </Box>
 
-      {hasMultipleItems && showIndicators ? (
-        <Box
-          sx={{
-            mt: 1.35,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          <Box
-            sx={{
-              width: `${indicatorTrackWidth}px`,
-              display: 'flex',
-              alignItems: 'center',
-              gap: `${INDICATOR_GAP}px`,
-              py: 0.1
-            }}
-          >
-            {safeItems.map((item, index) => {
-              const key = getItemKey ? getItemKey(item, index) : index;
-              const isActive = index === activeIndex;
-              return (
-                <Box
-                  key={`dot-${key}`}
-                  component="button"
-                  type="button"
-                  aria-label={`Pilih card ${index + 1}`}
-                  onClick={() => setActiveIndex(index)}
-                  sx={{
-                    width: `${INDICATOR_SIZE}px`,
-                    height: `${INDICATOR_SIZE}px`,
-                    borderRadius: '50%',
-                    border: 'none',
-                    p: 0,
-                    m: 0,
-                    cursor: 'pointer',
-                    background: isActive
-                      ? 'linear-gradient(90deg, #6BA3D0 0%, #87BBE3 100%)'
-                      : 'rgba(148, 163, 184, 0.42)',
-                    boxShadow: isActive ? '0 2px 8px rgba(107, 163, 208, 0.45)' : 'none',
-                    transform: isActive ? 'scale(1.22)' : 'scale(1)',
-                    transition: 'all 220ms ease'
-                  }}
-                />
-              );
-            })}
-          </Box>
-        </Box>
-      ) : null}
+      {!showIndicatorsOnTop ? renderIndicators() : null}
     </Box>
   );
 }
