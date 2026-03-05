@@ -1061,7 +1061,7 @@ const LegendToggles = React.memo(({
   return (
     <Box sx={{ 
       display: 'flex', 
-      gap: 1, 
+      gap: 1.25, 
       mb: 1,
       flexWrap: 'wrap',
       ...sx
@@ -1079,38 +1079,38 @@ const LegendToggles = React.memo(({
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: 0.75,
+          gap: 0.5,
           cursor: 'pointer',
-          padding: '4px 8px',
-          borderRadius: '8px',
-          transition: 'all 0.2s',
+          padding: 0,
+          transition: 'opacity 0.2s ease',
           opacity: showCredit ? 1 : 0.5,
           '&:hover': {
-            bgcolor: '#FAFAFA'
+            opacity: showCredit ? 0.85 : 0.65
           },
           '&:focus-visible': {
             outline: '2px solid #6BA3D0',
             outlineOffset: '2px'
           }
         }}
-        aria-label="Toggle Credit visibility"
+        aria-label="Toggle Revenue visibility"
         aria-pressed={showCredit}
       >
         <Box
           sx={{
-            width: 12,
-            height: 12,
-            borderRadius: '4px',
+            width: 10,
+            height: 10,
+            borderRadius: '2px',
             bgcolor: showCredit ? SERIES_COLORS.credit : '#E0E0E0',
             border: `1px solid ${showCredit ? SERIES_COLORS.credit : '#BDBDBD'}`
           }}
         />
         <Typography sx={{ 
           fontSize: { xs: '0.6875rem', sm: '0.75rem', md: '0.75rem' },
-          color: showCredit ? '#212121' : '#9E9E9E',
+          fontWeight: 600,
+          color: showCredit ? '#1F2937' : '#94A3B8',
           fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
         }}>
-          Credit
+          Revenue
         </Typography>
       </Box>
       
@@ -1127,38 +1127,38 @@ const LegendToggles = React.memo(({
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: 0.75,
+          gap: 0.5,
           cursor: 'pointer',
-          padding: '4px 8px',
-          borderRadius: '8px',
-          transition: 'all 0.2s',
+          padding: 0,
+          transition: 'opacity 0.2s ease',
           opacity: showDebit ? 1 : 0.5,
           '&:hover': {
-            bgcolor: '#FAFAFA'
+            opacity: showDebit ? 0.85 : 0.65
           },
           '&:focus-visible': {
             outline: '2px solid #6BA3D0',
             outlineOffset: '2px'
           }
         }}
-        aria-label="Toggle Debit visibility"
+        aria-label="Toggle Retur visibility"
         aria-pressed={showDebit}
       >
         <Box
           sx={{
-            width: 12,
-            height: 12,
-            borderRadius: '4px',
+            width: 10,
+            height: 10,
+            borderRadius: '2px',
             bgcolor: showDebit ? SERIES_COLORS.debit : '#E0E0E0',
             border: `1px solid ${showDebit ? SERIES_COLORS.debit : '#BDBDBD'}`
           }}  
         />
         <Typography sx={{ 
           fontSize: { xs: '0.6875rem', sm: '0.75rem', md: '0.75rem' },
-          color: showDebit ? '#212121' : '#9E9E9E',
+          fontWeight: 600,
+          color: showDebit ? '#1F2937' : '#94A3B8',
           fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
         }}>
-          Debit
+          Retur
         </Typography>
       </Box>
       
@@ -1175,21 +1175,20 @@ const LegendToggles = React.memo(({
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: 0.75,
+          gap: 0.5,
           cursor: 'pointer',
-          padding: '4px 8px',
-          borderRadius: '8px',
-          transition: 'all 0.2s',
+          padding: 0,
+          transition: 'opacity 0.2s ease',
           opacity: showTotal ? 1 : 0.5,
           '&:hover': {
-            bgcolor: '#FAFAFA'
+            opacity: showTotal ? 0.85 : 0.65
           },
           '&:focus-visible': {
             outline: '2px solid #6BA3D0',
             outlineOffset: '2px'
           }
         }}
-        aria-label="Toggle Total visibility"
+        aria-label="Toggle Net Revenue visibility"
         aria-pressed={showTotal}
       >
         <Box
@@ -1202,10 +1201,11 @@ const LegendToggles = React.memo(({
         />
         <Typography sx={{ 
           fontSize: { xs: '0.6875rem', sm: '0.75rem', md: '0.75rem' },
-          color: showTotal ? '#212121' : '#9E9E9E',
+          fontWeight: 600,
+          color: showTotal ? '#1F2937' : '#94A3B8',
           fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
         }}>
-          Total (Credit - Debit)
+          Net Revenue
         </Typography>
       </Box>
     </Box>

@@ -5,7 +5,7 @@ import { BarPlot } from '@mui/x-charts/BarChart';
 import { ChartsXAxis } from '@mui/x-charts/ChartsXAxis';
 import { ChartsYAxis } from '@mui/x-charts/ChartsYAxis';
 import { ChartsGrid } from '@mui/x-charts/ChartsGrid';
-import { ChartsTooltip } from '@mui/x-charts/ChartsTooltip';
+import { ChartsTooltip, ChartsTooltipContainer, useAxesTooltip } from '@mui/x-charts/ChartsTooltip';
 import { ChartsAxisHighlight } from '@mui/x-charts/ChartsAxisHighlight';
 import dayjs from 'dayjs';
 import { 
@@ -40,7 +40,9 @@ import BusinessIcon from '@mui/icons-material/Business';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import YearsCardMonthly from './YearsCardMonthly';
-import SummaryCardMonthlyMobile from './SummaryCardMonthlyMobile';
+import MobileRingkasanBU from '../../mobile/mobileComponents/revenue/revenueBU/MobileRingkasanBU';
+import MobileYearsCardBU from '../../mobile/mobileComponents/revenue/revenueBU/MobileYearsCardBU';
+import MobileChartBU from '../../mobile/mobileComponents/revenue/revenueBU/MobileChartBU';
 import RangeDateFilter from '../ChartInvoice/components/filters/RangeTanggal/RangeDateFilter';
 import SpecificDateFilter from '../ChartInvoice/components/filters/TanggalTertentu/SpecificDateFilter';
 import RangeDateMobile from '../../mobile/templateMobile/RangeDateMobile';
@@ -306,6 +308,168 @@ const formatSeriesValue = (value, formatter) => {
 const formatDetailedSeriesValue = (value) => {
   return formatValueInDynamicUnit(value);
 };
+
+const TOOLTIP_YEAR_REGEX = /\((\d{4})\)\s*$/;
+const TOOLTIP_METRIC_LABEL_MAP = {
+  Credit: 'Revenue',
+  Debit: 'Retur',
+  Total: 'Net Revenue',
+  'Total (Credit - Debit)': 'Net Revenue'
+};
+
+const normalizeTooltipMetricLabel = (label) => {
+  const normalizedLabel = String(label || '').trim();
+  if (!normalizedLabel) {
+    return 'Value';
+  }
+
+  return TOOLTIP_METRIC_LABEL_MAP[normalizedLabel] || normalizedLabel;
+};
+
+const extractTooltipYearAndLabel = (formattedLabel) => {
+  const label = String(formattedLabel || '').trim();
+  const match = label.match(TOOLTIP_YEAR_REGEX);
+  if (!match) {
+    return { year: '-', metricLabel: normalizeTooltipMetricLabel(label) };
+  }
+
+  return {
+    year: match[1],
+    metricLabel: normalizeTooltipMetricLabel(label.replace(TOOLTIP_YEAR_REGEX, '').trim())
+  };
+};
+
+const MonthlyComparisonTooltip = React.memo(({ enabled = false }) => {
+  const tooltipData = useAxesTooltip();
+  if (!enabled || !Array.isArray(tooltipData) || tooltipData.length === 0) {
+    return null;
+  }
+
+  const axisTooltip = tooltipData[0];
+  const groupedByYear = new Map();
+
+  (axisTooltip?.seriesItems || []).forEach((seriesItem) => {
+    if (seriesItem?.formattedValue == null) {
+      return;
+    }
+
+    const { year, metricLabel } = extractTooltipYearAndLabel(seriesItem.formattedLabel);
+    const yearBucket = groupedByYear.get(year) || [];
+    yearBucket.push({
+      key: `${seriesItem.seriesId}-${year}`,
+      color: seriesItem.color,
+      metricLabel,
+      value: seriesItem.formattedValue
+    });
+    groupedByYear.set(year, yearBucket);
+  });
+
+  if (groupedByYear.size === 0) {
+    return null;
+  }
+
+  const orderedYears = Array.from(groupedByYear.keys()).sort((left, right) => Number(left) - Number(right));
+  const isMultiYearTooltip = orderedYears.length > 1;
+
+  return (
+    <ChartsTooltipContainer trigger="axis">
+      <Card
+        sx={{
+          p: 1.25,
+          borderRadius: '10px',
+          border: '1px solid #E5E7EB',
+          boxShadow: '0 8px 24px rgba(15, 23, 42, 0.16)',
+          minWidth: orderedYears.length > 1 ? 260 : 180,
+          bgcolor: '#FFFFFF'
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: '0.75rem',
+            fontWeight: isMultiYearTooltip ? 400 : 700,
+            color: '#111827',
+            mb: 0.75,
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+          }}
+        >
+          {axisTooltip?.axisFormattedValue || axisTooltip?.axisValue || '-'}
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${orderedYears.length}, minmax(0, 1fr))`,
+            gap: 1.25
+          }}
+        >
+          {orderedYears.map((year) => (
+            <Box key={year} sx={{ minWidth: 0 }}>
+              <Typography
+                sx={{
+                  fontSize: '0.7rem',
+                  fontWeight: isMultiYearTooltip ? 400 : 700,
+                  color: '#4B5563',
+                  mb: 0.5,
+                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+                }}
+              >
+                {year}
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
+                {(groupedByYear.get(year) || []).map((item) => (
+                  <Box
+                    key={item.key}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 0.75
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          bgcolor: item.color,
+                          flexShrink: 0
+                        }}
+                      />
+                      <Typography
+                        sx={{
+                          fontSize: '0.69rem',
+                          color: '#6B7280',
+                          lineHeight: 1.2,
+                          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+                        }}
+                      >
+                        {item.metricLabel}
+                      </Typography>
+                    </Box>
+                    <Typography
+                      sx={{
+                        fontSize: '0.7rem',
+                        fontWeight: isMultiYearTooltip ? 400 : 700,
+                        color: '#111827',
+                        lineHeight: 1.2,
+                        whiteSpace: 'nowrap',
+                        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+                      }}
+                    >
+                      {item.value}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      </Card>
+    </ChartsTooltipContainer>
+  );
+});
+
+MonthlyComparisonTooltip.displayName = 'MonthlyComparisonTooltip';
 
 const FilterTypeDropdown = React.memo(({ value, onChange }) => {
   const formControlRef = useRef(null);
@@ -719,7 +883,7 @@ const LegendToggles = React.memo(({
   return (
     <Box sx={{ 
       display: 'flex', 
-      gap: 1, 
+      gap: 1.25, 
       mb: 1,
       flexWrap: 'wrap',
       ...sx
@@ -737,38 +901,38 @@ const LegendToggles = React.memo(({
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: 0.75,
+          gap: 0.5,
           cursor: 'pointer',
-          padding: '4px 8px',
-          borderRadius: '8px',
-          transition: 'all 0.2s',
+          padding: 0,
+          transition: 'opacity 0.2s ease',
           opacity: showCredit ? 1 : 0.5,
           '&:hover': {
-            bgcolor: '#FAFAFA'
+            opacity: showCredit ? 0.85 : 0.65
           },
           '&:focus-visible': {
             outline: '2px solid #6BA3D0',
             outlineOffset: '2px'
           }
         }}
-        aria-label="Toggle Credit visibility"
+        aria-label="Toggle Revenue visibility"
         aria-pressed={showCredit}
       >
         <Box
           sx={{
-            width: 12,
-            height: 12,
-            borderRadius: '4px',
+            width: 10,
+            height: 10,
+            borderRadius: '2px',
             bgcolor: showCredit ? SERIES_COLORS.credit : '#E0E0E0',
             border: `1px solid ${showCredit ? SERIES_COLORS.credit : '#BDBDBD'}`
           }}
         />
         <Typography sx={{ 
           fontSize: { xs: '0.6875rem', sm: '0.75rem', md: '0.75rem' },
-          color: showCredit ? '#212121' : '#9E9E9E',
+          fontWeight: 600,
+          color: showCredit ? '#1F2937' : '#94A3B8',
           fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
         }}>
-          Credit
+          Revenue
         </Typography>
       </Box>
       
@@ -785,38 +949,38 @@ const LegendToggles = React.memo(({
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: 0.75,
+          gap: 0.5,
           cursor: 'pointer',
-          padding: '4px 8px',
-          borderRadius: '8px',
-          transition: 'all 0.2s',
+          padding: 0,
+          transition: 'opacity 0.2s ease',
           opacity: showDebit ? 1 : 0.5,
           '&:hover': {
-            bgcolor: '#FAFAFA'
+            opacity: showDebit ? 0.85 : 0.65
           },
           '&:focus-visible': {
             outline: '2px solid #6BA3D0',
             outlineOffset: '2px'
           }
         }}
-        aria-label="Toggle Debit visibility"
+        aria-label="Toggle Retur visibility"
         aria-pressed={showDebit}
       >
         <Box
           sx={{
-            width: 12,
-            height: 12,
-            borderRadius: '4px',
+            width: 10,
+            height: 10,
+            borderRadius: '2px',
             bgcolor: showDebit ? SERIES_COLORS.debit : '#E0E0E0',
             border: `1px solid ${showDebit ? SERIES_COLORS.debit : '#BDBDBD'}`
           }}  
         />
         <Typography sx={{ 
           fontSize: { xs: '0.6875rem', sm: '0.75rem', md: '0.75rem' },
-          color: showDebit ? '#212121' : '#9E9E9E',
+          fontWeight: 600,
+          color: showDebit ? '#1F2937' : '#94A3B8',
           fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
         }}>
-          Debit
+          Retur
         </Typography>
       </Box>
       
@@ -833,21 +997,20 @@ const LegendToggles = React.memo(({
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: 0.75,
+          gap: 0.5,
           cursor: 'pointer',
-          padding: '4px 8px',
-          borderRadius: '8px',
-          transition: 'all 0.2s',
+          padding: 0,
+          transition: 'opacity 0.2s ease',
           opacity: showTotal ? 1 : 0.5,
           '&:hover': {
-            bgcolor: '#FAFAFA'
+            opacity: showTotal ? 0.85 : 0.65
           },
           '&:focus-visible': {
             outline: '2px solid #6BA3D0',
             outlineOffset: '2px'
           }
         }}
-        aria-label="Toggle Total visibility"
+        aria-label="Toggle Net Revenue visibility"
         aria-pressed={showTotal}
       >
         <Box
@@ -860,10 +1023,11 @@ const LegendToggles = React.memo(({
         />
         <Typography sx={{ 
           fontSize: { xs: '0.6875rem', sm: '0.75rem', md: '0.75rem' },
-          color: showTotal ? '#212121' : '#9E9E9E',
+          fontWeight: 600,
+          color: showTotal ? '#1F2937' : '#94A3B8',
           fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
         }}>
-          Total (Credit - Debit)
+          Net Revenue
         </Typography>
       </Box>
     </Box>
@@ -1980,7 +2144,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
       setYearSummaryLoading,
       '4000.01.00',
       selectedBusinessUnits,
-      MONTHLY_REVENUE_URL
+      INVOICE_SALES_URL
     );
   }, [availableYears, selectedBusinessUnits]);
 
@@ -2043,26 +2207,6 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
           zIndex: 0
         }
       }}>
-        {isMobileScreen ? (
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'start',
-              position: 'relative',
-              zIndex: 1
-            }}
-          >
-            <YearsCardMonthly
-              availableYears={availableYears}
-              selectedYears={normalizedSelectedYears}
-              yearTotals={yearTotals}
-              onToggleYear={toggleYear}
-              isLoading={yearSummaryLoading}
-              dateFilterType={filterType}
-            />
-          </Box>
-        ) : null}
-
         {/* Baris Atas: Filter Section dan SummaryCard */}
         <Box sx={{
           display: 'flex',
@@ -2103,18 +2247,29 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
             height: '100%'
           }}>
             <Box sx={{
-              display: isMobileScreen ? 'none' : 'flex',
+              display: 'flex',
               alignItems: 'start',
               flexShrink: 0
             }}>
-              <YearsCardMonthly
-                availableYears={availableYears}
-                selectedYears={normalizedSelectedYears}
-                yearTotals={yearTotals}
-                onToggleYear={toggleYear}
-                isLoading={yearSummaryLoading}
-                dateFilterType={filterType}
-              />
+              {isMobileScreen ? (
+                <MobileYearsCardBU
+                  availableYears={availableYears}
+                  selectedYears={normalizedSelectedYears}
+                  yearTotals={yearTotals}
+                  onToggleYear={toggleYear}
+                  isLoading={yearSummaryLoading}
+                  dateFilterType={filterType}
+                />
+              ) : (
+                <YearsCardMonthly
+                  availableYears={availableYears}
+                  selectedYears={normalizedSelectedYears}
+                  yearTotals={yearTotals}
+                  onToggleYear={toggleYear}
+                  isLoading={yearSummaryLoading}
+                  dateFilterType={filterType}
+                />
+              )}
             </Box>
 
             {filterType === 'range' ? (
@@ -2190,7 +2345,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
               flexShrink: 0
             }}>
               {isMobileScreen ? (
-                <SummaryCardMonthlyMobile
+                <MobileRingkasanBU
                   filterType={filterType}
                   filterTypeLabel={getFilterTypeLabel(filterType)}
                   dateRangeLabel={summaryDateRangeLabel}
@@ -2215,247 +2370,277 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
         </Box>
             
         {/* Card Chart di Bawah */}
-        <Card sx={{
-          bgcolor: '#FFFFFF',
-          borderRadius: '14px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)',
-          border: '1px solid #E5E7EB',
-          mt: { xs: 0.5, md: 1 },
-          pt: { xs: 2.25, md: 2.75, xl: 3.25 },
-          px: { xs: 2.25, md: 2.75, xl: 3.25 },
-          pb: { xs: 1.25, md: 1.5, xl: 1.75 },
-          display: 'flex',
-          flexDirection: 'column',
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-          position: 'relative',
-          zIndex: 1,
-          overflow: 'visible',
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-          '&:hover': {
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.06)',
-            borderColor: '#D1D5DB',
-            transform: 'translateY(-1px)'
-          }
-        }}>
-          <Box sx={{
-            mb: 2,
+        {isMobileScreen ? (
+          <MobileChartBU
+            loading={loading}
+            chartSeries={chartSeries}
+            xAxisLabels={xAxisLabels}
+            xAxisTitle={xAxisTitle}
+            chartLayout={chartLayout}
+            yAxisConfig={yAxisConfig}
+            chartCanvasHeight={chartCanvasHeight}
+            chartMinWidth={chartMinWidth}
+            chartSeriesSx={chartSeriesSx}
+            isMultiRangeMode={isMultiRangeMode}
+            hasLeftAxisSeries={hasLeftAxisSeries}
+            hasRightAxisSeries={hasRightAxisSeries}
+            isMonthlyDataEmpty={isMonthlyDataEmpty}
+            emptyStateAxisMessage={emptyStateAxisMessage}
+            isMonthlyComparisonMode={isMonthlyComparisonMode}
+            showCredit={showCredit}
+            showDebit={showDebit}
+            showTotal={showTotal}
+            onToggleCredit={() => setShowCredit((prev) => !prev)}
+            onToggleDebit={() => setShowDebit((prev) => !prev)}
+            onToggleTotal={() => setShowTotal((prev) => !prev)}
+          />
+        ) : (
+          <Card sx={{
+            bgcolor: '#FFFFFF',
+            borderRadius: '14px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)',
+            border: '1px solid #E5E7EB',
+            mt: { xs: 0.5, md: 1 },
+            pt: { xs: 2.25, md: 2.75, xl: 3.25 },
+            px: { xs: 2.25, md: 2.75, xl: 3.25 },
+            pb: { xs: 1.25, md: 1.5, xl: 1.75 },
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: 1.5
+            flexDirection: 'column',
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            position: 'relative',
+            zIndex: 1,
+            overflow: 'visible',
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+            '&:hover': {
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.06)',
+              borderColor: '#D1D5DB',
+              transform: 'translateY(-1px)'
+            }
           }}>
-          <Typography sx={{
-              fontSize: { xs: '0.875rem', md: '1rem' },
-              fontWeight: 600,
-              color: '#212121',
-              letterSpacing: '-0.01em',
-              lineHeight: 1.4,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+            <Box sx={{
+              mb: 2,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 1.5
             }}>
-              Monthly Revenue
-            </Typography>
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.75,
-                maxWidth: '100%',
-                flexWrap: 'wrap',
-                justifyContent: 'flex-end',
-                ml: 'auto',
-                mr: { xs: 0, md: 1 }
-              }}
-            >
-              <FilterListIcon sx={{ fontSize: '0.875rem', color: '#9E9E9E' }} />
-              <Typography
-                sx={{
-                  fontSize: '0.6875rem',
-                  color: '#757575',
-                  fontWeight: 500,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  lineHeight: 1.2,
-                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
-                }}
-              >
-                Filter Chart
+            <Typography sx={{
+                fontSize: { xs: '0.875rem', md: '1rem' },
+                fontWeight: 600,
+                color: '#212121',
+                letterSpacing: '-0.01em',
+                lineHeight: 1.4,
+                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+              }}>
+                Monthly Revenue
               </Typography>
-              <LegendToggles
-                showCredit={showCredit}
-                showDebit={showDebit}
-                showTotal={showTotal}
-                onToggleCredit={() => setShowCredit(!showCredit)}
-                onToggleDebit={() => setShowDebit(!showDebit)}
-                onToggleTotal={() => setShowTotal(!showTotal)}
-                sx={{
-                  mb: 0,
-                  gap: 0.5
-                }}
-              />
-            </Box>
-          </Box>
-
-          <Box
-            sx={{
-              width: '100%',
-              overflowX: 'auto',
-              overflowY: 'visible',
-              pb: 0.25,
-              scrollbarGutter: 'stable both-edges',
-              WebkitOverflowScrolling: 'touch',
-              touchAction: { xs: 'pan-x', md: 'auto' },
-              overscrollBehaviorX: 'contain'
-            }}
-          >
-            <Box
-              sx={{
-                width: '100%',
-                minWidth: chartMinWidth,
-                position: 'relative',
-                height: chartCanvasHeight
-              }}
-            >
-            {loading && (
-              <Fade in={loading}>
-                <Box sx={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: 'rgba(255, 255, 255, 0.85)',
-                  zIndex: 10,
-                  borderRadius: 2,
-                  backdropFilter: 'blur(4px)'
-                }}>
-                  <CircularProgress 
-                    size={40} 
-                    thickness={3.5}
-                    sx={{
-                      color: '#6BA3D0',
-                      mb: 1.5,
-                      '& .MuiCircularProgress-circle': {
-                        strokeLinecap: 'round',
-                      }
-                    }}
-                  />
-                  <Typography sx={{
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                    color: '#757575',
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-                    letterSpacing: '-0.01em'
-                  }}>
-                    Memuat data...
-                  </Typography>
-                </Box>
-              </Fade>
-            )}
-            {!loading ? (
-              <ChartContainer
-                series={chartSeries}
-                xAxis={[
-                  {
-                    id: 'monthAxisId',
-                    scaleType: isMultiRangeMode ? 'band' : 'point',
-                    data: xAxisLabels,
-                    height: chartLayout.xAxisHeight,
-                    label: xAxisTitle,
-                    tickLabelInterval: () => true,
-                    tickLabelMinGap: 0,
-                    valueFormatter: (value) => value,
-                    tickLabelStyle: {
-                      fontSize: chartLayout.tickFontSize,
-                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
-                    }
-                  }
-                ]}
-                yAxis={yAxisConfig}
-                margin={chartLayout.margin}
-                height={chartCanvasHeight}
-                sx={{
-                  touchAction: isMobileScreen ? 'pan-x' : 'auto',
-                  '& svg': {
-                    touchAction: isMobileScreen ? 'pan-x' : 'auto'
-                  },
-                  '& .MuiBarElement-root': {
-                    rx: 4
-                  },
-                  '& .MuiLineElement-root': {
-                    strokeWidth: 2.5
-                  },
-                  '& .MuiMarkElement-root': {
-                    strokeWidth: 1.5
-                  },
-                  ...chartSeriesSx,
-                  '& .MuiChartsAxis-label': {
-                    fontSize: chartLayout.axisFontSize,
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-                    fill: '#757575'
-                  },
-                  '& .MuiChartsAxis-tickLabel': {
-                    fontSize: chartLayout.tickFontSize,
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-                    fill: '#757575'
-                  },
-                  '& .MuiChartsAxisHighlight-root': {
-                    stroke: 'rgba(107, 163, 208, 0.65)',
-                    strokeDasharray: '6 4',
-                    strokeWidth: 1.2
-                  }
-                }}
-              >
-                <ChartsGrid horizontal />
-                <ChartsAxisHighlight x="line" y="none" />
-                {isMultiRangeMode ? (
-                  <BarPlot />
-                ) : (
-                  <>
-                    <LinePlot />
-                    <MarkPlot />
-                  </>
-                )}
-                <ChartsXAxis axisId="monthAxisId" />
-                {hasLeftAxisSeries ? <ChartsYAxis axisId="leftAxisId" /> : null}
-                {hasRightAxisSeries ? <ChartsYAxis axisId="rightAxisId" /> : null}
-                <ChartsTooltip trigger="axis" />
-              </ChartContainer>
-            ) : null}
-
-            {!loading && isMonthlyDataEmpty ? (
               <Box
                 sx={{
-                  position: 'absolute',
-                  top: 8,
-                  right: 10,
-                  px: 1,
-                  py: 0.5,
-                  borderRadius: '8px',
-                  bgcolor: 'rgba(250, 250, 250, 0.92)',
-                  border: '1px solid #E5E7EB',
-                  pointerEvents: 'none'
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.75,
+                  maxWidth: '100%',
+                  flexWrap: 'wrap',
+                  justifyContent: 'flex-end',
+                  ml: 'auto',
+                  mr: { xs: 0, md: 1 }
                 }}
               >
+                <FilterListIcon sx={{ fontSize: '0.875rem', color: '#9E9E9E' }} />
                 <Typography
                   sx={{
                     fontSize: '0.6875rem',
                     color: '#757575',
                     fontWeight: 500,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    lineHeight: 1.2,
                     fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
                   }}
                 >
-                  {emptyStateAxisMessage}
+                  Filter Chart
                 </Typography>
+                <LegendToggles
+                  showCredit={showCredit}
+                  showDebit={showDebit}
+                  showTotal={showTotal}
+                  onToggleCredit={() => setShowCredit(!showCredit)}
+                  onToggleDebit={() => setShowDebit(!showDebit)}
+                  onToggleTotal={() => setShowTotal(!showTotal)}
+                  sx={{
+                    mb: 0,
+                    gap: 0.5
+                  }}
+                />
               </Box>
-            ) : null}
             </Box>
-          </Box>
-        </Card>
+
+            <Box
+              sx={{
+                width: '100%',
+                overflowX: 'auto',
+                overflowY: 'visible',
+                pb: 0.25,
+                scrollbarGutter: 'stable both-edges',
+                WebkitOverflowScrolling: 'touch',
+                touchAction: { xs: 'pan-x', md: 'auto' },
+                overscrollBehaviorX: 'contain'
+              }}
+            >
+              <Box
+                sx={{
+                  width: '100%',
+                  minWidth: chartMinWidth,
+                  position: 'relative',
+                  height: chartCanvasHeight
+                }}
+              >
+              {loading && (
+                <Fade in={loading}>
+                  <Box sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: 'rgba(255, 255, 255, 0.85)',
+                    zIndex: 10,
+                    borderRadius: 2,
+                    backdropFilter: 'blur(4px)'
+                  }}>
+                    <CircularProgress 
+                      size={40} 
+                      thickness={3.5}
+                      sx={{
+                        color: '#6BA3D0',
+                        mb: 1.5,
+                        '& .MuiCircularProgress-circle': {
+                          strokeLinecap: 'round',
+                        }
+                      }}
+                    />
+                    <Typography sx={{
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      color: '#757575',
+                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+                      letterSpacing: '-0.01em'
+                    }}>
+                      Memuat data...
+                    </Typography>
+                  </Box>
+                </Fade>
+              )}
+              {!loading ? (
+                <ChartContainer
+                  series={chartSeries}
+                  xAxis={[
+                    {
+                      id: 'monthAxisId',
+                      scaleType: isMultiRangeMode ? 'band' : 'point',
+                      data: xAxisLabels,
+                      height: chartLayout.xAxisHeight,
+                      label: xAxisTitle,
+                      tickLabelInterval: () => true,
+                      tickLabelMinGap: 0,
+                      valueFormatter: (value) => value,
+                      tickLabelStyle: {
+                        fontSize: chartLayout.tickFontSize,
+                        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+                      }
+                    }
+                  ]}
+                  yAxis={yAxisConfig}
+                  margin={chartLayout.margin}
+                  height={chartCanvasHeight}
+                  sx={{
+                    touchAction: isMobileScreen ? 'pan-x' : 'auto',
+                    '& svg': {
+                      touchAction: isMobileScreen ? 'pan-x' : 'auto'
+                    },
+                    '& .MuiBarElement-root': {
+                      rx: 4
+                    },
+                    '& .MuiLineElement-root': {
+                      strokeWidth: 2.5
+                    },
+                    '& .MuiMarkElement-root': {
+                      strokeWidth: 1.5
+                    },
+                    ...chartSeriesSx,
+                    '& .MuiChartsAxis-label': {
+                      fontSize: chartLayout.axisFontSize,
+                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+                      fill: '#757575'
+                    },
+                    '& .MuiChartsAxis-tickLabel': {
+                      fontSize: chartLayout.tickFontSize,
+                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+                      fill: '#757575'
+                    },
+                    '& .MuiChartsAxisHighlight-root': {
+                      stroke: 'rgba(107, 163, 208, 0.65)',
+                      strokeDasharray: '6 4',
+                      strokeWidth: 1.2
+                    }
+                  }}
+                >
+                  <ChartsGrid horizontal />
+                  <ChartsAxisHighlight x="line" y="none" />
+                  {isMultiRangeMode ? (
+                    <BarPlot />
+                  ) : (
+                    <>
+                      <LinePlot />
+                      <MarkPlot />
+                    </>
+                  )}
+                  <ChartsXAxis axisId="monthAxisId" />
+                  {hasLeftAxisSeries ? <ChartsYAxis axisId="leftAxisId" /> : null}
+                  {hasRightAxisSeries ? <ChartsYAxis axisId="rightAxisId" /> : null}
+                  {isMonthlyComparisonMode ? (
+                    <MonthlyComparisonTooltip enabled />
+                  ) : (
+                    <ChartsTooltip trigger="axis" />
+                  )}
+                </ChartContainer>
+              ) : null}
+
+              {!loading && isMonthlyDataEmpty ? (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 10,
+                    px: 1,
+                    py: 0.5,
+                    borderRadius: '8px',
+                    bgcolor: 'rgba(250, 250, 250, 0.92)',
+                    border: '1px solid #E5E7EB',
+                    pointerEvents: 'none'
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: '0.6875rem',
+                      color: '#757575',
+                      fontWeight: 500,
+                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+                    }}
+                  >
+                    {emptyStateAxisMessage}
+                  </Typography>
+                </Box>
+              ) : null}
+              </Box>
+            </Box>
+          </Card>
+        )}
 
         {isMobileScreen ? (
           <Drawer

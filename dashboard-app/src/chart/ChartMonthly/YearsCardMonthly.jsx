@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Card, Skeleton, useMediaQuery } from '@mui/material';
+import { Box, ButtonBase, Typography, Card, Skeleton, useMediaQuery } from '@mui/material';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import CardCarousel from '../../mobile/templateMobile/CardCarousel';
@@ -111,7 +111,7 @@ function DataYearCard({
   showPreviousYearSummary,
   previousYearSummaryLabel
 }) {
-  const isSelected = selectedYears.includes(year);
+  const isSelected = selectedYears.some((selectedYear) => Number(selectedYear) === Number(year));
   const yearData = yearTotals[year] || { sales: 0, quantity: 0, order: 0 };
   const previousYearSummary = getPreviousYearSummary(year, yearTotals, availableYears);
   const previousYearSalesValue = Number(previousYearSummary?.data?.sales ?? 0);
@@ -136,9 +136,9 @@ function DataYearCard({
         border: `1px solid ${isSelected ? '#6BA3D0' : '#E5E7EB'}`,
         cursor: isDisabled ? 'default' : 'pointer',
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        bgcolor: isSelected ? '#F5F8FB' : '#FFFFFF',
+        bgcolor: '#FFFFFF',
         position: 'relative',
-        overflow: 'visible',
+        overflow: 'hidden',
         height: 'fit-content',
         minWidth: 0,
         opacity: isDisabled ? 0.6 : 1,
@@ -151,7 +151,7 @@ function DataYearCard({
               boxShadow: isSelected
                 ? '0 6px 16px rgba(107, 163, 208, 0.2), 0 2px 6px rgba(107, 163, 208, 0.15)'
                 : '0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06)',
-              bgcolor: isSelected ? '#F5F8FB' : '#FAFAFA',
+              bgcolor: '#FFFFFF',
               transform: 'translateY(-2px)'
             }
           : {},
@@ -388,11 +388,38 @@ function YearCards({
   dateFilterType = 'year',
   salesLabel = 'Total Penjualan',
   showPreviousYearSummary = false,
-  previousYearSummaryLabel = 'Tahun Lalu'
+  previousYearSummaryLabel = 'Tahun Lalu',
+  carouselIndicatorsPlacement = 'bottom'
 }) {
   const isMobileScreen = useMediaQuery('(max-width:600px)');
   const isDisabled =
     dateFilterType === 'range' || dateFilterType === 'specific' || dateFilterType === 'multi_range';
+  const [mobileInitialIndex, setMobileInitialIndex] = React.useState(0);
+
+  const getYearIndex = React.useCallback(
+    (targetYear) => availableYears.findIndex((year) => Number(year) === Number(targetYear)),
+    [availableYears]
+  );
+
+  React.useEffect(() => {
+    if (availableYears.length === 0) {
+      setMobileInitialIndex(0);
+      return;
+    }
+
+    const preferredSelectedYear = [...selectedYears]
+      .reverse()
+      .find((year) => getYearIndex(year) !== -1);
+
+    if (preferredSelectedYear !== undefined) {
+      setMobileInitialIndex(getYearIndex(preferredSelectedYear));
+      return;
+    }
+
+    setMobileInitialIndex((previousIndex) =>
+      Math.min(previousIndex, Math.max(availableYears.length - 1, 0))
+    );
+  }, [availableYears, selectedYears, getYearIndex]);
 
   const renderCardByYear = (year) => {
     if (isLoading) {
@@ -414,14 +441,105 @@ function YearCards({
     );
   };
 
-  if (isMobileScreen) {
+  const renderMobileYearPills = () => {
+    if (availableYears.length <= 1) {
+      return null;
+    }
+
     return (
-      <CardCarousel
-        items={availableYears}
-        getItemKey={(year) => year}
-        showTabs={false}
-        renderItem={(year) => renderCardByYear(year)}
-      />
+      <Box
+        sx={{
+          mt: carouselIndicatorsPlacement === 'top' ? 0 : 1.25,
+          mb: carouselIndicatorsPlacement === 'top' ? 1.1 : 0,
+          px: 0.05
+        }}
+      >
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${Math.max(availableYears.length, 1)}, minmax(0, 1fr))`,
+            alignItems: 'center',
+            gap: 0.5,
+            width: '100%',
+            px: 0,
+            py: 0.25,
+            overflow: 'hidden'
+          }}
+        >
+          {availableYears.map((year, index) => {
+            const isSelectedYear = selectedYears.some(
+              (selectedYear) => Number(selectedYear) === Number(year)
+            );
+
+            return (
+              <ButtonBase
+                key={`year-pill-${year}`}
+                onClick={() => {
+                  setMobileInitialIndex(index);
+                  if (!isDisabled && onToggleYear) {
+                    onToggleYear(year);
+                  }
+                }}
+                aria-label={`Pilih tahun ${year}`}
+                aria-pressed={isSelectedYear}
+                sx={{
+                  minHeight: 34,
+                  minWidth: 0,
+                  width: '100%',
+                  py: 0.45,
+                  px: 0.5,
+                  borderRadius: '999px',
+                  fontSize: 'clamp(0.625rem, 2.8vw, 0.75rem)',
+                  fontWeight: 600,
+                  fontFamily: FONT_FAMILY,
+                  lineHeight: 1,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  justifyContent: 'center',
+                  color: isSelectedYear ? '#FFFFFF' : 'rgba(71, 85, 105, 0.9)',
+                  border: `1px solid ${isSelectedYear ? '#6BA3D0' : 'rgba(148, 163, 184, 0.45)'}`,
+                  background: isSelectedYear
+                    ? 'linear-gradient(90deg, #6BA3D0 0%, #87BBE3 100%)'
+                    : '#FFFFFF',
+                  boxShadow: isSelectedYear ? '0 4px 12px rgba(107, 163, 208, 0.32)' : 'none',
+                  opacity: isDisabled ? 0.82 : 1,
+                  transition: 'all 220ms ease',
+                  '&:hover': {
+                    borderColor: isSelectedYear ? '#6BA3D0' : 'rgba(148, 163, 184, 0.7)',
+                    background: isSelectedYear
+                      ? 'linear-gradient(90deg, #6BA3D0 0%, #87BBE3 100%)'
+                      : '#F8FAFC'
+                  }
+                }}
+              >
+                {year}
+              </ButtonBase>
+            );
+          })}
+        </Box>
+      </Box>
+    );
+  };
+
+  if (isMobileScreen) {
+    const showPillsOnTop = carouselIndicatorsPlacement === 'top';
+
+    return (
+      <Box sx={{ width: '100%', minWidth: 0 }}>
+        {showPillsOnTop ? renderMobileYearPills() : null}
+        <CardCarousel
+          items={availableYears}
+          getItemKey={(year) => year}
+          showTabs={false}
+          showIndicators={false}
+          initialIndex={mobileInitialIndex}
+          containerPadding={0}
+          indicatorsPlacement={carouselIndicatorsPlacement}
+          renderItem={(year) => renderCardByYear(year)}
+        />
+        {!showPillsOnTop ? renderMobileYearPills() : null}
+      </Box>
     );
   }
 
