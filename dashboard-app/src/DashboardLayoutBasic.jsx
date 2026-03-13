@@ -26,9 +26,6 @@ import SidebarLogout from './login/logout';
 import { API_URL } from './config/api';
 import TreeViewWordmark from './components/TreeViewWordmark';
 import NavBottom from './mobile/templateMobile/NavBottom';
-import MobileMonthlyVisit from './mobile/mobileComponents/salesReport/MobileMonthlyVisit';
-import MobileWeekly from './mobile/mobileComponents/salesReport/MobileWeekly';
-import MobileUserProfile from './mobile/mobileComponents/user/MobileUserProfile';
 
 function getAuthHeaders() {
   const token = localStorage.getItem('authToken');
@@ -575,9 +572,8 @@ function LastUpdateHeader() {
 
   React.useEffect(() => {
     setIsLoading(true);
-    fetch(`${API_URL}/financial/last-update`, {
+    fetchWithAuth(`${API_URL}/financial/last-update`, {
       method: 'GET',
-      headers: getAuthHeaders(),
     })
       .then(response => response.json())
       .then(data => {

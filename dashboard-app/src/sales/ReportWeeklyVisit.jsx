@@ -7,14 +7,8 @@ import { w2grid, w2layout, w2ui, w2utils } from 'w2ui';
 import 'w2ui/w2ui-2.0.min.css';
 import { API_URL } from '../config/api';
 import SummaryCustomer from './SummaryWeeklyVisit';
+import { fetchWithAuth } from '../utils/fetchWithAuth';
 
-function getAuthHeaders() {
-  const token = localStorage.getItem('authToken');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-  };
-}
 
 const WEEK_COLUMNS = ['Week1', 'Week2', 'Week3', 'Week4'];
 const MONTH_LABELS = [
@@ -242,9 +236,8 @@ export default function DataTableMonthly() {
     setIsLoading(true);
     setLoadError(null);
 
-    fetch(url, { 
+    fetchWithAuth(url, { 
       signal: controller.signal,
-      headers: getAuthHeaders(),
     })
       .then(async (response) => {
         const body = await response.json().catch(() => null);

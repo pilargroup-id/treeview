@@ -7,14 +7,7 @@ import { w2grid, w2layout, w2popup, w2ui, w2utils } from 'w2ui';
 import 'w2ui/w2ui-2.0.min.css';
 import { API_URL } from '../config/api';
 import SummaryResult from './SummaryRadius';
-
-function getAuthHeaders() {
-  const token = localStorage.getItem('authToken');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-  };
-}
+import { fetchWithAuth } from '../utils/fetchWithAuth';
 
 const GRID_NAME = 'reportResultGrid';
 const LAYOUT_NAME = 'reportResultLayout';
@@ -311,9 +304,8 @@ export default function ReportTableResult() {
     setIsLoading(true);
     setLoadError(null);
 
-    fetch(url, { 
+    fetchWithAuth(url, {
       signal: controller.signal,
-      headers: getAuthHeaders(),
     })
       .then(async (response) => {
         const body = await response.json().catch(() => null);
