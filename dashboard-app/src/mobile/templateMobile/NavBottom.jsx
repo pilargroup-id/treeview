@@ -28,8 +28,8 @@ const MOBILE_BOTTOM_NAV_ITEMS = [
   },
   {
     label: 'User',
-    value: '/integrations',
-    matchers: ['integrations'],
+    value: '/user/profile',
+    matchers: ['user/profile'],
     icon: <AccountCircleRoundedIcon />,
   },
 ];
@@ -66,7 +66,7 @@ export default function NavBottom({ pathname, onNavigate }) {
         zIndex: 1300,
         bgcolor: 'transparent',
         px: 1.15,
-        pb: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+        pb: 'env(safe-area-inset-bottom, 0px)',
         pt: 0.65,
       }}
     >

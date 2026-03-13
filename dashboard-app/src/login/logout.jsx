@@ -32,21 +32,25 @@ async function requestServerLogout() {
   }
 }
 
+export async function performLogout(onLogout) {
+  await requestServerLogout();
+  clearClientSession();
+
+  if (typeof onLogout === 'function') {
+    onLogout();
+    return;
+  }
+
+  window.location.reload();
+}
+
 export default function Logout({ mini = false, onLogout }) {
   const [isLoading, setIsLoading] = React.useState(false);
 
   const handleLogout = async () => {
     if (isLoading) return;
     setIsLoading(true);
-    await requestServerLogout();
-    clearClientSession();
-
-    if (typeof onLogout === 'function') {
-      onLogout();
-      return;
-    }
-
-    window.location.reload();
+    await performLogout(onLogout);
   };
 
   const button = (
