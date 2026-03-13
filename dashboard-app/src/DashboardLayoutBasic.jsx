@@ -7,7 +7,6 @@ import PriceChangeIcon from '@mui/icons-material/PriceChange';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import AssessmentIcon from '@mui/icons-material/Assessment';
-import SettingsIcon from '@mui/icons-material/Settings';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CalendarViewWeekIcon from '@mui/icons-material/CalendarViewWeek';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
@@ -27,6 +26,9 @@ import SidebarLogout from './login/logout';
 import { API_URL } from './config/api';
 import TreeViewWordmark from './components/TreeViewWordmark';
 import NavBottom from './mobile/templateMobile/NavBottom';
+import MobileMonthlyVisit from './mobile/mobileComponents/salesReport/MobileMonthlyVisit';
+import MobileWeekly from './mobile/mobileComponents/salesReport/MobileWeekly';
+import MobileUserProfile from './mobile/mobileComponents/user/MobileUserProfile';
 
 function getAuthHeaders() {
   const token = localStorage.getItem('authToken');
@@ -45,6 +47,8 @@ const DEFAULT_SIDEBAR_USER = {
   role: 'Programmer',
   status: 'Online',
   initials: 'UN',
+  username: 'User',
+  email: '-',
 };
 
 const BASE_NAVIGATION = [
@@ -79,7 +83,6 @@ const BASE_NAVIGATION = [
       { segment: 'monitor-radius', title: 'Monitor Radius', icon: <MyLocationIcon /> },
     ],
   },
-  { segment: 'integrations', title: 'Integrations', icon: <SettingsIcon /> },
 ];
 
 function a11yProps(index) {
@@ -131,13 +134,7 @@ const MOBILE_CHILD_TABS_BY_GROUP = {
       matchers: ['reports/monitor-radius', 'reports/result'],
     },
   ],
-  user: [
-    {
-      label: 'Integrations',
-      value: '/integrations',
-      matchers: ['integrations'],
-    },
-  ],
+  user: [],
 };
 
 function resolveMobileTabGroup(pathname) {
@@ -152,7 +149,7 @@ function resolveMobileTabGroup(pathname) {
   }
   if (currentPathname.includes('CategoryItemTes')) return 'item';
   if (currentPathname.includes('reports/')) return 'report';
-  if (currentPathname.includes('integrations')) return 'user';
+  if (currentPathname.includes('user/')) return 'user';
   return 'revenue';
 }
 
@@ -203,12 +200,24 @@ function getStoredSidebarUser() {
       parsedUser?.job_level,
       parsedUser?.department,
     );
+    const username = pickFirstText(
+      parsedUser?.username,
+      parsedUser?.user_name,
+      parsedUser?.name,
+    );
+    const email = pickFirstText(
+      parsedUser?.email,
+      parsedUser?.email_address,
+      parsedUser?.mail,
+    );
 
     return {
       ...DEFAULT_SIDEBAR_USER,
       displayName: displayName || DEFAULT_SIDEBAR_USER.displayName,
       role: role || DEFAULT_SIDEBAR_USER.role,
       initials: getInitials(displayName),
+      username: username || displayName || DEFAULT_SIDEBAR_USER.displayName,
+      email: email || '-',
     };
   } catch {
     return DEFAULT_SIDEBAR_USER;
@@ -440,7 +449,7 @@ function SidebarUserItem({ mini, user }) {
   );
 }
 
-function DemoPageContent({ pathname }) {
+function DemoPageContent({ pathname, isMobileScreen, sidebarUser, onLogout }) {
   const currentPathname = String(pathname ?? '');
 
   if (currentPathname.includes('RevenueInvoice')) {
@@ -506,7 +515,7 @@ function DemoPageContent({ pathname }) {
   if (currentPathname.includes('reports/monthly-visit') || currentPathname.includes('reports/sales')) {
     return (
       <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
-        <ReportMonthlyVisit />
+        {isMobileScreen ? <MobileMonthlyVisit /> : <ReportMonthlyVisit />}
       </Box>
     );
   }
@@ -514,7 +523,7 @@ function DemoPageContent({ pathname }) {
   if (currentPathname.includes('reports/weekly-summary') || currentPathname.includes('reports/customers')) {
     return (
       <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
-        <ReportWeeklyVisit />
+        {isMobileScreen ? <MobileWeekly /> : <ReportWeeklyVisit />}
       </Box>
     );
   }
@@ -523,6 +532,14 @@ function DemoPageContent({ pathname }) {
     return (
       <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
         <ReportMonitorRadius />
+      </Box>
+    );
+  }
+
+  if (currentPathname.includes('user/profile')) {
+    return (
+      <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
+        <MobileUserProfile user={sidebarUser} onLogout={onLogout} />
       </Box>
     );
   }
@@ -898,7 +915,12 @@ export default function DashboardLayoutBasic({ onLogout }) {
                 pb: isMobileScreen ? 'calc(env(safe-area-inset-bottom, 0px) + 78px)' : 0,
               }}
             >
-              <DemoPageContent pathname={router.pathname} />
+              <DemoPageContent
+                pathname={router.pathname}
+                isMobileScreen={isMobileScreen}
+                sidebarUser={sidebarUser}
+                onLogout={onLogout}
+              />
             </Box>
             {isMobileScreen ? (
               <NavBottom pathname={router.pathname} onNavigate={router.navigate} />
