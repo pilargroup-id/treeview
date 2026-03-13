@@ -375,6 +375,7 @@ const loadInvoiceSalesCompareYearMultiRangeData = async ({
           throw new Error(`Range ${rangeIndex + 1} tidak valid untuk compare_year (${businessUnit})`);
         }
 
+        const url = `${invoiceSalesUrl}?${params.toString()}`;
         const response = await fetchWithAuth(url, {
           method: 'GET',
         });
@@ -553,7 +554,7 @@ export const convertRangeMonthsToSelectedMonths = (rangeMonths) => {
 // Load BU from API
 export const loadBusinessUnits = async (businessUnitsUrl = DEFAULT_BUSINESS_UNITS_URL) => {
   try {
-    const response = await fetchWithAuth(url, {
+    const response = await fetchWithAuth(businessUnitsUrl, {
       method: 'GET',
     });
     const result = await response.json();
@@ -594,6 +595,7 @@ export const loadRevenueData = async (
       endDate,
       businessUnits
     );
+    const url = `${monthlyRevenueUrl}?${queryParams.toString()}`;
     const response = await fetchWithAuth(url, {
       method: 'GET',
     });
@@ -645,6 +647,7 @@ export const loadInvoiceSalesRangeData = async (
       options?.subBusinessUnits,
       options?.channels
     );
+    const url = `${invoiceSalesUrl}?${queryParams.toString()}`;
     const response = await fetchWithAuth(url, {
       method: 'GET',
     });
@@ -1199,6 +1202,7 @@ export async function loadYearSummary(
         queryParams.append('business_units[]', businessUnit);
       });
 
+    const url = `${invoiceSalesUrl}?${queryParams.toString()}`;
     const response = await fetchWithAuth(url, {
       method: 'GET',
     });

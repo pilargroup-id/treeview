@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Validator;
 
 class FinancialController extends Controller
 {
+    private const BUSINESS_UNITS = ['Gosave', 'Goto'];
+    private const CHANNELS = ['Gosave GT', 'Gosave B2B', 'Gosave E-Com', 'GOTO GT', 'Store', 'GOTO E-Com'];
+
     protected $financialRepo;
 
     public function __construct(FinancialRepository $financialRepo)
@@ -27,9 +30,9 @@ class FinancialController extends Controller
             'start_date' => 'required|date|date_format:Y-m-d',
             'end_date' => 'required|date|date_format:Y-m-d|after_or_equal:start_date',
             'business_units' => 'nullable|array',
-            'business_units.*' => 'in:Gosave,Goto',
+            'business_units.*' => 'in:' . implode(',', self::BUSINESS_UNITS),
             'channel' => 'nullable|array',
-            'channel.*' => 'in:Gosave GT,Gosave B2B,Gosave E-Com,GOTO GT,Store,GOTO E-Com',
+            'channel.*' => 'in:' . implode(',', self::CHANNELS),
         ]);
 
         if ($validator->fails()) {
@@ -59,9 +62,9 @@ class FinancialController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'business_units' => 'nullable|array',
-            'business_units.*' => 'in:Gosave,Goto',
+            'business_units.*' => 'in:' . implode(',', self::BUSINESS_UNITS),
             'channel' => 'nullable|array',
-            'channel.*' => 'in:Gosave GT,Gosave B2B,Gosave E-Com,GOTO GT,Store,GOTO E-Com',
+            'channel.*' => 'in:' . implode(',', self::CHANNELS),
             'date_type' => 'nullable|in:year,range,specific,compare_year,multi_range',
             'years' => 'nullable|array',
             'years.*' => 'integer|min:2020|max:2030',
@@ -148,6 +151,17 @@ class FinancialController extends Controller
             'status' => 'error',
             'message' => $result['error']
         ], 500);
+    }
+
+    /**
+     * GET /api/financial/business-units
+     */
+    public function getBusinessUnits()
+    {
+        return response()->json([
+            'status' => 'success',
+            'data' => self::BUSINESS_UNITS,
+        ]);
     }
 
 
