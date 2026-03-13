@@ -1,12 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { API_URL } from '../../config/api';
-function getAuthHeaders() {
-  const token = localStorage.getItem('authToken');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-  };
-}
+import { fetchWithAuth } from '../../utils/fetchWithAuth';
 
 //  variable
 const monthNames = [
@@ -381,9 +375,8 @@ const loadInvoiceSalesCompareYearMultiRangeData = async ({
           throw new Error(`Range ${rangeIndex + 1} tidak valid untuk compare_year (${businessUnit})`);
         }
 
-        const response = await fetch(`${invoiceSalesUrl}?${params.toString()}`, {
+        const response = await fetchWithAuth(url, {
           method: 'GET',
-          headers: getAuthHeaders(),
         });
 
         let result = null;
@@ -560,10 +553,9 @@ export const convertRangeMonthsToSelectedMonths = (rangeMonths) => {
 // Load BU from API
 export const loadBusinessUnits = async (businessUnitsUrl = DEFAULT_BUSINESS_UNITS_URL) => {
   try {
-    const response = await fetch(businessUnitsUrl, {
+    const response = await fetchWithAuth(url, {
       method: 'GET',
-      headers: getAuthHeaders(),
-    })
+    });
     const result = await response.json();
     
     if (result.status === 'success' && Array.isArray(result.data)) {
@@ -602,9 +594,8 @@ export const loadRevenueData = async (
       endDate,
       businessUnits
     );
-    const response = await fetch(`${monthlyRevenueUrl}?${queryParams.toString()}`, {
+    const response = await fetchWithAuth(url, {
       method: 'GET',
-      headers: getAuthHeaders(),
     });
     const result = await response.json();
 
@@ -654,9 +645,8 @@ export const loadInvoiceSalesRangeData = async (
       options?.subBusinessUnits,
       options?.channels
     );
-    const response = await fetch(`${invoiceSalesUrl}?${queryParams.toString()}`, {
+    const response = await fetchWithAuth(url, {
       method: 'GET',
-      headers: getAuthHeaders(),
     });
     const result = await response.json();
 
@@ -1209,9 +1199,8 @@ export async function loadYearSummary(
         queryParams.append('business_units[]', businessUnit);
       });
 
-    const response = await fetch(`${invoiceSalesUrl}?${queryParams.toString()}`, {
+    const response = await fetchWithAuth(url, {
       method: 'GET',
-      headers: getAuthHeaders(),
     });
     const result = await response.json();
 

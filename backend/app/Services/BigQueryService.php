@@ -160,17 +160,14 @@ class BigQueryService
 public function saveToken($userId, $token)
 {
     try {
-        $expiredAt = now()->addHours(8);
+        $expiredAt = now()->addMonth();
         
-        // Hapus token lama kalau ada
         $oldToken = cache()->get("user_token_{$userId}");
         if ($oldToken) {
             cache()->forget("auth_token_{$oldToken}");
         }
 
-        // Simpan token -> userId
         cache()->put("auth_token_{$token}", $userId, $expiredAt);
-        // Simpan userId -> token (untuk keperluan logout)
         cache()->put("user_token_{$userId}", $token, $expiredAt);
 
         $this->updateLastLogin($userId);

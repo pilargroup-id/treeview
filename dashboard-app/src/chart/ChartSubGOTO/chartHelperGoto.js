@@ -1,12 +1,5 @@
 import { processData } from '../ChartMonthly/chartHelpers';
-
-function getAuthHeaders() {
-  const token = localStorage.getItem('authToken');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-  };
-}
+import { fetchWithAuth } from '../../utils/fetchWithAuth';
 
 export const GOTO_SUB_BUSINESS_UNIT_OPTIONS = ['GOTO E-Com', 'GOTO GT', 'Store'];
 const GOTO_BUSINESS_UNIT = 'Goto';
@@ -403,9 +396,8 @@ export const loadGotoRangeInvoiceSalesData = async ({
   }
 
   try {
-    const response = await fetch(`${invoiceSalesUrl}?${queryParams.toString()}`, {
+    const response = await fetchWithAuth(`${invoiceSalesUrl}?${queryParams.toString()}`, {
       method: 'GET',
-      headers: getAuthHeaders(),
     });
 
     let result = null;
@@ -457,9 +449,8 @@ const fetchYearlyInvoiceSalesData = async ({
   invoiceSalesUrl
 }) => {
   const params = buildGotoMonthlyYearQueryParams({ year, subBusinessUnit });
-  const response = await fetch(`${invoiceSalesUrl}?${params.toString()}`, {
+  const response = await fetchWithAuth(`${invoiceSalesUrl}?${params.toString()}`, {
     method: 'GET',
-    headers: getAuthHeaders(),
   });
 
   let result = null;
@@ -542,9 +533,8 @@ const fetchGotoCompareYearByRange = async ({
     throw new Error(`Range ${rangeIndex + 1} tidak valid untuk compare_year`);
   }
 
-  const response = await fetch(`${invoiceSalesUrl}?${params.toString()}`, {
+  const response = await fetchWithAuth(`${invoiceSalesUrl}?${params.toString()}`, {
     method: 'GET',
-    headers: getAuthHeaders(),
   });
 
   let result = null;
@@ -712,9 +702,8 @@ export const loadGotoYearSummary = async (
         params.append('channel[]', resolveGotoChannelForApi(normalizedSubBusinessUnit));
       }
 
-      const response = await fetch(`${invoiceSalesUrl}?${params.toString()}`, {
+      const response = await fetchWithAuth(`${invoiceSalesUrl}?${params.toString()}`, {
         method: 'GET',
-        headers: getAuthHeaders(),
       });
 
       let result = null;
