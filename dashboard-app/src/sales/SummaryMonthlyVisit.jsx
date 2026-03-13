@@ -6,6 +6,7 @@ import { createRoot } from 'react-dom/client';
 import { w2grid, w2layout, w2popup, w2ui, w2utils } from 'w2ui';
 import 'w2ui/w2ui-2.0.min.css';
 import { API_URL } from '../config/api';
+import { fetchWithAuth } from '../utils/fetchWithAuth';
 import SummaryResult from './SummaryRadius';
 
 const GRID_NAME = 'reportResultGrid';
@@ -332,7 +333,7 @@ export default function ReportTableResult() {
     setIsLoading(true);
     setLoadError(null);
 
-    fetch(url, { signal: controller.signal })
+    fetchWithAuth(url, { signal: controller.signal })
       .then(async (response) => {
         const body = await response.json().catch(() => null);
         if (!response.ok) {

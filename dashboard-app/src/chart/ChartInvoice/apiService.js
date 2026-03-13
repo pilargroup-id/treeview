@@ -447,9 +447,8 @@ export async function loadInvoiceSales({
       
       let response;
       try {
-        response = await fetch(url, {
+        response = await fetchWithAuth(url, {
           method: 'GET',
-          headers: getAuthHeaders(),
         });
       } catch (fetchError) {
         console.error('Fetch error:', fetchError);

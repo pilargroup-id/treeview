@@ -1,5 +1,6 @@
 import * as React from 'react';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import { Tab, Tabs, createTheme, GlobalStyles, useMediaQuery } from '@mui/material';
 import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
@@ -24,16 +25,15 @@ import GotoRevenue from './businessUnit/GotoRevenue';
 import GosaveRevenue from './businessUnit/GosaveRevenue';
 import SidebarLogout from './login/logout';
 import { API_URL } from './config/api';
+import { fetchWithAuth } from './utils/fetchWithAuth';
+import {
+  getFirstAllowedPath,
+  getStoredAuthUser,
+  isPathAllowed,
+  resolveAccessState,
+} from './utils/accessControl';
 import TreeViewWordmark from './components/TreeViewWordmark';
-import NavBottom from './mobile/templateMobile/NavBottom';
-
-function getAuthHeaders() {
-  const token = localStorage.getItem('authToken');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-  };
-}
+import NavBottom, { DEFAULT_MOBILE_BOTTOM_NAV_ITEMS } from './mobile/templateMobile/NavBottom';
 
 const DASHBOARD_BACKGROUND_LIGHT =
   'linear-gradient(135deg, #F5F7FA 0%, #F8F9FA 50%, #FAFBFC 100%)';
@@ -89,7 +89,7 @@ function a11yProps(index) {
   };
 }
 
-const MOBILE_CHILD_TABS_BY_GROUP = {
+const BASE_MOBILE_CHILD_TABS_BY_GROUP = {
   revenue: [
     {
       label: 'BU Revenue',
@@ -134,7 +134,29 @@ const MOBILE_CHILD_TABS_BY_GROUP = {
   user: [],
 };
 
-function resolveMobileTabGroup(pathname) {
+function buildMobileChildTabsByGroup(accessState) {
+  return {
+    ...BASE_MOBILE_CHILD_TABS_BY_GROUP,
+    revenue: accessState?.canAccessFinancial ? BASE_MOBILE_CHILD_TABS_BY_GROUP.revenue : [],
+    item: accessState?.canAccessItem ? BASE_MOBILE_CHILD_TABS_BY_GROUP.item : [],
+  };
+}
+
+function buildMobileBottomNavItems(accessState) {
+  return DEFAULT_MOBILE_BOTTOM_NAV_ITEMS.filter((item) => {
+    if (item.value === '/dashboard/MonthlyRevenue') {
+      return Boolean(accessState?.canAccessFinancial);
+    }
+
+    if (item.value === '/orders/CategoryItemTes') {
+      return Boolean(accessState?.canAccessItem);
+    }
+
+    return true;
+  });
+}
+
+function resolveMobileTabGroup(pathname, accessState) {
   const currentPathname = String(pathname ?? '');
   if (
     currentPathname.includes('MonthlyRevenue') ||
@@ -147,7 +169,7 @@ function resolveMobileTabGroup(pathname) {
   if (currentPathname.includes('CategoryItemTes')) return 'item';
   if (currentPathname.includes('reports/')) return 'report';
   if (currentPathname.includes('user/')) return 'user';
-  return 'revenue';
+  return accessState?.canAccessFinancial ? 'revenue' : 'report';
 }
 
 function resolveMobileChildTabValue(pathname, tabs) {
@@ -176,52 +198,68 @@ function getInitials(name) {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
-function getStoredSidebarUser() {
-  if (typeof window === 'undefined') return DEFAULT_SIDEBAR_USER;
+function getStoredSidebarUser(parsedUser = getStoredAuthUser()) {
+  if (!parsedUser) return DEFAULT_SIDEBAR_USER;
 
-  try {
-    const rawUser = localStorage.getItem('authUser');
-    if (!rawUser) return DEFAULT_SIDEBAR_USER;
+  const displayName = pickFirstText(
+    parsedUser?.name,
+    parsedUser?.full_name,
+    parsedUser?.fullname,
+    parsedUser?.username,
+    parsedUser?.email,
+  );
+  const role = pickFirstText(
+    parsedUser?.role,
+    parsedUser?.job_position,
+    parsedUser?.job_level,
+    parsedUser?.department,
+  );
+  const username = pickFirstText(
+    parsedUser?.username,
+    parsedUser?.user_name,
+    parsedUser?.name,
+  );
+  const email = pickFirstText(
+    parsedUser?.email,
+    parsedUser?.email_address,
+    parsedUser?.mail,
+  );
 
-    const parsedUser = JSON.parse(rawUser);
-    const displayName = pickFirstText(
-      parsedUser?.name,
-      parsedUser?.full_name,
-      parsedUser?.fullname,
-      parsedUser?.username,
-      parsedUser?.email,
-    );
-    const role = pickFirstText(
-      parsedUser?.role,
-      parsedUser?.job_position,
-      parsedUser?.job_level,
-      parsedUser?.department,
-    );
-    const username = pickFirstText(
-      parsedUser?.username,
-      parsedUser?.user_name,
-      parsedUser?.name,
-    );
-    const email = pickFirstText(
-      parsedUser?.email,
-      parsedUser?.email_address,
-      parsedUser?.mail,
-    );
-
-    return {
-      ...DEFAULT_SIDEBAR_USER,
-      displayName: displayName || DEFAULT_SIDEBAR_USER.displayName,
-      role: role || DEFAULT_SIDEBAR_USER.role,
-      initials: getInitials(displayName),
-      username: username || displayName || DEFAULT_SIDEBAR_USER.displayName,
-      email: email || '-',
-    };
-  } catch {
-    return DEFAULT_SIDEBAR_USER;
-  }
+  return {
+    ...DEFAULT_SIDEBAR_USER,
+    displayName: displayName || DEFAULT_SIDEBAR_USER.displayName,
+    role: role || DEFAULT_SIDEBAR_USER.role,
+    initials: getInitials(displayName),
+    username: username || displayName || DEFAULT_SIDEBAR_USER.displayName,
+    email: email || '-',
+  };
 }
 
-function buildNavigation(userDisplayName) {
+function buildNavigation(userDisplayName, accessState) {
+  const canShowMainItems = Boolean(
+    accessState?.canAccessFinancial || accessState?.canAccessItem,
+  );
+
+  const filteredNavigation = BASE_NAVIGATION.filter((item) => {
+    if (item?.kind === 'header' && item?.title === 'Main Items') {
+      return canShowMainItems;
+    }
+
+    if (item?.kind === 'divider') {
+      return canShowMainItems;
+    }
+
+    if (item?.segment === 'dashboard') {
+      return Boolean(accessState?.canAccessFinancial);
+    }
+
+    if (item?.segment === 'orders') {
+      return Boolean(accessState?.canAccessItem);
+    }
+
+    return true;
+  });
+
   return [
     {
       segment: USER_PROFILE_SEGMENT,
@@ -229,7 +267,7 @@ function buildNavigation(userDisplayName) {
       icon: <AccountCircleRoundedIcon />,
     },
     { kind: 'divider' },
-    ...BASE_NAVIGATION,
+    ...filteredNavigation,
   ];
 }
 
@@ -446,8 +484,54 @@ function SidebarUserItem({ mini, user }) {
   );
 }
 
-function DemoPageContent({ pathname, isMobileScreen, sidebarUser, onLogout }) {
+function AccessRestrictedView({ fallbackPath, onNavigate }) {
+  return (
+    <Box
+      sx={{
+        height: '100%',
+        px: 3,
+        py: 4,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
+        gap: 1.5,
+      }}
+    >
+      <Typography variant="h5" sx={{ color: '#0F172A', fontWeight: 700 }}>
+        Akses dibatasi
+      </Typography>
+      <Typography color="text.secondary" sx={{ maxWidth: 420 }}>
+        Role Anda tidak memiliki izin untuk membuka halaman ini. Silakan lanjut ke halaman yang tersedia.
+      </Typography>
+      <Button
+        variant="contained"
+        onClick={() => onNavigate(fallbackPath)}
+        sx={{
+          mt: 1,
+          textTransform: 'none',
+          borderRadius: '12px',
+          px: 2.5,
+          bgcolor: '#6BA3D0',
+          '&:hover': {
+            bgcolor: '#5A9FD0',
+          },
+        }}
+      >
+        Buka halaman yang diizinkan
+      </Button>
+    </Box>
+  );
+}
+
+function DemoPageContent({ pathname, isMobileScreen, sidebarUser, onLogout, accessState, onNavigate }) {
   const currentPathname = String(pathname ?? '');
+  const fallbackPath = getFirstAllowedPath(accessState);
+
+  if (!isPathAllowed(currentPathname, accessState)) {
+    return <AccessRestrictedView fallbackPath={fallbackPath} onNavigate={onNavigate} />;
+  }
 
   if (currentPathname.includes('RevenueInvoice')) {
     return (
@@ -712,20 +796,31 @@ function LastUpdateHeader() {
 }
 
 export default function DashboardLayoutBasic({ onLogout }) {
-  const router = useDemoRouter('/dashboard/MonthlyRevenue');
+  const initialAuthUser = getStoredAuthUser();
+  const initialAccessState = resolveAccessState(initialAuthUser);
+  const router = useDemoRouter(getFirstAllowedPath(initialAccessState));
   const isMobileScreen = useMediaQuery('(max-width:600px)');
-  const [sidebarUser, setSidebarUser] = React.useState(() => getStoredSidebarUser());
+  const [sidebarUser, setSidebarUser] = React.useState(() => getStoredSidebarUser(initialAuthUser));
+  const [accessState, setAccessState] = React.useState(initialAccessState);
   const navigation = React.useMemo(
-    () => buildNavigation(sidebarUser.displayName),
-    [sidebarUser.displayName],
+    () => buildNavigation(sidebarUser.displayName, accessState),
+    [accessState, sidebarUser.displayName],
+  );
+  const mobileChildTabsByGroup = React.useMemo(
+    () => buildMobileChildTabsByGroup(accessState),
+    [accessState],
+  );
+  const mobileBottomNavItems = React.useMemo(
+    () => buildMobileBottomNavItems(accessState),
+    [accessState],
   );
   const activeMobileTabGroup = React.useMemo(
-    () => resolveMobileTabGroup(router.pathname),
-    [router.pathname],
+    () => resolveMobileTabGroup(router.pathname, accessState),
+    [accessState, router.pathname],
   );
   const mobileChildTabs = React.useMemo(
-    () => MOBILE_CHILD_TABS_BY_GROUP[activeMobileTabGroup] ?? [],
-    [activeMobileTabGroup],
+    () => mobileChildTabsByGroup[activeMobileTabGroup] ?? [],
+    [activeMobileTabGroup, mobileChildTabsByGroup],
   );
   const activeMobileChildTab = React.useMemo(
     () => resolveMobileChildTabValue(router.pathname, mobileChildTabs),
@@ -735,21 +830,37 @@ export default function DashboardLayoutBasic({ onLogout }) {
   const handleMobileChildTabChange = React.useCallback(
     (_event, nextPath) => {
       if (typeof nextPath !== 'string' || !nextPath || nextPath === router.pathname) return;
+      if (!isPathAllowed(nextPath, accessState)) return;
       router.navigate(nextPath);
     },
-    [router],
+    [accessState, router],
   );
 
+  const syncStoredUserState = React.useCallback(() => {
+    const storedAuthUser = getStoredAuthUser();
+    setSidebarUser(getStoredSidebarUser(storedAuthUser));
+    setAccessState(resolveAccessState(storedAuthUser));
+  }, []);
+
   React.useEffect(() => {
-    setSidebarUser(getStoredSidebarUser());
+    syncStoredUserState();
 
     const handleStorageChange = () => {
-      setSidebarUser(getStoredSidebarUser());
+      syncStoredUserState();
     };
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  }, [syncStoredUserState]);
+
+  React.useEffect(() => {
+    if (isPathAllowed(router.pathname, accessState)) return;
+
+    const fallbackPath = getFirstAllowedPath(accessState);
+    if (fallbackPath && fallbackPath !== router.pathname) {
+      router.navigate(fallbackPath);
+    }
+  }, [accessState, router]);
 
   return (
     <AppProvider
@@ -757,8 +868,8 @@ export default function DashboardLayoutBasic({ onLogout }) {
       router={router}
       theme={demoTheme}
       branding={{
-        logo: () => null,   
-        title: '',        
+        logo: <></>,
+        title: '',
       }}
     >
       <GlobalStyles
@@ -916,10 +1027,16 @@ export default function DashboardLayoutBasic({ onLogout }) {
                 isMobileScreen={isMobileScreen}
                 sidebarUser={sidebarUser}
                 onLogout={onLogout}
+                accessState={accessState}
+                onNavigate={router.navigate}
               />
             </Box>
             {isMobileScreen ? (
-              <NavBottom pathname={router.pathname} onNavigate={router.navigate} />
+              <NavBottom
+                pathname={router.pathname}
+                onNavigate={router.navigate}
+                items={mobileBottomNavItems}
+              />
             ) : null}
           </Box>
         </Box>

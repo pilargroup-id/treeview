@@ -7,7 +7,7 @@ import Inventory2Icon from '@mui/icons-material/Inventory2';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
 
-const MOBILE_BOTTOM_NAV_ITEMS = [
+export const DEFAULT_MOBILE_BOTTOM_NAV_ITEMS = [
   {
     label: 'Revenue',
     value: '/dashboard/MonthlyRevenue',
@@ -34,18 +34,18 @@ const MOBILE_BOTTOM_NAV_ITEMS = [
   },
 ];
 
-function resolveBottomNavValue(pathname) {
+function resolveBottomNavValue(pathname, items) {
   const currentPathname = String(pathname ?? '');
-  const activeItem = MOBILE_BOTTOM_NAV_ITEMS.find((item) =>
+  const activeItem = items.find((item) =>
     item.matchers.some((matcher) => currentPathname.includes(matcher))
   );
   return activeItem ? activeItem.value : false;
 }
 
-export default function NavBottom({ pathname, onNavigate }) {
+export default function NavBottom({ pathname, onNavigate, items = DEFAULT_MOBILE_BOTTOM_NAV_ITEMS }) {
   const activeValue = React.useMemo(
-    () => resolveBottomNavValue(pathname),
-    [pathname],
+    () => resolveBottomNavValue(pathname, items),
+    [items, pathname],
   );
 
   const handleNavigate = React.useCallback(
@@ -55,6 +55,10 @@ export default function NavBottom({ pathname, onNavigate }) {
     },
     [onNavigate, pathname],
   );
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return null;
+  }
 
   return (
     <Box
@@ -113,7 +117,7 @@ export default function NavBottom({ pathname, onNavigate }) {
           },
         }}
       >
-        {MOBILE_BOTTOM_NAV_ITEMS.map((item) => (
+        {items.map((item) => (
           <BottomNavigationAction
             key={item.value}
             label={item.label}

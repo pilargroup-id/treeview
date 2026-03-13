@@ -34,6 +34,7 @@ Route::middleware('tree_view_auth')->group(function () {
 
     // Financial - KECUALI Gosave GT dan Manager (hanya Board Of Director & IT)
     Route::prefix('financial')->middleware('check_permission:Board Of Director|IT')->group(function () {
+        Route::get('/business-units', [FinancialController::class, 'getBusinessUnits']);
         Route::get('/monthly-revenue', [FinancialController::class, 'getMonthlyRevenue']);
         Route::get('/invoice-sales', [FinancialController::class, 'getInvoiceSales']);
     });
