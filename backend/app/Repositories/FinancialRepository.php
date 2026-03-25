@@ -103,7 +103,7 @@ class FinancialRepository
                     department_name as business_unit,  
                     SUM(credit) as total_credit,
                     SUM(debit) as total_debit,
-                    SUM(debit) * -1 + SUM(credit) as total_sales
+                    COALESCE(SUM(credit), 0) - COALESCE(SUM(debit), 0) as total_sales
                 FROM
                     {$this->tablePath}
                 WHERE
@@ -286,7 +286,7 @@ class FinancialRepository
                     END as business_unit,
                     SUM(credit) as total_credit,
                     SUM(debit) as total_debit,
-                    SUM(debit) * -1 + SUM(credit) as total_sales
+                    COALESCE(SUM(credit), 0) - COALESCE(SUM(debit), 0) as total_sales
                 FROM
                     {$this->tablePath}
                 WHERE
