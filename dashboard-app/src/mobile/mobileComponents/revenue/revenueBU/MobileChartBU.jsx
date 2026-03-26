@@ -8,12 +8,25 @@ import { ChartsYAxis } from '@mui/x-charts/ChartsYAxis';
 import { ChartsGrid } from '@mui/x-charts/ChartsGrid';
 import { ChartsTooltip, ChartsTooltipContainer, useAxesTooltip } from '@mui/x-charts/ChartsTooltip';
 import { ChartsAxisHighlight } from '@mui/x-charts/ChartsAxisHighlight';
-import FilterListIcon from '@mui/icons-material/FilterList';
 
 const SERIES_COLORS = {
   credit: 'rgb(75, 192, 192)',
   debit: 'rgb(255, 99, 132)',
   total: 'rgb(16, 185, 129)'
+};
+const LEGEND_TONES = {
+  credit: {
+    surface: 'rgba(75, 192, 192, 0.1)',
+    border: 'rgba(75, 192, 192, 0.22)'
+  },
+  debit: {
+    surface: 'rgba(255, 99, 132, 0.1)',
+    border: 'rgba(255, 99, 132, 0.22)'
+  },
+  line: {
+    surface: 'rgba(16, 185, 129, 0.1)',
+    border: 'rgba(16, 185, 129, 0.22)'
+  }
 };
 
 const FONT_FAMILY = '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif';
@@ -195,31 +208,34 @@ function getNumericSize(value) {
 }
 
 function LegendItem({ label, active, type, onToggle }) {
+  const accentColor = type === 'line' ? SERIES_COLORS.total : SERIES_COLORS[type];
+  const accentTone = LEGEND_TONES[type];
+
   return (
     <Box
+      component="button"
+      type="button"
       onClick={onToggle}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onToggle();
-        }
-      }}
       sx={{
-        display: 'flex',
+        display: 'inline-flex',
         alignItems: 'center',
-        gap: 0.35,
-        px: 0,
-        py: 0,
+        gap: 0.5,
+        px: 0.95,
+        py: 0.5,
+        minHeight: 30,
+        borderRadius: '999px',
+        border: '1px solid',
+        borderColor: active ? accentTone.border : 'rgba(226, 232, 240, 0.9)',
+        bgcolor: active ? accentTone.surface : 'transparent',
+        whiteSpace: 'nowrap',
         cursor: 'pointer',
-        opacity: active ? 1 : 0.5,
-        transition: 'opacity 0.2s ease',
+        transition: 'all 0.2s ease',
         '&:hover': {
-          opacity: active ? 0.85 : 0.65
+          borderColor: active ? accentTone.border : '#CBD5E1',
+          bgcolor: active ? accentTone.surface : 'rgba(248, 250, 252, 0.85)'
         },
         '&:focus-visible': {
-          outline: '2px solid #6BA3D0',
+          outline: '2px solid rgba(107, 163, 208, 0.45)',
           outlineOffset: '2px'
         }
       }}
@@ -229,29 +245,29 @@ function LegendItem({ label, active, type, onToggle }) {
       {type === 'line' ? (
         <Box
           sx={{
-            width: 14,
+            width: 12,
             height: 0,
-            borderTop: `2px dashed ${active ? SERIES_COLORS.total : '#BDBDBD'}`,
+            borderTop: `2px dashed ${active ? SERIES_COLORS.total : '#B8C3D1'}`,
             borderRadius: '2px'
           }}
         />
       ) : (
         <Box
           sx={{
-            width: 10,
-            height: 10,
-            borderRadius: '2px',
-            bgcolor: active ? SERIES_COLORS[type] : '#D1D5DB',
-            border: `1px solid ${active ? SERIES_COLORS[type] : '#9CA3AF'}`
+            width: 9,
+            height: 9,
+            borderRadius: '3px',
+            bgcolor: active ? accentColor : '#D7DEE7',
+            border: `1px solid ${active ? accentColor : '#B8C3D1'}`
           }}
         />
       )}
       <Typography
         sx={{
-          fontSize: '0.625rem',
+          fontSize: '0.75rem',
           fontWeight: 600,
-          color: active ? '#1F2937' : '#94A3B8',
-          lineHeight: 1.2,
+          color: active ? '#334155' : '#64748B',
+          lineHeight: 1,
           fontFamily: FONT_FAMILY
         }}
       >
@@ -270,7 +286,21 @@ function MobileLegendToggles({
   onToggleTotal
 }) {
   return (
-    <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: 0.35, alignItems: 'center', minWidth: 'max-content' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        flexWrap: 'nowrap',
+        gap: 0.5,
+        alignItems: 'center',
+        overflowX: 'auto',
+        overflowY: 'hidden',
+        WebkitOverflowScrolling: 'touch',
+        '&::-webkit-scrollbar': {
+          display: 'none'
+        },
+        scrollbarWidth: 'none'
+      }}
+    >
       <LegendItem label="Revenue" active={showCredit} type="credit" onToggle={onToggleCredit} />
       <LegendItem label="Retur" active={showDebit} type="debit" onToggle={onToggleDebit} />
       <LegendItem label="Net Revenue" active={showTotal} type="line" onToggle={onToggleTotal} />
@@ -280,6 +310,7 @@ function MobileLegendToggles({
 
 function MobileChartBU({
   loading = false,
+  chartTitle = 'Monthly Revenue',
   chartSeries = [],
   xAxisLabels = [],
   xAxisTitle = 'Bulan',
@@ -346,22 +377,16 @@ function MobileChartBU({
   const resolvedAxisFontSize = Math.max(9, (chartLayout?.axisFontSize ?? 10) - (isExtraSmallScreen ? 1 : 0));
   const resolvedTickFontSize = Math.max(9, (chartLayout?.tickFontSize ?? 10) - (isExtraSmallScreen ? 1 : 0));
   const resolvedXAxisHeight = Math.max(44, (chartLayout?.xAxisHeight ?? 52) - (isExtraSmallScreen ? 6 : 4));
-  const shouldShowScrollHint = React.useMemo(() => {
-    const parsedWidth = getNumericSize(resolvedChartMinWidth);
-    return Number.isFinite(parsedWidth) && parsedWidth > 560;
-  }, [resolvedChartMinWidth]);
 
   return (
     <Card
       sx={{
         bgcolor: '#FFFFFF',
-        borderRadius: '10px',
-        boxShadow: '0 1px 5px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.06)',
-        border: '1px solid #E5E7EB',
-        mt: 0.35,
-        pt: 1.25,
-        px: 1,
-        pb: 1,
+        borderRadius: '14px',
+        boxShadow: '0 6px 18px rgba(15, 23, 42, 0.04)',
+        border: '1px solid rgba(226, 232, 240, 0.75)',
+        mt: 0.45,
+        p: 2,
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
@@ -371,97 +396,47 @@ function MobileChartBU({
     >
       <Box
         sx={{
-          mb: 1,
+          mb: 1.25,
           display: 'flex',
           flexDirection: 'column',
-          gap: 0.5
+          alignItems: 'stretch',
+          gap: 0.75
         }}
       >
         <Typography
           sx={{
-            fontSize: '0.8125rem',
-            fontWeight: 700,
+            fontSize: '0.9375rem',
+            fontWeight: 600,
             color: '#212121',
             letterSpacing: '-0.01em',
             lineHeight: 1.4,
+            mb: 0,
             fontFamily: FONT_FAMILY
           }}
         >
-          Monthly Revenue
+          {chartTitle}
         </Typography>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5,
-            flexWrap: 'nowrap',
-            overflowX: 'auto',
-            overflowY: 'hidden',
-            pb: 0.2,
-            pr: 0.25,
-            WebkitOverflowScrolling: 'touch',
-            '&::-webkit-scrollbar': {
-              height: 4
-            },
-            '&::-webkit-scrollbar-thumb': {
-              borderRadius: '999px',
-              bgcolor: 'rgba(148, 163, 184, 0.36)'
-            }
-          }}
-        >
-          <FilterListIcon sx={{ fontSize: '0.8125rem', color: '#94A3B8', flexShrink: 0 }} />
-          <Typography
-            sx={{
-              fontSize: '0.625rem',
-              color: '#64748B',
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              lineHeight: 1.2,
-              fontFamily: FONT_FAMILY,
-              whiteSpace: 'nowrap',
-              flexShrink: 0
-            }}
-          >
-            Filter Chart
-          </Typography>
-          <MobileLegendToggles
-            showCredit={showCredit}
-            showDebit={showDebit}
-            showTotal={showTotal}
-            onToggleCredit={onToggleCredit}
-            onToggleDebit={onToggleDebit}
-            onToggleTotal={onToggleTotal}
-          />
-        </Box>
+        <MobileLegendToggles
+          showCredit={showCredit}
+          showDebit={showDebit}
+          showTotal={showTotal}
+          onToggleCredit={onToggleCredit}
+          onToggleDebit={onToggleDebit}
+          onToggleTotal={onToggleTotal}
+        />
       </Box>
 
       <Box
         sx={{
           width: '100%',
-          borderRadius: '10px',
-          border: '1px solid #E2E8F0',
-          bgcolor: '#F8FAFC',
-          px: 0.5,
-          pt: 0.5,
-          pb: 0.25
+          borderRadius: '12px',
+          border: '1px solid rgba(241, 245, 249, 0.95)',
+          bgcolor: '#FFFFFF',
+          px: 0.6,
+          pt: 0.55,
+          pb: 0.4
         }}
       >
-        {shouldShowScrollHint ? (
-          <Typography
-            sx={{
-              fontSize: '0.625rem',
-              color: '#64748B',
-              fontWeight: 500,
-              mb: 0.35,
-              px: 0.25,
-              fontFamily: FONT_FAMILY
-            }}
-          >
-            Geser chart ke samping untuk lihat semua periode.
-          </Typography>
-        ) : null}
-
         <Box
           sx={{
             width: '100%',
@@ -602,13 +577,13 @@ function MobileChartBU({
               <Box
                 sx={{
                   position: 'absolute',
-                  top: 6,
+                  top: 8,
                   right: 8,
-                  px: 0.875,
-                  py: 0.45,
-                  borderRadius: '8px',
-                  bgcolor: 'rgba(250, 250, 250, 0.94)',
-                  border: '1px solid #E5E7EB',
+                  px: 0.75,
+                  py: 0.35,
+                  borderRadius: '999px',
+                  bgcolor: 'rgba(255, 255, 255, 0.96)',
+                  border: '1px solid #E2E8F0',
                   pointerEvents: 'none'
                 }}
               >

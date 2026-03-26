@@ -950,12 +950,13 @@ export default function DashboardLayoutBasic({ onLogout }) {
             height: '100vh',
             overflow: 'hidden',
             position: 'relative',
-            background:
-              theme.palette.mode === 'dark'
+            background: isMobileScreen
+              ? '#F7FAFC'
+              : theme.palette.mode === 'dark'
                 ? 'linear-gradient(135deg, rgba(18, 18, 18, 0.95) 0%, rgba(24, 24, 24, 0.98) 50%, rgba(30, 30, 30, 1) 100%)'
                 : DASHBOARD_BACKGROUND_LIGHT,
             '&::before': {
-              content: '""',
+              content: isMobileScreen ? 'none' : '""',
               position: 'absolute',
               top: 0,
               left: 0,
