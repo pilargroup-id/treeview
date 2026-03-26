@@ -386,7 +386,7 @@ function YearCards({
   onToggleYear,
   isLoading = false,
   dateFilterType = 'year',
-  salesLabel = 'Total Penjualan',
+  salesLabel = 'Net Revenue',
   showPreviousYearSummary = false,
   previousYearSummaryLabel = 'Tahun Lalu',
   carouselIndicatorsPlacement = 'bottom'

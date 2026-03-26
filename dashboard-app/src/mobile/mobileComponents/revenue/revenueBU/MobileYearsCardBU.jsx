@@ -1,8 +1,8 @@
 import React from 'react';
-import YearsCardMonthly from '../../../../chart/ChartMonthly/YearsCardMonthly';
+import YearsCardBU from '../../../../chart/ChartBU/YearsCardBU';
 
 function MobileYearsCardBU(props) {
-  return <YearsCardMonthly {...props} carouselIndicatorsPlacement="top" />;
+  return <YearsCardBU {...props} carouselIndicatorsPlacement="top" />;
 }
 
 export default React.memo(MobileYearsCardBU);

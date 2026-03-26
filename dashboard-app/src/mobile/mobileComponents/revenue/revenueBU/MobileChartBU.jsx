@@ -6,19 +6,32 @@ import { BarPlot } from '@mui/x-charts/BarChart';
 import { ChartsXAxis } from '@mui/x-charts/ChartsXAxis';
 import { ChartsYAxis } from '@mui/x-charts/ChartsYAxis';
 import { ChartsGrid } from '@mui/x-charts/ChartsGrid';
-import { ChartsTooltip, ChartsTooltipContainer, useAxesTooltip } from '@mui/x-charts/ChartsTooltip';
+import { ChartsTooltipContainer, useAxesTooltip } from '@mui/x-charts/ChartsTooltip';
 import { ChartsAxisHighlight } from '@mui/x-charts/ChartsAxisHighlight';
-import FilterListIcon from '@mui/icons-material/FilterList';
 
 const SERIES_COLORS = {
   credit: 'rgb(75, 192, 192)',
   debit: 'rgb(255, 99, 132)',
   total: 'rgb(16, 185, 129)'
 };
+const LEGEND_TONES = {
+  credit: {
+    surface: 'rgba(75, 192, 192, 0.1)',
+    border: 'rgba(75, 192, 192, 0.22)'
+  },
+  debit: {
+    surface: 'rgba(255, 99, 132, 0.1)',
+    border: 'rgba(255, 99, 132, 0.22)'
+  },
+  line: {
+    surface: 'rgba(16, 185, 129, 0.1)',
+    border: 'rgba(16, 185, 129, 0.22)'
+  }
+};
 
-const FONT_FAMILY = '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif';
+const FONT_FAMILY = '"Inter", -apple-system, BlinkMacSystemFont, "SF  ro Display", "Segoe UI", sans-serif';
 const AXIS_ID = 'monthAxisMobileId';
-const DEFAULT_CHART_MARGIN = { top: 18, right: 28, bottom: 50, left: 28 };
+const DEFAULT_CHART_MARGIN = { top: 18, right: 28, bottom: 40, left: 28 };
 const TOOLTIP_YEAR_REGEX = /\((\d{4})\)\s*$/;
 const TOOLTIP_METRIC_LABEL_MAP = {
   Credit: 'Revenue',
@@ -40,16 +53,21 @@ function extractTooltipYearAndLabel(formattedLabel) {
   const label = String(formattedLabel || '').trim();
   const match = label.match(TOOLTIP_YEAR_REGEX);
   if (!match) {
-    return { year: '-', metricLabel: normalizeTooltipMetricLabel(label) };
+    return {
+      year: null,
+      hasExplicitYear: false,
+      metricLabel: normalizeTooltipMetricLabel(label)
+    };
   }
 
   return {
     year: match[1],
+    hasExplicitYear: true,
     metricLabel: normalizeTooltipMetricLabel(label.replace(TOOLTIP_YEAR_REGEX, '').trim())
   };
 }
 
-const MonthlyComparisonTooltip = React.memo(function MonthlyComparisonTooltip({ enabled = false }) {
+const MobileAxisTooltip = React.memo(function MobileAxisTooltip({ enabled = false }) {
   const tooltipData = useAxesTooltip();
   if (!enabled || !Array.isArray(tooltipData) || tooltipData.length === 0) {
     return null;
@@ -57,29 +75,37 @@ const MonthlyComparisonTooltip = React.memo(function MonthlyComparisonTooltip({ 
 
   const axisTooltip = tooltipData[0];
   const groupedByYear = new Map();
+  let hasExplicitYear = false;
 
   (axisTooltip?.seriesItems || []).forEach((seriesItem) => {
     if (seriesItem?.formattedValue == null) {
       return;
     }
 
-    const { year, metricLabel } = extractTooltipYearAndLabel(seriesItem.formattedLabel);
-    const yearBucket = groupedByYear.get(year) || [];
+    const { year, hasExplicitYear: isYearLabel, metricLabel } = extractTooltipYearAndLabel(
+      seriesItem.formattedLabel || seriesItem.label || seriesItem.seriesId
+    );
+    const yearBucketKey = year || 'default';
+    const yearBucket = groupedByYear.get(yearBucketKey) || [];
     yearBucket.push({
-      key: `${seriesItem.seriesId}-${year}`,
+      key: `${seriesItem.seriesId}-${yearBucketKey}`,
       color: seriesItem.color,
       metricLabel,
       value: seriesItem.formattedValue
     });
-    groupedByYear.set(year, yearBucket);
+    groupedByYear.set(yearBucketKey, yearBucket);
+    hasExplicitYear = hasExplicitYear || isYearLabel;
   });
 
   if (groupedByYear.size === 0) {
     return null;
   }
 
-  const orderedYears = Array.from(groupedByYear.keys()).sort((left, right) => Number(left) - Number(right));
+  const orderedYears = hasExplicitYear
+    ? Array.from(groupedByYear.keys()).sort((left, right) => Number(left) - Number(right))
+    : [];
   const isMultiYearTooltip = orderedYears.length > 1;
+  const defaultItems = groupedByYear.get('default') || [];
 
   return (
     <ChartsTooltipContainer trigger="axis">
@@ -89,14 +115,14 @@ const MonthlyComparisonTooltip = React.memo(function MonthlyComparisonTooltip({ 
           borderRadius: '10px',
           border: '1px solid #E5E7EB',
           boxShadow: '0 8px 24px rgba(15, 23, 42, 0.16)',
-          minWidth: orderedYears.length > 1 ? 260 : 180,
+          minWidth: hasExplicitYear && orderedYears.length > 1 ? 260 : 180,
           bgcolor: '#FFFFFF'
         }}
       >
         <Typography
           sx={{
             fontSize: '0.75rem',
-            fontWeight: isMultiYearTooltip ? 400 : 700,
+            fontWeight: 400,
             color: '#111827',
             mb: 0.75,
             fontFamily: FONT_FAMILY
@@ -104,76 +130,126 @@ const MonthlyComparisonTooltip = React.memo(function MonthlyComparisonTooltip({ 
         >
           {axisTooltip?.axisFormattedValue || axisTooltip?.axisValue || '-'}
         </Typography>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${orderedYears.length}, minmax(0, 1fr))`,
-            gap: 1.25
-          }}
-        >
-          {orderedYears.map((year) => (
-            <Box key={year} sx={{ minWidth: 0 }}>
-              <Typography
-                sx={{
-                  fontSize: '0.7rem',
-                  fontWeight: isMultiYearTooltip ? 400 : 700,
-                  color: '#4B5563',
-                  mb: 0.5,
-                  fontFamily: FONT_FAMILY
-                }}
-              >
-                {year}
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
-                {(groupedByYear.get(year) || []).map((item) => (
-                  <Box
-                    key={item.key}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 0.75
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
-                      <Box
-                        sx={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: '50%',
-                          bgcolor: item.color,
-                          flexShrink: 0
-                        }}
-                      />
+        {hasExplicitYear ? (
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${orderedYears.length}, minmax(0, 1fr))`,
+              gap: 1.25
+            }}
+          >
+            {orderedYears.map((year) => (
+              <Box key={year} sx={{ minWidth: 0 }}>
+                <Typography
+                  sx={{
+                    fontSize: '0.7rem',
+                    fontWeight: 400,
+                    color: '#4B5563',
+                    mb: 0.5,
+                    fontFamily: FONT_FAMILY
+                  }}
+                >
+                  {year}
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
+                  {(groupedByYear.get(year) || []).map((item) => (
+                    <Box
+                      key={item.key}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 0.75
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+                        <Box
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            bgcolor: item.color,
+                            flexShrink: 0
+                          }}
+                        />
+                        <Typography
+                          sx={{
+                            fontSize: '0.69rem',
+                            color: '#6B7280',
+                            lineHeight: 1.2,
+                            fontFamily: FONT_FAMILY
+                          }}
+                        >
+                          {item.metricLabel}
+                        </Typography>
+                      </Box>
                       <Typography
                         sx={{
-                          fontSize: '0.69rem',
-                          color: '#6B7280',
+                          fontSize: '0.7rem',
+                          fontWeight: 400,
+                          color: '#111827',
                           lineHeight: 1.2,
+                          whiteSpace: 'nowrap',
                           fontFamily: FONT_FAMILY
                         }}
                       >
-                        {item.metricLabel}
+                        {item.value}
                       </Typography>
                     </Box>
-                    <Typography
-                      sx={{
-                        fontSize: '0.7rem',
-                        fontWeight: isMultiYearTooltip ? 400 : 700,
-                        color: '#111827',
-                        lineHeight: 1.2,
-                        whiteSpace: 'nowrap',
-                        fontFamily: FONT_FAMILY
-                      }}
-                    >
-                      {item.value}
-                    </Typography>
-                  </Box>
-                ))}
+                  ))}
+                </Box>
               </Box>
-            </Box>
-          ))}
-        </Box>
+            ))}
+          </Box>
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
+            {defaultItems.map((item) => (
+              <Box
+                key={item.key}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 0.75
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      bgcolor: item.color,
+                      flexShrink: 0
+                    }}
+                  />
+                  <Typography
+                    sx={{
+                      fontSize: '0.69rem',
+                      color: '#6B7280',
+                      lineHeight: 1.2,
+                      fontFamily: FONT_FAMILY
+                    }}
+                  >
+                    {item.metricLabel}
+                  </Typography>
+                </Box>
+                <Typography
+                  sx={{
+                    fontSize: '0.7rem',
+                    fontWeight: 400,
+                    color: '#111827',
+                    lineHeight: 1.2,
+                    whiteSpace: 'nowrap',
+                    fontFamily: FONT_FAMILY
+                  }}
+                >
+                  {item.value}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        )}
       </Card>
     </ChartsTooltipContainer>
   );
@@ -195,31 +271,34 @@ function getNumericSize(value) {
 }
 
 function LegendItem({ label, active, type, onToggle }) {
+  const accentColor = type === 'line' ? SERIES_COLORS.total : SERIES_COLORS[type];
+  const accentTone = LEGEND_TONES[type];
+
   return (
     <Box
+      component="button"
+      type="button"
       onClick={onToggle}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onToggle();
-        }
-      }}
       sx={{
-        display: 'flex',
+        display: 'inline-flex',
         alignItems: 'center',
-        gap: 0.35,
-        px: 0,
-        py: 0,
+        gap: 0.5,
+        px: 0.95,
+        py: 0.5,
+        minHeight: 30,
+        borderRadius: '999px',
+        border: '1px solid',
+        borderColor: active ? accentTone.border : 'rgba(226, 232, 240, 0.9)',
+        bgcolor: active ? accentTone.surface : 'transparent',
+        whiteSpace: 'nowrap',
         cursor: 'pointer',
-        opacity: active ? 1 : 0.5,
-        transition: 'opacity 0.2s ease',
+        transition: 'all 0.2s ease',
         '&:hover': {
-          opacity: active ? 0.85 : 0.65
+          borderColor: active ? accentTone.border : '#CBD5E1',
+          bgcolor: active ? accentTone.surface : 'rgba(248, 250, 252, 0.85)'
         },
         '&:focus-visible': {
-          outline: '2px solid #6BA3D0',
+          outline: '2px solid rgba(107, 163, 208, 0.45)',
           outlineOffset: '2px'
         }
       }}
@@ -229,29 +308,29 @@ function LegendItem({ label, active, type, onToggle }) {
       {type === 'line' ? (
         <Box
           sx={{
-            width: 14,
+            width: 12,
             height: 0,
-            borderTop: `2px dashed ${active ? SERIES_COLORS.total : '#BDBDBD'}`,
+            borderTop: `2px dashed ${active ? SERIES_COLORS.total : '#B8C3D1'}`,
             borderRadius: '2px'
           }}
         />
       ) : (
         <Box
           sx={{
-            width: 10,
-            height: 10,
-            borderRadius: '2px',
-            bgcolor: active ? SERIES_COLORS[type] : '#D1D5DB',
-            border: `1px solid ${active ? SERIES_COLORS[type] : '#9CA3AF'}`
+            width: 9,
+            height: 9,
+            borderRadius: '3px',
+            bgcolor: active ? accentColor : '#D7DEE7',
+            border: `1px solid ${active ? accentColor : '#B8C3D1'}`
           }}
         />
       )}
       <Typography
         sx={{
-          fontSize: '0.625rem',
+          fontSize: '0.75rem',
           fontWeight: 600,
-          color: active ? '#1F2937' : '#94A3B8',
-          lineHeight: 1.2,
+          color: active ? '#334155' : '#64748B',
+          lineHeight: 1,
           fontFamily: FONT_FAMILY
         }}
       >
@@ -270,7 +349,21 @@ function MobileLegendToggles({
   onToggleTotal
 }) {
   return (
-    <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: 0.35, alignItems: 'center', minWidth: 'max-content' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        flexWrap: 'nowrap',
+        gap: 0.5,
+        alignItems: 'center',
+        overflowX: 'auto',
+        overflowY: 'hidden',
+        WebkitOverflowScrolling: 'touch',
+        '&::-webkit-scrollbar': {
+          display: 'none'
+        },
+        scrollbarWidth: 'none'
+      }}
+    >
       <LegendItem label="Revenue" active={showCredit} type="credit" onToggle={onToggleCredit} />
       <LegendItem label="Retur" active={showDebit} type="debit" onToggle={onToggleDebit} />
       <LegendItem label="Net Revenue" active={showTotal} type="line" onToggle={onToggleTotal} />
@@ -280,6 +373,7 @@ function MobileLegendToggles({
 
 function MobileChartBU({
   loading = false,
+  chartTitle = 'Monthly Revenue',
   chartSeries = [],
   xAxisLabels = [],
   xAxisTitle = 'Bulan',
@@ -298,7 +392,6 @@ function MobileChartBU({
   hasRightAxisSeries = true,
   isMonthlyDataEmpty = false,
   emptyStateAxisMessage = '',
-  isMonthlyComparisonMode = false,
   showCredit = true,
   showDebit = true,
   showTotal = true,
@@ -324,10 +417,10 @@ function MobileChartBU({
     const baseHeight = parsedHeight ?? 320;
 
     if (isExtraSmallScreen) {
-      return Math.max(228, Math.min(baseHeight, 246));
+      return Math.max(210, Math.min(baseHeight, 230));
     }
 
-    return Math.max(238, Math.min(baseHeight, 276));
+    return Math.max(220, Math.min(baseHeight, 246));
   }, [chartCanvasHeight, isExtraSmallScreen]);
 
   const resolvedChartMargin = React.useMemo(() => {
@@ -338,30 +431,26 @@ function MobileChartBU({
     return {
       top: Math.max(12, (margin?.top ?? DEFAULT_CHART_MARGIN.top) - verticalDelta),
       right: Math.max(16, (margin?.right ?? DEFAULT_CHART_MARGIN.right) - horizontalDelta),
-      bottom: Math.max(42, (margin?.bottom ?? DEFAULT_CHART_MARGIN.bottom) - (isExtraSmallScreen ? 8 : 4)),
+      bottom: Math.max(26, (margin?.bottom ?? DEFAULT_CHART_MARGIN.bottom) - (isExtraSmallScreen ? 16 : 14)),
       left: Math.max(16, (margin?.left ?? DEFAULT_CHART_MARGIN.left) - horizontalDelta)
     };
   }, [chartLayout?.margin, isExtraSmallScreen]);
 
   const resolvedAxisFontSize = Math.max(9, (chartLayout?.axisFontSize ?? 10) - (isExtraSmallScreen ? 1 : 0));
   const resolvedTickFontSize = Math.max(9, (chartLayout?.tickFontSize ?? 10) - (isExtraSmallScreen ? 1 : 0));
-  const resolvedXAxisHeight = Math.max(44, (chartLayout?.xAxisHeight ?? 52) - (isExtraSmallScreen ? 6 : 4));
-  const shouldShowScrollHint = React.useMemo(() => {
-    const parsedWidth = getNumericSize(resolvedChartMinWidth);
-    return Number.isFinite(parsedWidth) && parsedWidth > 560;
-  }, [resolvedChartMinWidth]);
+  const resolvedXAxisHeight = Math.max(28, (chartLayout?.xAxisHeight ?? 52) - (isExtraSmallScreen ? 18 : 16));
 
   return (
     <Card
       sx={{
         bgcolor: '#FFFFFF',
-        borderRadius: '10px',
-        boxShadow: '0 1px 5px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.06)',
-        border: '1px solid #E5E7EB',
-        mt: 0.35,
-        pt: 1.25,
-        px: 1,
-        pb: 1,
+        borderRadius: '14px',
+        boxShadow: '0 6px 18px rgba(15, 23, 42, 0.04)',
+        border: '1px solid rgba(226, 232, 240, 0.75)',
+        mt: 0.45,
+        pt: 2,
+        px: 2,
+        pb: 1.25,
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
@@ -371,103 +460,53 @@ function MobileChartBU({
     >
       <Box
         sx={{
-          mb: 1,
+          mb: 1.25,
           display: 'flex',
           flexDirection: 'column',
-          gap: 0.5
+          alignItems: 'stretch',
+          gap: 0.75
         }}
       >
         <Typography
           sx={{
-            fontSize: '0.8125rem',
-            fontWeight: 700,
+            fontSize: '0.9375rem',
+            fontWeight: 600,
             color: '#212121',
             letterSpacing: '-0.01em',
             lineHeight: 1.4,
+            mb: 0,
             fontFamily: FONT_FAMILY
           }}
         >
-          Monthly Revenue
+          {chartTitle}
         </Typography>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5,
-            flexWrap: 'nowrap',
-            overflowX: 'auto',
-            overflowY: 'hidden',
-            pb: 0.2,
-            pr: 0.25,
-            WebkitOverflowScrolling: 'touch',
-            '&::-webkit-scrollbar': {
-              height: 4
-            },
-            '&::-webkit-scrollbar-thumb': {
-              borderRadius: '999px',
-              bgcolor: 'rgba(148, 163, 184, 0.36)'
-            }
-          }}
-        >
-          <FilterListIcon sx={{ fontSize: '0.8125rem', color: '#94A3B8', flexShrink: 0 }} />
-          <Typography
-            sx={{
-              fontSize: '0.625rem',
-              color: '#64748B',
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              lineHeight: 1.2,
-              fontFamily: FONT_FAMILY,
-              whiteSpace: 'nowrap',
-              flexShrink: 0
-            }}
-          >
-            Filter Chart
-          </Typography>
-          <MobileLegendToggles
-            showCredit={showCredit}
-            showDebit={showDebit}
-            showTotal={showTotal}
-            onToggleCredit={onToggleCredit}
-            onToggleDebit={onToggleDebit}
-            onToggleTotal={onToggleTotal}
-          />
-        </Box>
+        <MobileLegendToggles
+          showCredit={showCredit}
+          showDebit={showDebit}
+          showTotal={showTotal}
+          onToggleCredit={onToggleCredit}
+          onToggleDebit={onToggleDebit}
+          onToggleTotal={onToggleTotal}
+        />
       </Box>
 
       <Box
         sx={{
           width: '100%',
-          borderRadius: '10px',
-          border: '1px solid #E2E8F0',
-          bgcolor: '#F8FAFC',
-          px: 0.5,
-          pt: 0.5,
-          pb: 0.25
+          borderRadius: '12px',
+          border: '1px solid rgba(241, 245, 249, 0.95)',
+          bgcolor: '#FFFFFF',
+          px: 0.6,
+          pt: 0.55,
+          pb: 0.2
         }}
       >
-        {shouldShowScrollHint ? (
-          <Typography
-            sx={{
-              fontSize: '0.625rem',
-              color: '#64748B',
-              fontWeight: 500,
-              mb: 0.35,
-              px: 0.25,
-              fontFamily: FONT_FAMILY
-            }}
-          >
-            Geser chart ke samping untuk lihat semua periode.
-          </Typography>
-        ) : null}
-
         <Box
           sx={{
             width: '100%',
             overflowX: 'auto',
             overflowY: 'visible',
-            pb: 0.2,
+            pb: 0,
             scrollbarGutter: 'stable both-edges',
             WebkitOverflowScrolling: 'touch',
             touchAction: 'pan-x',
@@ -529,7 +568,6 @@ function MobileChartBU({
                     scaleType: isMultiRangeMode ? 'band' : 'point',
                     data: xAxisLabels,
                     height: resolvedXAxisHeight,
-                    label: xAxisTitle,
                     tickLabelInterval: () => true,
                     tickLabelMinGap: 0,
                     valueFormatter: (value) => value,
@@ -590,11 +628,7 @@ function MobileChartBU({
                 <ChartsXAxis axisId={AXIS_ID} />
                 {hasLeftAxisSeries ? <ChartsYAxis axisId="leftAxisId" /> : null}
                 {hasRightAxisSeries ? <ChartsYAxis axisId="rightAxisId" /> : null}
-                {isMonthlyComparisonMode ? (
-                  <MonthlyComparisonTooltip enabled />
-                ) : (
-                  <ChartsTooltip trigger="axis" />
-                )}
+                <MobileAxisTooltip enabled />
               </ChartContainer>
             ) : null}
 
@@ -602,13 +636,13 @@ function MobileChartBU({
               <Box
                 sx={{
                   position: 'absolute',
-                  top: 6,
+                  top: 8,
                   right: 8,
-                  px: 0.875,
-                  py: 0.45,
-                  borderRadius: '8px',
-                  bgcolor: 'rgba(250, 250, 250, 0.94)',
-                  border: '1px solid #E5E7EB',
+                  px: 0.75,
+                  py: 0.35,
+                  borderRadius: '999px',
+                  bgcolor: 'rgba(255, 255, 255, 0.96)',
+                  border: '1px solid #E2E8F0',
                   pointerEvents: 'none'
                 }}
               >

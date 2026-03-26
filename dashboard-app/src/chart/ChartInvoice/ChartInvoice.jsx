@@ -22,7 +22,7 @@ import {
 } from '@mui/material';
 import dayjs from 'dayjs';
 import FilterSection from './components/filters/FilterSection';
-import YearsCardMonthly from '../ChartMonthly/YearsCardMonthly';
+import YearsCardBU from '../ChartBU/YearsCardBU';
 import RangeDateFilter from './components/filters/RangeTanggal/RangeDateFilter';
 import SpecificDateFilter from './components/filters/TanggalTertentu/SpecificDateFilter';
 import SummaryCard from './components/filters/SummaryCard';
@@ -708,7 +708,7 @@ function ChartInvoice() {
             alignItems: 'start',
             flexShrink: 0
           }}>
-            <YearsCardMonthly
+            <YearsCardBU
               availableYears={availableYears}
               selectedYears={years}
               yearTotals={yearTotals}

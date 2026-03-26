@@ -5,7 +5,7 @@ import BusinessIcon from '@mui/icons-material/Business';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FilterListIcon from '@mui/icons-material/FilterList';
 
-function SummaryCardMonthlyMobile({
+function SummaryCardBUMobile({
   filterType = 'monthly',
   filterTypeLabel = 'Monthly',
   dateRangeLabel = 'Belum dipilih',
@@ -325,4 +325,4 @@ function SummaryCardMonthlyMobile({
   );
 }
 
-export default React.memo(SummaryCardMonthlyMobile);
+export default React.memo(SummaryCardBUMobile);
