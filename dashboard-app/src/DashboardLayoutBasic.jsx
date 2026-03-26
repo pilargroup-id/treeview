@@ -6,12 +6,10 @@ import { Tab, Tabs, createTheme, GlobalStyles, useMediaQuery } from '@mui/materi
 import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
 import PriceChangeIcon from '@mui/icons-material/PriceChange';
 import BarChartIcon from '@mui/icons-material/BarChart';
-import Inventory2Icon from '@mui/icons-material/Inventory2';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CalendarViewWeekIcon from '@mui/icons-material/CalendarViewWeek';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
-import CategoryIcon from '@mui/icons-material/Category';
 import { AppProvider } from '@toolpad/core/AppProvider';
 import { DashboardLayout, DashboardSidebarPageItem } from '@toolpad/core/DashboardLayout';
 import { useDemoRouter } from '@toolpad/core/internal';
@@ -60,14 +58,6 @@ const BASE_NAVIGATION = [
       { segment: 'GosaveRevenue', title: 'Gosave Revenue', icon: <BarChartIcon /> },
     ],
   },
-  {
-    segment: 'orders',
-    title: 'Item',
-    icon: <Inventory2Icon />,
-    children: [
-      { segment: 'CategoryItemTes', title: 'Category Item (Tes)', icon: <CategoryIcon /> },
-    ],
-  },
   { kind: 'divider' },
   { kind: 'header', title: 'Analytics' },
   {
@@ -107,13 +97,6 @@ const BASE_MOBILE_CHILD_TABS_BY_GROUP = {
       matchers: ['GosaveRevenue'],
     },
   ],
-  item: [
-    {
-      label: 'Category Item (Tes)',
-      value: '/orders/CategoryItemTes',
-      matchers: ['CategoryItemTes'],
-    },
-  ],
   report: [
     {
       label: 'Monthly Visit',
@@ -138,18 +121,17 @@ function buildMobileChildTabsByGroup(accessState) {
   return {
     ...BASE_MOBILE_CHILD_TABS_BY_GROUP,
     revenue: accessState?.canAccessFinancial ? BASE_MOBILE_CHILD_TABS_BY_GROUP.revenue : [],
-    item: accessState?.canAccessItem ? BASE_MOBILE_CHILD_TABS_BY_GROUP.item : [],
   };
 }
 
 function buildMobileBottomNavItems(accessState) {
   return DEFAULT_MOBILE_BOTTOM_NAV_ITEMS.filter((item) => {
-    if (item.value === '/dashboard/MonthlyRevenue') {
-      return Boolean(accessState?.canAccessFinancial);
+    if (item.value === '/orders/CategoryItemTes') {
+      return false;
     }
 
-    if (item.value === '/orders/CategoryItemTes') {
-      return Boolean(accessState?.canAccessItem);
+    if (item.value === '/dashboard/MonthlyRevenue') {
+      return Boolean(accessState?.canAccessFinancial);
     }
 
     return true;
@@ -236,9 +218,7 @@ function getStoredSidebarUser(parsedUser = getStoredAuthUser()) {
 }
 
 function buildNavigation(userDisplayName, accessState) {
-  const canShowMainItems = Boolean(
-    accessState?.canAccessFinancial || accessState?.canAccessItem,
-  );
+  const canShowMainItems = Boolean(accessState?.canAccessFinancial);
 
   const filteredNavigation = BASE_NAVIGATION.filter((item) => {
     if (item?.kind === 'header' && item?.title === 'Main Items') {
@@ -251,10 +231,6 @@ function buildNavigation(userDisplayName, accessState) {
 
     if (item?.segment === 'dashboard') {
       return Boolean(accessState?.canAccessFinancial);
-    }
-
-    if (item?.segment === 'orders') {
-      return Boolean(accessState?.canAccessItem);
     }
 
     return true;

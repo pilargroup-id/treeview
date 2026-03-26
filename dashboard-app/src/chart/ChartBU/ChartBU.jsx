@@ -5,7 +5,7 @@ import { BarPlot } from '@mui/x-charts/BarChart';
 import { ChartsXAxis } from '@mui/x-charts/ChartsXAxis';
 import { ChartsYAxis } from '@mui/x-charts/ChartsYAxis';
 import { ChartsGrid } from '@mui/x-charts/ChartsGrid';
-import { ChartsTooltip, ChartsTooltipContainer, useAxesTooltip } from '@mui/x-charts/ChartsTooltip';
+import { ChartsTooltipContainer, useAxesTooltip } from '@mui/x-charts/ChartsTooltip';
 import { ChartsAxisHighlight } from '@mui/x-charts/ChartsAxisHighlight';
 import dayjs from 'dayjs';
 import { 
@@ -22,12 +22,10 @@ import {
   IconButton,
   Snackbar,
   Alert,
-  Drawer,
   useMediaQuery
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import CloseIcon from '@mui/icons-material/Close';
 import {
   useChartData,
   getFilteredData,
@@ -301,6 +299,36 @@ const formatValueByUnit = (value, divisor, unitLabel) => {
   })} ${unitLabel}`;
 };
 
+const truncateValueByFractionDigits = (value, fractionDigits) => {
+  if (!Number.isFinite(value)) {
+    return value;
+  }
+
+  if (fractionDigits <= 0) {
+    return Math.trunc(value);
+  }
+
+  const factor = 10 ** fractionDigits;
+  return Number((Math.trunc(value * factor) / factor).toFixed(fractionDigits));
+};
+
+const formatValueByUnitWithoutRoundingUp = (value, divisor, unitLabel) => {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return '';
+  }
+
+  const scaledValue = numericValue / divisor;
+  const absScaledValue = Math.abs(scaledValue);
+  const maximumFractionDigits = absScaledValue >= 100 ? 0 : absScaledValue >= 10 ? 1 : 2;
+  const truncatedValue = truncateValueByFractionDigits(scaledValue, maximumFractionDigits);
+
+  return `${truncatedValue.toLocaleString('id-ID', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits
+  })} ${unitLabel}`;
+};
+
 const formatValueInDynamicUnit = (value) => {
   const numericValue = Number(value);
   if (!Number.isFinite(numericValue)) {
@@ -323,7 +351,17 @@ const formatSeriesValue = (value, formatter) => {
 };
 
 const formatDetailedSeriesValue = (value) => {
-  return formatValueInDynamicUnit(value);
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return '';
+  }
+
+  const absValue = Math.abs(numericValue);
+  if (absValue >= 1_000_000_000) {
+    return formatValueByUnitWithoutRoundingUp(numericValue, 1_000_000_000, 'M');
+  }
+
+  return formatValueByUnitWithoutRoundingUp(numericValue, 1_000_000, 'Jt');
 };
 
 const TOOLTIP_YEAR_REGEX = /\((\d{4})\)\s*$/;
@@ -347,16 +385,21 @@ const extractTooltipYearAndLabel = (formattedLabel) => {
   const label = String(formattedLabel || '').trim();
   const match = label.match(TOOLTIP_YEAR_REGEX);
   if (!match) {
-    return { year: '-', metricLabel: normalizeTooltipMetricLabel(label) };
+    return {
+      year: null,
+      hasExplicitYear: false,
+      metricLabel: normalizeTooltipMetricLabel(label)
+    };
   }
 
   return {
     year: match[1],
+    hasExplicitYear: true,
     metricLabel: normalizeTooltipMetricLabel(label.replace(TOOLTIP_YEAR_REGEX, '').trim())
   };
 };
 
-const MonthlyComparisonTooltip = React.memo(({ enabled = false }) => {
+const AxisTooltip = React.memo(({ enabled = false }) => {
   const tooltipData = useAxesTooltip();
   if (!enabled || !Array.isArray(tooltipData) || tooltipData.length === 0) {
     return null;
@@ -364,29 +407,37 @@ const MonthlyComparisonTooltip = React.memo(({ enabled = false }) => {
 
   const axisTooltip = tooltipData[0];
   const groupedByYear = new Map();
+  let hasExplicitYear = false;
 
   (axisTooltip?.seriesItems || []).forEach((seriesItem) => {
     if (seriesItem?.formattedValue == null) {
       return;
     }
 
-    const { year, metricLabel } = extractTooltipYearAndLabel(seriesItem.formattedLabel);
-    const yearBucket = groupedByYear.get(year) || [];
+    const { year, hasExplicitYear: isYearLabel, metricLabel } = extractTooltipYearAndLabel(
+      seriesItem.formattedLabel || seriesItem.label || seriesItem.seriesId
+    );
+    const yearBucketKey = year || 'default';
+    const yearBucket = groupedByYear.get(yearBucketKey) || [];
     yearBucket.push({
-      key: `${seriesItem.seriesId}-${year}`,
+      key: `${seriesItem.seriesId}-${yearBucketKey}`,
       color: seriesItem.color,
       metricLabel,
       value: seriesItem.formattedValue
     });
-    groupedByYear.set(year, yearBucket);
+    groupedByYear.set(yearBucketKey, yearBucket);
+    hasExplicitYear = hasExplicitYear || isYearLabel;
   });
 
   if (groupedByYear.size === 0) {
     return null;
   }
 
-  const orderedYears = Array.from(groupedByYear.keys()).sort((left, right) => Number(left) - Number(right));
+  const orderedYears = hasExplicitYear
+    ? Array.from(groupedByYear.keys()).sort((left, right) => Number(left) - Number(right))
+    : [];
   const isMultiYearTooltip = orderedYears.length > 1;
+  const defaultItems = groupedByYear.get('default') || [];
 
   return (
     <ChartsTooltipContainer trigger="axis">
@@ -396,14 +447,14 @@ const MonthlyComparisonTooltip = React.memo(({ enabled = false }) => {
           borderRadius: '10px',
           border: '1px solid #E5E7EB',
           boxShadow: '0 8px 24px rgba(15, 23, 42, 0.16)',
-          minWidth: orderedYears.length > 1 ? 260 : 180,
+          minWidth: hasExplicitYear && orderedYears.length > 1 ? 260 : 180,
           bgcolor: '#FFFFFF'
         }}
       >
         <Typography
           sx={{
             fontSize: '0.75rem',
-            fontWeight: isMultiYearTooltip ? 400 : 700,
+            fontWeight: 400,
             color: '#111827',
             mb: 0.75,
             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
@@ -411,82 +462,132 @@ const MonthlyComparisonTooltip = React.memo(({ enabled = false }) => {
         >
           {axisTooltip?.axisFormattedValue || axisTooltip?.axisValue || '-'}
         </Typography>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${orderedYears.length}, minmax(0, 1fr))`,
-            gap: 1.25
-          }}
-        >
-          {orderedYears.map((year) => (
-            <Box key={year} sx={{ minWidth: 0 }}>
-              <Typography
-                sx={{
-                  fontSize: '0.7rem',
-                  fontWeight: isMultiYearTooltip ? 400 : 700,
-                  color: '#4B5563',
-                  mb: 0.5,
-                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
-                }}
-              >
-                {year}
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
-                {(groupedByYear.get(year) || []).map((item) => (
-                  <Box
-                    key={item.key}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 0.75
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
-                      <Box
-                        sx={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: '50%',
-                          bgcolor: item.color,
-                          flexShrink: 0
-                        }}
-                      />
+        {hasExplicitYear ? (
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${orderedYears.length}, minmax(0, 1fr))`,
+              gap: 1.25
+            }}
+          >
+            {orderedYears.map((year) => (
+              <Box key={year} sx={{ minWidth: 0 }}>
+                <Typography
+                  sx={{
+                    fontSize: '0.7rem',
+                    fontWeight: 400,
+                    color: '#4B5563',
+                    mb: 0.5,
+                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+                  }}
+                >
+                  {year}
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
+                  {(groupedByYear.get(year) || []).map((item) => (
+                    <Box
+                      key={item.key}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 0.75
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+                        <Box
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            bgcolor: item.color,
+                            flexShrink: 0
+                          }}
+                        />
+                        <Typography
+                          sx={{
+                            fontSize: '0.69rem',
+                            color: '#6B7280',
+                            lineHeight: 1.2,
+                            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+                          }}
+                        >
+                          {item.metricLabel}
+                        </Typography>
+                      </Box>
                       <Typography
                         sx={{
-                          fontSize: '0.69rem',
-                          color: '#6B7280',
+                          fontSize: '0.7rem',
+                          fontWeight: 400,
+                          color: '#111827',
                           lineHeight: 1.2,
+                          whiteSpace: 'nowrap',
                           fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
                         }}
                       >
-                        {item.metricLabel}
+                        {item.value}
                       </Typography>
                     </Box>
-                    <Typography
-                      sx={{
-                        fontSize: '0.7rem',
-                        fontWeight: isMultiYearTooltip ? 400 : 700,
-                        color: '#111827',
-                        lineHeight: 1.2,
-                        whiteSpace: 'nowrap',
-                        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
-                      }}
-                    >
-                      {item.value}
-                    </Typography>
-                  </Box>
-                ))}
+                  ))}
+                </Box>
               </Box>
-            </Box>
-          ))}
-        </Box>
+            ))}
+          </Box>
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
+            {defaultItems.map((item) => (
+              <Box
+                key={item.key}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 0.75
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      bgcolor: item.color,
+                      flexShrink: 0
+                    }}
+                  />
+                  <Typography
+                    sx={{
+                      fontSize: '0.69rem',
+                      color: '#6B7280',
+                      lineHeight: 1.2,
+                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+                    }}
+                  >
+                    {item.metricLabel}
+                  </Typography>
+                </Box>
+                <Typography
+                  sx={{
+                    fontSize: '0.7rem',
+                    fontWeight: 400,
+                    color: '#111827',
+                    lineHeight: 1.2,
+                    whiteSpace: 'nowrap',
+                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
+                  }}
+                >
+                  {item.value}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        )}
       </Card>
     </ChartsTooltipContainer>
   );
 });
 
-MonthlyComparisonTooltip.displayName = 'MonthlyComparisonTooltip';
+AxisTooltip.displayName = 'AxisTooltip';
 
 const FilterTypeDropdown = React.memo(({ value, onChange }) => {
   const formControlRef = useRef(null);
@@ -711,15 +812,17 @@ const FilterSection = React.memo(({
   isMobile = false,
   showLoadButton = true
 }) => {
-  const ContainerComponent = isMobile ? Box : Card;
+  const ContainerComponent = Card;
 
   return (
     <ContainerComponent sx={{
-      bgcolor: isMobile ? 'transparent' : '#FFFFFF',
-      borderRadius: isMobile ? 0 : '14px',
-      boxShadow: isMobile ? 'none' : '0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
-      border: isMobile ? 'none' : '1px solid #E5E7EB',
-      p: isMobile ? 0 : { xs: 2.25, md: 2.5 },
+      bgcolor: isMobile ? 'rgba(255, 255, 255, 0.58)' : '#FFFFFF',
+      borderRadius: '14px',
+      boxShadow: isMobile
+        ? '0 2px 8px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.05)'
+        : '0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
+      border: '1px solid #E5E7EB',
+      p: isMobile ? 2 : { xs: 2.25, md: 2.5 },
       display: 'flex',
       flexDirection: 'column',
       gap: isMobile ? 1.5 : 2,
@@ -728,6 +831,8 @@ const FilterSection = React.memo(({
       fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
       position: 'relative',
       zIndex: 1,
+      backdropFilter: isMobile ? 'blur(4px)' : 'none',
+      WebkitBackdropFilter: isMobile ? 'blur(4px)' : 'none',
       '&:hover': isMobile
         ? undefined
         : {
@@ -737,14 +842,14 @@ const FilterSection = React.memo(({
           }
     }}>
       <Box sx={{
-        display: isMobile ? 'none' : 'flex',
+        display: 'flex',
         alignItems: 'center', 
         justifyContent: 'space-between',
         mb: 0
       }}>
-        <Typography sx={{ 
-          fontSize: { xs: '0.875rem', md: '0.9375rem' }, 
-          fontWeight: 600, 
+        <Typography sx={{
+          fontSize: isMobile ? '0.9375rem' : { xs: '0.875rem', md: '0.9375rem' },
+          fontWeight: 600,
           color: '#212121',
           fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
           letterSpacing: '-0.01em',
@@ -1418,7 +1523,6 @@ function ChartBUContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
   const [rangeDates, setRangeDates] = useState([]);
   const [multiRangeDates, setMultiRangeDates] = useState([]);
   const [openCalendarSignal, setOpenCalendarSignal] = useState(0);
-  const [mobileFilterDrawerOpen, setMobileFilterDrawerOpen] = useState(false);
 
   const availableYears = useMemo(() => getAvailableYears(), []);
   const summaryDateRangeLabel = useMemo(() => {
@@ -2127,7 +2231,6 @@ function ChartBUContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
   }, [currentYear, filterType, multiRangeDates, normalizedSelectedYears, rangeDates, selectedYear]);
 
   const handleOpenCalendarModal = useCallback(() => {
-    setMobileFilterDrawerOpen(false);
     setOpenCalendarSignal((prev) => prev + 1);
   }, []);
 
@@ -2268,6 +2371,7 @@ function ChartBUContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
               onLoadData={handleLoadData}
               onRefreshData={handleRefreshData}
               isLoading={loading}
+              isMobile={isMobileScreen}
             />
           </Box>
 
@@ -2381,13 +2485,15 @@ function ChartBUContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
               {isMobileScreen ? (
                 <MobileRingkasanBU
                   filterType={filterType}
-                  filterTypeLabel={getFilterTypeLabel(filterType)}
                   dateRangeLabel={summaryDateRangeLabel}
+                  onFilterTypeChange={handleFilterTypeChange}
+                  onOpenCalendarModal={handleOpenCalendarModal}
+                  availableBusinessUnits={availableBusinessUnits}
                   businessUnits={businessUnits}
-                  invoiceData={allData.data || []}
+                  onBusinessUnitToggle={toggleBusinessUnit}
                   onClearRangeData={handleClearRangeData}
-                  onOpenFilter={() => setMobileFilterDrawerOpen(true)}
                   onLoadData={handleLoadData}
+                  onRefreshData={handleRefreshData}
                   isLoading={loading}
                 />
               ) : (
@@ -2639,11 +2745,7 @@ function ChartBUContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
                   <ChartsXAxis axisId="monthAxisId" />
                   {hasLeftAxisSeries ? <ChartsYAxis axisId="leftAxisId" /> : null}
                   {hasRightAxisSeries ? <ChartsYAxis axisId="rightAxisId" /> : null}
-                  {isMonthlyComparisonMode ? (
-                    <MonthlyComparisonTooltip enabled />
-                  ) : (
-                    <ChartsTooltip trigger="axis" />
-                  )}
+                  <AxisTooltip enabled />
                 </ChartContainer>
               ) : null}
 
@@ -2678,90 +2780,6 @@ function ChartBUContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
             </Card>
           )}
         </Box>
-
-        {isMobileScreen ? (
-          <Drawer
-            anchor="bottom"
-            open={mobileFilterDrawerOpen}
-            onClose={() => setMobileFilterDrawerOpen(false)}
-            ModalProps={{
-              keepMounted: true
-            }}
-            BackdropProps={{
-              sx: {
-                backgroundColor: 'rgba(15, 23, 42, 0.52)',
-                backdropFilter: 'blur(1.5px)'
-              }
-            }}
-            sx={{
-              zIndex: (theme) => theme.zIndex.modal + 2
-            }}
-            PaperProps={{
-              sx: {
-                borderTopLeftRadius: '18px',
-                borderTopRightRadius: '18px',
-                height: 'auto',
-                maxHeight: 'calc(100dvh - 84px)',
-                pb: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
-                overflow: 'hidden',
-                zIndex: (theme) => theme.zIndex.modal + 3
-              }
-            }}
-          >
-            <Box
-              sx={{
-                p: 2,
-                pb: 1,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                position: 'sticky',
-                top: 0,
-                zIndex: 1,
-                bgcolor: '#FFFFFF',
-                borderBottom: '1px solid #F1F5F9'
-              }}
-            >
-              <Typography
-                sx={{
-                  fontSize: '1.125rem',
-                  fontWeight: 600,
-                  color: '#212121',
-                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
-                }}
-              >
-                Filter
-              </Typography>
-              <IconButton onClick={() => setMobileFilterDrawerOpen(false)} size="small" aria-label="Close filter drawer">
-                <CloseIcon />
-              </IconButton>
-            </Box>
-            <Box
-              sx={{
-                px: 2,
-                pt: 1.5,
-                pb: 'calc(env(safe-area-inset-bottom, 0px) + 6px)',
-                overflow: 'auto',
-                maxHeight: 'calc(100dvh - 240px)',
-                WebkitOverflowScrolling: 'touch'
-              }}
-            >
-              <FilterSection
-                filterType={filterType}
-                onFilterTypeChange={handleFilterTypeChange}
-                onOpenCalendarModal={handleOpenCalendarModal}
-                availableBusinessUnits={availableBusinessUnits}
-                businessUnits={businessUnits}
-                onBusinessUnitToggle={toggleBusinessUnit}
-                onLoadData={handleLoadData}
-                onRefreshData={handleRefreshData}
-                isLoading={loading}
-                isMobile
-                showLoadButton={false}
-              />
-            </Box>
-          </Drawer>
-        ) : null}
 
         {/* Snackbar for notifications */}
         <Snackbar
