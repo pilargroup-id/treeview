@@ -31,7 +31,7 @@ import {
   getFilteredData,
   getAvailableYears,
   monthShortNames
-} from '../ChartMonthly/chartHelpers';
+} from '../ChartBU/chartHelpers';
 import BusinessIcon from '@mui/icons-material/Business';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FilterListIcon from '@mui/icons-material/FilterList';
@@ -39,9 +39,9 @@ import YearsCardGosave from './yearsCardGosave';
 import RangeDateFilter from '../ChartInvoice/components/filters/RangeTanggal/RangeDateFilter';
 import SpecificDateFilter from '../ChartInvoice/components/filters/TanggalTertentu/SpecificDateFilter';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import ErrorBoundary from '../ChartMonthly/ErrorBoundary';
+import ErrorBoundary from '../ChartBU/ErrorBoundary';
 import { API_URL } from '../../config/api';
-import { buildRangeChartModel } from '../ChartMonthly/rangeChartModel';
+import { buildRangeChartModel } from '../ChartBU/rangeChartModel';
 import {
   GOSAVE_SUB_BUSINESS_UNIT_OPTIONS,
   loadGosaveMultiRangeCompareYearData,
@@ -944,47 +944,6 @@ const FilterSection = React.memo(({
         onChange={onSubBusinessUnitChange}
       />
 
-      <Button 
-        variant="contained" 
-        onClick={onLoadData} 
-        disabled={isLoading} 
-        size="medium"
-        fullWidth
-        aria-label="Load data button"
-        sx={{ 
-          bgcolor: '#6BA3D0',
-          color: 'white',
-          textTransform: 'none',
-          fontSize: '0.8125rem',
-          fontWeight: 500,
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-          py: 1.125,
-          borderRadius: '10px',
-          boxShadow: 'none',
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-          '&:hover': {
-            bgcolor: '#5A9FD0',
-            boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)'
-          },
-          '&:active': {
-            transform: 'scale(0.98)',
-            transition: 'all 0.1s ease'
-          },
-          '&:disabled': {
-            bgcolor: '#F5F5F5',
-            color: '#BDBDBD',
-            transform: 'none',
-            boxShadow: 'none'
-          },
-          '&:focus-visible': {
-            outline: '2px solid #6BA3D0',
-            outlineOffset: '2px'
-          }
-        }}
-      >
-        {isLoading ? 'Memuat...' : 'Muat Data'}
-      </Button>
-
       <FilterTypeDropdown
         value={filterType}
         onChange={onFilterTypeChange}
@@ -1043,6 +1002,48 @@ const FilterSection = React.memo(({
           </Button>
         </Box>
       ) : null}
+
+      <Button 
+        variant="contained" 
+        onClick={onLoadData} 
+        disabled={isLoading} 
+        size="medium"
+        fullWidth
+        aria-label="Load data button"
+        sx={{ 
+          mt: { xs: 0.5, lg: 'auto' },
+          bgcolor: '#6BA3D0',
+          color: 'white',
+          textTransform: 'none',
+          fontSize: '0.8125rem',
+          fontWeight: 500,
+          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+          py: 1.125,
+          borderRadius: '10px',
+          boxShadow: 'none',
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          '&:hover': {
+            bgcolor: '#5A9FD0',
+            boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)'
+          },
+          '&:active': {
+            transform: 'scale(0.98)',
+            transition: 'all 0.1s ease'
+          },
+          '&:disabled': {
+            bgcolor: '#F5F5F5',
+            color: '#BDBDBD',
+            transform: 'none',
+            boxShadow: 'none'
+          },
+          '&:focus-visible': {
+            outline: '2px solid #6BA3D0',
+            outlineOffset: '2px'
+          }
+        }}
+      >
+        {isLoading ? 'Memuat...' : 'Muat Data'}
+      </Button>
 
     </Card>
   );
@@ -1112,7 +1113,7 @@ const LegendToggles = React.memo(({
           color: showCredit ? '#212121' : '#9E9E9E',
           fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
         }}>
-          Credit
+          Revenue
         </Typography>
       </Box>
       
@@ -1160,7 +1161,7 @@ const LegendToggles = React.memo(({
           color: showDebit ? '#212121' : '#9E9E9E',
           fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
         }}>
-          Debit
+          Retur
         </Typography>
       </Box>
       
@@ -1207,7 +1208,7 @@ const LegendToggles = React.memo(({
           color: showTotal ? '#212121' : '#9E9E9E',
           fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
         }}>
-          Total (Credit - Debit)
+          Net Revenue
         </Typography>
       </Box>
     </Box>

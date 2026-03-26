@@ -39,7 +39,7 @@ import {
 import BusinessIcon from '@mui/icons-material/Business';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import YearsCardMonthly from './YearsCardMonthly';
+import YearsCardBU from './YearsCardBU';
 import MobileRingkasanBU from '../../mobile/mobileComponents/revenue/revenueBU/MobileRingkasanBU';
 import MobileYearsCardBU from '../../mobile/mobileComponents/revenue/revenueBU/MobileYearsCardBU';
 import MobileChartBU from '../../mobile/mobileComponents/revenue/revenueBU/MobileChartBU';
@@ -47,6 +47,7 @@ import RangeDateFilter from '../ChartInvoice/components/filters/RangeTanggal/Ran
 import SpecificDateFilter from '../ChartInvoice/components/filters/TanggalTertentu/SpecificDateFilter';
 import RangeDateMobile from '../../mobile/templateMobile/RangeDateMobile';
 import MultiRangeMobile from '../../mobile/templateMobile/MultiRangeMobile';
+import BackgroundMobile from '../../mobile/BackgroundMobile';
 import { useQuery, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ErrorBoundary from './ErrorBoundary';
 import { API_URL } from '../../config/api';
@@ -97,6 +98,22 @@ const COMPARISON_SERIES_COLORS = [
 
 const getFilterTypeLabel = (filterType) => {
   return FILTER_TYPE_OPTIONS.find((option) => option.value === filterType)?.label || 'Monthly';
+};
+
+const getChartTitle = (filterType, comparisonCount = 1) => {
+  if (filterType === 'multi_range') {
+    return 'Revenue Comparison';
+  }
+
+  if (filterType === 'range') {
+    return 'Revenue by Date Range';
+  }
+
+  if (comparisonCount > 1) {
+    return 'Monthly Revenue Comparison';
+  }
+
+  return 'Monthly Revenue';
 };
 
 const isCalendarFilterType = (filterType) => {
@@ -1317,7 +1334,7 @@ const SummaryCardCompact = React.memo(({
 SummaryCardCompact.displayName = 'SummaryCardCompact';
 
 //component that uses useQuery 
-function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
+function ChartBUContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
   const currentYear = new Date().getFullYear();
   const isMobileScreen = useMediaQuery('(max-width:600px)');
   const isCompactScreen = useMediaQuery('(max-width:900px)');
@@ -1695,6 +1712,10 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
 
     return 'Bulan';
   }, [filterType, rangeChartModel]);
+
+  const chartTitle = useMemo(() => {
+    return getChartTitle(filterType, normalizedSelectedYears.length);
+  }, [filterType, normalizedSelectedYears.length]);
 
   const chartLayout = useMemo(() => {
     if (isMobileScreen) {
@@ -2185,7 +2206,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
         height: 'auto',
         display: 'flex',
         flexDirection: 'column',
-        background: 'linear-gradient(135deg, #F5F7FA 0%, #F8F9FA 50%, #FAFBFC 100%)',
+        background: isMobileScreen ? '#F4F8FC' : 'linear-gradient(135deg, #F5F7FA 0%, #F8F9FA 50%, #FAFBFC 100%)',
         pt: { xs: 1.75, sm: 2.25, md: 3, xl: 3.5 },
         px: { xs: 1, sm: 1.5, md: 2, xl: 2.5 },
         pb: { xs: 1.75, sm: 2.25, md: 3, xl: 3.5 },
@@ -2195,7 +2216,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
         overflowX: 'hidden',
         overflowY: 'visible',
         '&::before': {
-          content: '""',
+          content: isMobileScreen ? 'none' : '""',
           position: 'absolute',
           top: 0,
           left: 0,
@@ -2207,6 +2228,19 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
           zIndex: 0
         }
       }}>
+        {isMobileScreen ? (
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 0,
+              pointerEvents: 'none',
+              overflow: 'hidden'
+            }}
+          >
+            <BackgroundMobile />
+          </Box>
+        ) : null}
         {/* Baris Atas: Filter Section dan SummaryCard */}
         <Box sx={{
           display: 'flex',
@@ -2261,7 +2295,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
                   dateFilterType={filterType}
                 />
               ) : (
-                <YearsCardMonthly
+                <YearsCardBU
                   availableYears={availableYears}
                   selectedYears={normalizedSelectedYears}
                   yearTotals={yearTotals}
@@ -2370,32 +2404,34 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
         </Box>
             
         {/* Card Chart di Bawah */}
-        {isMobileScreen ? (
-          <MobileChartBU
-            loading={loading}
-            chartSeries={chartSeries}
-            xAxisLabels={xAxisLabels}
-            xAxisTitle={xAxisTitle}
-            chartLayout={chartLayout}
-            yAxisConfig={yAxisConfig}
-            chartCanvasHeight={chartCanvasHeight}
-            chartMinWidth={chartMinWidth}
-            chartSeriesSx={chartSeriesSx}
-            isMultiRangeMode={isMultiRangeMode}
-            hasLeftAxisSeries={hasLeftAxisSeries}
-            hasRightAxisSeries={hasRightAxisSeries}
-            isMonthlyDataEmpty={isMonthlyDataEmpty}
-            emptyStateAxisMessage={emptyStateAxisMessage}
-            isMonthlyComparisonMode={isMonthlyComparisonMode}
-            showCredit={showCredit}
-            showDebit={showDebit}
-            showTotal={showTotal}
-            onToggleCredit={() => setShowCredit((prev) => !prev)}
-            onToggleDebit={() => setShowDebit((prev) => !prev)}
-            onToggleTotal={() => setShowTotal((prev) => !prev)}
-          />
-        ) : (
-          <Card sx={{
+        <Box sx={{ position: 'relative', zIndex: 1 }}>
+          {isMobileScreen ? (
+            <MobileChartBU
+              loading={loading}
+              chartTitle={chartTitle}
+              chartSeries={chartSeries}
+              xAxisLabels={xAxisLabels}
+              xAxisTitle={xAxisTitle}
+              chartLayout={chartLayout}
+              yAxisConfig={yAxisConfig}
+              chartCanvasHeight={chartCanvasHeight}
+              chartMinWidth={chartMinWidth}
+              chartSeriesSx={chartSeriesSx}
+              isMultiRangeMode={isMultiRangeMode}
+              hasLeftAxisSeries={hasLeftAxisSeries}
+              hasRightAxisSeries={hasRightAxisSeries}
+              isMonthlyDataEmpty={isMonthlyDataEmpty}
+              emptyStateAxisMessage={emptyStateAxisMessage}
+              isMonthlyComparisonMode={isMonthlyComparisonMode}
+              showCredit={showCredit}
+              showDebit={showDebit}
+              showTotal={showTotal}
+              onToggleCredit={() => setShowCredit((prev) => !prev)}
+              onToggleDebit={() => setShowDebit((prev) => !prev)}
+              onToggleTotal={() => setShowTotal((prev) => !prev)}
+            />
+          ) : (
+            <Card sx={{
             bgcolor: '#FFFFFF',
             borderRadius: '14px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)',
@@ -2433,7 +2469,7 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
                 lineHeight: 1.4,
                 fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif'
               }}>
-                Monthly Revenue
+                {chartTitle}
               </Typography>
               <Box
                 sx={{
@@ -2639,8 +2675,9 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
               ) : null}
               </Box>
             </Box>
-          </Card>
-        )}
+            </Card>
+          )}
+        </Box>
 
         {isMobileScreen ? (
           <Drawer
@@ -2747,19 +2784,19 @@ function ChartMonthlyContent({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
 }
 
 // QueryClientProvider
-function ChartMonthly({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
+function ChartBU({ initialBusinessUnits = ['Gosave', 'Goto'] }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <ChartMonthlyContent initialBusinessUnits={initialBusinessUnits} />
+      <ChartBUContent initialBusinessUnits={initialBusinessUnits} />
     </QueryClientProvider>
   );
 }
 
 // ErrorBoundary
-const ChartMonthlyWithErrorBoundary = ({ initialBusinessUnits = ['Gosave', 'Goto'] }) => (
+const ChartBUWithErrorBoundary = ({ initialBusinessUnits = ['Gosave', 'Goto'] }) => (
   <ErrorBoundary>
-    <ChartMonthly initialBusinessUnits={initialBusinessUnits} />
+    <ChartBU initialBusinessUnits={initialBusinessUnits} />
   </ErrorBoundary>
 );
 
-export default ChartMonthlyWithErrorBoundary;
+export default ChartBUWithErrorBoundary;

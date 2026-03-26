@@ -1,6 +1,6 @@
 import * as React from 'react';
 import Box from '@mui/material/Box';
-import ChartMonthly from '../chart/ChartMonthly';
+import ChartBU from '../chart/ChartBU';
 
 export default function MonthlyRevenue() {
   return (
@@ -14,7 +14,7 @@ export default function MonthlyRevenue() {
         overflow: 'hidden'
       }}
     >
-      <ChartMonthly />
+      <ChartBU />
     </Box>
   );
 }

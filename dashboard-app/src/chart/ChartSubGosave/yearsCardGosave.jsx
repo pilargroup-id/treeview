@@ -1,9 +1,9 @@
 import React from 'react';
-import YearsCardMonthly from '../ChartMonthly/YearsCardMonthly';
+import YearsCardBU from '../ChartBU/YearsCardBU';
 
 function YearsCardGosave(props) {
   return (
-    <YearsCardMonthly
+    <YearsCardBU
       {...props}
       salesLabel="Net Revenue"
     />
