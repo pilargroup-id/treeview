@@ -1,4 +1,4 @@
-import { processData } from '../ChartMonthly/chartHelpers';
+import { processData } from '../ChartBU/chartHelpers';
 import { fetchWithAuth } from '../../utils/fetchWithAuth';
 
 export const GOTO_SUB_BUSINESS_UNIT_OPTIONS = ['GOTO E-Com', 'GOTO GT', 'Store'];

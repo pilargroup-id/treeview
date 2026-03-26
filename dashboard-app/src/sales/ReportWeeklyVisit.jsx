@@ -97,9 +97,7 @@ function monthNameToIndex(monthNameRaw) {
 
 function getDefaultMonthSelection() {
   const currentMonthIndex = new Date().getMonth();
-  const prevMonthIndex = (currentMonthIndex + 11) % 12;
-  const nextMonthIndex = (currentMonthIndex + 1) % 12;
-  return [prevMonthIndex, currentMonthIndex, nextMonthIndex];
+  return Array.from({ length: 3 }, (_, offset) => currentMonthIndex - offset).filter((monthIndex) => monthIndex >= 0);
 }
 
 function toFiniteNumberOrNull(value) {
@@ -202,7 +200,7 @@ export default function DataTableMonthly() {
     const unique = Array.from(new Set(filters.months))
       .map((m) => Number(m))
       .filter((m) => Number.isInteger(m) && m >= 0 && m <= 11)
-      .sort((a, b) => a - b);
+      .sort((a, b) => b - a);
 
     if (unique.length === 0) return [new Date().getMonth()];
     return unique.slice(0, 3);
@@ -474,7 +472,7 @@ export default function DataTableMonthly() {
       const initialVisibleMonths = Array.from(new Set(getDefaultMonthSelection()))
         .map((m) => Number(m))
         .filter((m) => Number.isInteger(m) && m >= 0 && m <= 11)
-        .sort((a, b) => a - b)
+        .sort((a, b) => b - a)
         .slice(0, 3);
 
       gridRef.current = new w2grid({
@@ -587,7 +585,7 @@ export default function DataTableMonthly() {
 
               const exists = current.includes(monthIndex);
               let next = exists ? current.filter((m) => m !== monthIndex) : current.concat(monthIndex);
-              next = Array.from(new Set(next)).sort((a, b) => a - b);
+              next = Array.from(new Set(next)).sort((a, b) => b - a);
 
               if (next.length === 0) next = [new Date().getMonth()];
               if (!exists && next.length > 3) return prev;
@@ -713,7 +711,7 @@ export default function DataTableMonthly() {
     const grid = gridRef.current ?? w2ui[GRID_NAME];
     if (!grid?.toolbar) return;
 
-    const selectedMonths = Array.from(new Set(visibleMonths)).sort((a, b) => a - b);
+    const selectedMonths = Array.from(new Set(visibleMonths)).sort((a, b) => b - a);
     const monthLabel =
       selectedMonths.length === 0 ? '-' : selectedMonths.map((m) => MONTH_LABELS[m] ?? String(m)).join(', ');
 
