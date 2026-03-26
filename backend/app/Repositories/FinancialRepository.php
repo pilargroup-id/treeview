@@ -39,7 +39,7 @@ class FinancialRepository
             FROM
                 {$this->tablePath}
             WHERE
-                account_header = '{$accountHeader}'
+                account_header IN ('4000.00.00', '4000.01.00', '4000.08.00', '4000.01.10', '4000.01.11', '4000.01.12', '4000.01.13', '4000.02.00', '4000.03.00', '4000.04.00', '4000.05.00', '4000.06.00', '4000.07.00')
                 AND DATE(date) BETWEEN '{$startDate}' AND '{$endDate}'
                 {$businessUnitFilter}
             GROUP BY
