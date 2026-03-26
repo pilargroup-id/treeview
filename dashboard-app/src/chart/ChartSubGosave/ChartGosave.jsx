@@ -320,6 +320,36 @@ const formatValueByUnit = (value, divisor, unitLabel) => {
   })} ${unitLabel}`;
 };
 
+const truncateValueByFractionDigits = (value, fractionDigits) => {
+  if (!Number.isFinite(value)) {
+    return value;
+  }
+
+  if (fractionDigits <= 0) {
+    return Math.trunc(value);
+  }
+
+  const factor = 10 ** fractionDigits;
+  return Number((Math.trunc(value * factor) / factor).toFixed(fractionDigits));
+};
+
+const formatValueByUnitWithoutRoundingUp = (value, divisor, unitLabel) => {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return '';
+  }
+
+  const scaledValue = numericValue / divisor;
+  const absScaledValue = Math.abs(scaledValue);
+  const maximumFractionDigits = absScaledValue >= 100 ? 0 : absScaledValue >= 10 ? 1 : 2;
+  const truncatedValue = truncateValueByFractionDigits(scaledValue, maximumFractionDigits);
+
+  return `${truncatedValue.toLocaleString('id-ID', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits
+  })} ${unitLabel}`;
+};
+
 const formatValueInDynamicUnit = (value) => {
   const numericValue = Number(value);
   if (!Number.isFinite(numericValue)) {
@@ -342,7 +372,17 @@ const formatSeriesValue = (value, formatter) => {
 };
 
 const formatDetailedSeriesValue = (value) => {
-  return formatValueInDynamicUnit(value);
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return '';
+  }
+
+  const absValue = Math.abs(numericValue);
+  if (absValue >= 1_000_000_000) {
+    return formatValueByUnitWithoutRoundingUp(numericValue, 1_000_000_000, 'M');
+  }
+
+  return formatValueByUnitWithoutRoundingUp(numericValue, 1_000_000, 'Jt');
 };
 
 const formatCountValue = (value) => {
