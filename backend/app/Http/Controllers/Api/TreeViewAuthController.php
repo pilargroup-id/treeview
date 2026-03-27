@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\BigQueryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Hash;
 
 class TreeViewAuthController extends Controller
 {
@@ -133,5 +134,74 @@ class TreeViewAuthController extends Controller
             'success' => true,
             'data' => $result['data'],
         ], 200);
+    }
+
+
+    /**
+     * Change profile (username and/or password)
+     * PUT /api/tree-view/change-profile
+     */
+    public function changeProfile(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'current_password' => 'required|string',
+            'new_username'     => 'nullable|string|min:3',
+            'new_password'     => 'nullable|string|min:6',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        if (!$request->new_username && !$request->new_password) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Isi minimal new_username atau new_password',
+            ], 422);
+        }
+
+        $userId = $request->attributes->get('tree_view_user_id');
+
+        // Ambil data user
+        $userResult = $this->bigQueryService->getUserById($userId);
+        if (!$userResult['success']) {
+            return response()->json(['success' => false, 'message' => 'User not found'], 404);
+        }
+
+        $user = $userResult['user'];
+
+        // Verifikasi password saat ini
+        if (!Hash::check($request->current_password, $user['password'])) {
+            return response()->json(['success' => false, 'message' => 'Password saat ini salah'], 401);
+        }
+
+        $changed = [];
+
+        // Ganti username
+        if ($request->new_username) {
+            $result = $this->bigQueryService->updateUsername($userId, $request->new_username);
+            if (!$result['success']) {
+                return response()->json(['success' => false, 'message' => $result['message']], 422);
+            }
+            $changed[] = 'username';
+        }
+
+        // Ganti password
+        if ($request->new_password) {
+            $newHashedPassword = Hash::make($request->new_password);
+            $result = $this->bigQueryService->updatePassword($userId, $newHashedPassword);
+            if (!$result['success']) {
+                return response()->json(['success' => false, 'message' => $result['message']], 500);
+            }
+            $changed[] = 'password';
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Berhasil mengubah ' . implode(' dan ', $changed),
+        ]);
     }
 }
