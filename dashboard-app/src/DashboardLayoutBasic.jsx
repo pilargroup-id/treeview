@@ -32,6 +32,9 @@ import {
 } from './utils/accessControl';
 import TreeViewWordmark from './components/TreeViewWordmark';
 import NavBottom, { DEFAULT_MOBILE_BOTTOM_NAV_ITEMS } from './mobile/templateMobile/NavBottom';
+import MobileMonthlyVisit from './mobile/mobileComponents/salesReport/MobileMonthlyVisit';
+import MobileWeekly from './mobile/mobileComponents/salesReport/MobileWeekly';
+import MobileUserProfile from './mobile/mobileComponents/user/MobileUserProfile';
 
 const DASHBOARD_BACKGROUND_LIGHT =
   'linear-gradient(135deg, #F5F7FA 0%, #F8F9FA 50%, #FAFBFC 100%)';
@@ -47,7 +50,6 @@ const DEFAULT_SIDEBAR_USER = {
 };
 
 const BASE_NAVIGATION = [
-  { kind: 'header', title: 'Main Items' },
   {
     segment: 'dashboard',
     title: 'Revenue',
@@ -59,10 +61,9 @@ const BASE_NAVIGATION = [
     ],
   },
   { kind: 'divider' },
-  { kind: 'header', title: 'Analytics' },
   {
     segment: 'reports',
-    title: 'Reports',
+    title: 'Touch Point',
     icon: <AssessmentIcon />,
     children: [
       { segment: 'monthly-visit', title: 'Monthly Visit', icon: <CalendarMonthIcon /> },
@@ -127,6 +128,10 @@ function buildMobileChildTabsByGroup(accessState) {
 function buildMobileBottomNavItems(accessState) {
   return DEFAULT_MOBILE_BOTTOM_NAV_ITEMS.filter((item) => {
     if (item.value === '/orders/CategoryItemTes') {
+      return false;
+    }
+
+    if (item.value === '/reports/monthly-visit') {
       return false;
     }
 
@@ -221,10 +226,6 @@ function buildNavigation(userDisplayName, accessState) {
   const canShowMainItems = Boolean(accessState?.canAccessFinancial);
 
   const filteredNavigation = BASE_NAVIGATION.filter((item) => {
-    if (item?.kind === 'header' && item?.title === 'Main Items') {
-      return canShowMainItems;
-    }
-
     if (item?.kind === 'divider') {
       return canShowMainItems;
     }
