@@ -7,19 +7,22 @@ import CircularProgress from '@mui/material/CircularProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
-import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import VisibilityOffRoundedIcon from '@mui/icons-material/VisibilityOffRounded';
 import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded';
 import TreeViewWordmark from '../components/TreeViewWordmark';
+import HeaderBackground from './HeaderBackground';
 import { API_URL } from '../config/api';
 
 const REMEMBERED_USERNAME_KEY = 'treeViewRememberedUsername';
+const BRAND_COLOR = '#6BA3D0';
+const BRAND_COLOR_DARK = '#4F89B8';
+const PAGE_BACKGROUND = '#F4F8FC';
+const INPUT_BACKGROUND = '#F8FBFE';
 
 function buildLoginUrl() {
   const base = String(API_URL ?? '').replace(/\/+$/, '');
@@ -141,112 +144,149 @@ export default function LoginPage({ onLoginSuccess }) {
   };
 
   const inputFieldSx = {
+    '& .MuiInputLabel-root': {
+      color: '#70839A',
+      fontWeight: 500,
+      '&.Mui-focused': {
+        color: BRAND_COLOR_DARK,
+      },
+    },
     '& .MuiOutlinedInput-root': {
-      borderRadius: '14px',
-      backgroundColor: '#FFFFFF',
+      borderRadius: '18px',
+      backgroundColor: INPUT_BACKGROUND,
       transition: 'border-color 180ms ease, box-shadow 200ms ease, transform 180ms ease',
       '& fieldset': {
-        borderColor: 'rgba(107, 163, 208, 0.28)',
+        borderColor: 'rgba(107, 163, 208, 0.18)',
       },
       '&:hover fieldset': {
-        borderColor: 'rgba(90, 137, 180, 0.72)',
+        borderColor: 'rgba(79, 137, 184, 0.56)',
       },
       '&.Mui-focused': {
         transform: 'translateY(-1px)',
       },
       '&.Mui-focused fieldset': {
-        borderColor: '#6BA3D0',
-        boxShadow: '0 0 0 4px rgba(107, 163, 208, 0.14)',
+        borderColor: BRAND_COLOR,
+        boxShadow: '0 0 0 4px rgba(107, 163, 208, 0.12)',
       },
     },
     '& .MuiInputBase-input': {
-      py: 1.45,
+      py: 1.55,
+      fontSize: '0.98rem',
     },
+  };
+
+  const leadingIconSx = {
+    width: 36,
+    height: 36,
+    p: 0.9,
+    borderRadius: '12px',
+    color: BRAND_COLOR,
+    backgroundColor: 'rgba(107, 163, 208, 0.14)',
   };
 
   return (
     <Box
       sx={{
-        height: '100vh',
+        minHeight: '100vh',
         display: 'flex',
-        alignItems: 'center',
         justifyContent: 'center',
-        px: { xs: 2, sm: 3 },
-        py: { xs: 3, md: 4 },
         position: 'relative',
         overflow: 'hidden',
-        background: 'linear-gradient(140deg, #EAF2FA 0%, #F3F7FC 47%, #FFFFFF 100%)',
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: -220,
-          right: -150,
-          width: 500,
-          height: 500,
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(107, 163, 208, 0.24) 0%, rgba(107, 163, 208, 0) 70%)',
-          filter: 'blur(4px)',
-        },
+        background: `linear-gradient(180deg, ${PAGE_BACKGROUND} 0%, #EEF5FB 100%)`,
+        width: '100%',
         '&::after': {
           content: '""',
           position: 'absolute',
-          left: -220,
-          bottom: -260,
-          width: 560,
-          height: 560,
+          right: -120,
+          bottom: -160,
+          width: 320,
+          height: 320,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(122, 142, 165, 0.22) 0%, rgba(122, 142, 165, 0) 66%)',
-          filter: 'blur(6px)',
+          background: 'radial-gradient(circle, rgba(107, 163, 208, 0.16) 0%, rgba(107, 163, 208, 0) 70%)',
+          filter: 'blur(18px)',
         },
       }}
     >
       <Box
         sx={{
           position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(107, 163, 208, 0.1) 1px, transparent 0)',
-          backgroundSize: '26px 26px',
-          opacity: 0.35,
-        }}
-      />
-      <Stack
-        spacing={{ xs: 2.2, md: 2.8 }}
-        sx={{
-          width: '100%',
-          maxWidth: 430,
-          position: 'relative',
-          zIndex: 1,
-          alignItems: 'center',
-          transform: { xs: 'translateY(-12px)', md: 'translateY(-22px)' },
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 0,
         }}
       >
-        <TreeViewWordmark fontSize={{ xs: '2.35rem', md: '2.8rem' }} minHeight={58} />
+        <HeaderBackground />
+      </Box>
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: 448,
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          zIndex: 1,
+          px: { xs: 2, sm: 2.5 },
+          py: { xs: 4, sm: 5.5 },
+        }}
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: { xs: 28, sm: 42 },
+            left: { xs: 24, sm: 28 },
+            right: { xs: 24, sm: 28 },
+            zIndex: 2,
+          }}
+        >
+          <Typography
+            variant="h4"
+            sx={{
+              mb: 1.2,
+              minHeight: 60,
+              display: 'inline-flex',
+              alignItems: 'center',
+              color: '#FFFFFF',
+              fontWeight: 700,
+              fontSize: { xs: '2.2rem', sm: '2.6rem' },
+              lineHeight: 1,
+              fontFamily: '"Poppins", "Segoe UI", sans-serif',
+            }}
+          >
+            Login
+          </Typography>
+          <Typography
+            sx={{
+              color: 'rgba(255, 255, 255, 0.9)',
+              fontSize: { xs: '0.95rem', sm: '1rem' },
+              lineHeight: 1.55,
+              maxWidth: 240,
+              fontWeight: 400,
+            }}
+          >
+            Masuk untuk melanjutkan ke dashboard treeView.
+          </Typography>
+        </Box>
 
         <Box
           sx={{
             width: '100%',
-            mt: { xs: -2, md: -3 },
-            p: { xs: 3, sm: 3.8, md: 4.2 },
-            borderRadius: '26px',
-            border: '1px solid rgba(107, 163, 208, 0.2)',
+            maxWidth: 420,
+            p: { xs: 3, sm: 3.8 },
+            borderRadius: '30px',
+            border: '1px solid rgba(107, 163, 208, 0.14)',
             backgroundColor: '#FFFFFF',
-            boxShadow: '0 18px 40px rgba(15, 23, 42, 0.12)',
+            boxShadow: '0 24px 60px rgba(20, 45, 74, 0.16)',
+            backdropFilter: 'blur(8px)',
+            position: 'relative',
+            zIndex: 1,
           }}
         >
-          <Stack spacing={2.45} component="form" noValidate onSubmit={handleSubmit}>
+          <Stack spacing={2.4} component="form" noValidate onSubmit={handleSubmit}>
             <Box>
-              <Typography
-                variant="h4"
-                sx={{
-                  fontWeight: 700,
-                  color: '#0F172A',
-                  fontSize: { xs: '1.72rem', sm: '1.9rem' },
-                  fontFamily: '"Poppins", "Segoe UI", sans-serif',
-                }}
-              >
-                Login
-              </Typography>
+              <TreeViewWordmark fontSize={{ xs: '1.72rem', sm: '1.9rem' }} minHeight={44} />
             </Box>
 
             {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
@@ -254,6 +294,7 @@ export default function LoginPage({ onLoginSuccess }) {
 
             <TextField
               label="Username"
+              placeholder="Masukkan username"
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               autoComplete="username"
@@ -263,7 +304,7 @@ export default function LoginPage({ onLoginSuccess }) {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <PersonRoundedIcon sx={{ color: '#6BA3D0' }} />
+                    <PersonRoundedIcon sx={leadingIconSx} />
                   </InputAdornment>
                 ),
               }}
@@ -272,6 +313,7 @@ export default function LoginPage({ onLoginSuccess }) {
 
             <TextField
               label="Password"
+              placeholder="Masukkan password"
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
@@ -282,7 +324,7 @@ export default function LoginPage({ onLoginSuccess }) {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <LockRoundedIcon sx={{ color: '#6BA3D0' }} />
+                    <LockRoundedIcon sx={leadingIconSx} />
                   </InputAdornment>
                 ),
                 endAdornment: (
@@ -292,7 +334,12 @@ export default function LoginPage({ onLoginSuccess }) {
                       onClick={() => setShowPassword((current) => !current)}
                       onMouseDown={(event) => event.preventDefault()}
                       edge="end"
-                      sx={{ color: '#7A8EA5' }}
+                      sx={{
+                        color: '#7A8EA5',
+                        '&:hover': {
+                          backgroundColor: 'rgba(107, 163, 208, 0.12)',
+                        },
+                      }}
                     >
                       {showPassword ? <VisibilityOffRoundedIcon /> : <VisibilityRoundedIcon />}
                     </IconButton>
@@ -302,40 +349,37 @@ export default function LoginPage({ onLoginSuccess }) {
               sx={inputFieldSx}
             />
 
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: -0.25 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                flexWrap: 'wrap',
+                gap: 1.5,
+                mt: -0.15,
+              }}
+            >
               <FormControlLabel
-                sx={{ m: 0 }}
+                sx={{ m: 0, mr: 0.5 }}
                 control={
                   <Checkbox
                     checked={rememberMe}
                     onChange={(event) => setRememberMe(event.target.checked)}
                     sx={{
-                      p: 0.75,
-                      color: 'rgba(107, 163, 208, 0.7)',
+                      p: 0.6,
+                      color: 'rgba(107, 163, 208, 0.72)',
                       '&.Mui-checked': {
-                        color: '#6BA3D0',
+                        color: BRAND_COLOR,
                       },
                     }}
                   />
                 }
                 label={
-                  <Typography sx={{ color: '#5D6F84', fontSize: '0.91rem', userSelect: 'none' }}>
+                  <Typography sx={{ color: '#5D6F84', fontSize: '0.92rem', fontWeight: 500, userSelect: 'none' }}>
                     Remember Me
                   </Typography>
                 }
               />
-              <Link
-                href="#"
-                underline="hover"
-                onClick={(event) => event.preventDefault()}
-                sx={{
-                  color: '#5A8BB8',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                }}
-              >
-                Forgot Password
-              </Link>
             </Box>
 
             <Button
@@ -343,20 +387,20 @@ export default function LoginPage({ onLoginSuccess }) {
               variant="contained"
               size="large"
               disabled={isLoading}
-              endIcon={isLoading ? null : <ArrowForwardRoundedIcon />}
               sx={{
-                minHeight: 50,
-                borderRadius: '14px',
+                minHeight: 56,
+                borderRadius: '18px',
                 fontWeight: 700,
                 textTransform: 'none',
                 letterSpacing: '0.01em',
-                background: 'linear-gradient(135deg, #6BA3D0 0%, #5A9FD0 100%)',
-                boxShadow: '0 12px 26px rgba(90, 159, 208, 0.34)',
+                fontSize: '1rem',
+                background: `linear-gradient(135deg, ${BRAND_COLOR} 0%, #78AFD8 100%)`,
+                boxShadow: '0 18px 30px rgba(107, 163, 208, 0.3)',
                 transition: 'transform 180ms ease, box-shadow 220ms ease, background 220ms ease',
                 '&:hover': {
                   transform: 'translateY(-2px)',
-                  background: 'linear-gradient(135deg, #5F97C4 0%, #4F8CB9 100%)',
-                  boxShadow: '0 16px 30px rgba(90, 159, 208, 0.44)',
+                  background: `linear-gradient(135deg, ${BRAND_COLOR_DARK} 0%, #679FCA 100%)`,
+                  boxShadow: '0 22px 34px rgba(107, 163, 208, 0.38)',
                 },
                 '&:active': {
                   transform: 'translateY(0)',
@@ -373,12 +417,12 @@ export default function LoginPage({ onLoginSuccess }) {
                   Memproses...
                 </>
               ) : (
-                'Login ke Dashboard'
+                'Login'
               )}
             </Button>
           </Stack>
         </Box>
-      </Stack>
+      </Box>
     </Box>
   );
 }
