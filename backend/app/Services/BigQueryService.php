@@ -342,4 +342,74 @@ public function deleteToken($userId)
             ];
         }
     }
+
+    public function updateUsername($userId, $newUsername)
+    {
+        try {
+            $dataset = env('BIGQUERY_DATASET');
+            $project = env('BIGQUERY_PROJECT_ID');
+            $now = now()->toDateTimeString();
+            $table = "`{$project}.{$dataset}.tree_view_auth`";
+
+            // Cek username sudah dipakai
+            $checkQuery = "SELECT id FROM {$table} WHERE username = '{$newUsername}' AND id <> '{$userId}' LIMIT 1";
+            $existing = $this->runQuery($checkQuery);
+            if (!empty($existing['data'])) {
+                return ['success' => false, 'message' => 'Username sudah digunakan'];
+            }
+
+            $updateQuery = "UPDATE {$table} SET username = '{$newUsername}', updated_at = '{$now}' WHERE id = '{$userId}'";
+            $jobConfig = $this->bigQuery->query($updateQuery);
+            $this->bigQuery->runQuery($jobConfig);
+
+            return ['success' => true];
+        } catch (\Exception $e) {
+            Log::error('BigQuery Update Username Error: ' . $e->getMessage());
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    public function updatePassword($userId, $newHashedPassword)
+    {
+        try {
+            $dataset = env('BIGQUERY_DATASET');
+            $project = env('BIGQUERY_PROJECT_ID');
+            $now = now()->toDateTimeString();
+            $table = "`{$project}.{$dataset}.tree_view_auth`";
+
+            $updateQuery = "UPDATE {$table} SET password = '{$newHashedPassword}', updated_at = '{$now}' WHERE id = '{$userId}'";
+            $jobConfig = $this->bigQuery->query($updateQuery);
+            $this->bigQuery->runQuery($jobConfig);
+
+            return ['success' => true];
+        } catch (\Exception $e) {
+            Log::error('BigQuery Update Password Error: ' . $e->getMessage());
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    public function getUserById($userId)
+    {
+        try {
+            $dataset = env('BIGQUERY_DATASET');
+            $project = env('BIGQUERY_PROJECT_ID');
+
+            $query = "
+                SELECT id, username, password, is_active
+                FROM `{$project}.{$dataset}.tree_view_auth`
+                WHERE id = '{$userId}'
+                LIMIT 1
+            ";
+
+            $result = $this->runQuery($query);
+            if (!$result['success'] || empty($result['data'])) {
+                return ['success' => false, 'message' => 'User not found'];
+            }
+
+            return ['success' => true, 'user' => $result['data'][0]];
+        } catch (\Exception $e) {
+            Log::error('BigQuery Get User Error: ' . $e->getMessage());
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
 }

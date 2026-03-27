@@ -46,4 +46,6 @@ Route::middleware('tree_view_auth')->group(function () {
         Route::get('/details', [ActivityDetailController::class, 'index']);
     });
 
+    Route::put('/tree-view/change-profile', [TreeViewAuthController::class, 'changeProfile']);
+
 });
