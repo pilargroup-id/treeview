@@ -26,13 +26,15 @@ class FinancialController extends Controller
     public function getMonthlyRevenue(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'account_header' => 'required|string',
-            'start_date' => 'required|date|date_format:Y-m-d',
-            'end_date' => 'required|date|date_format:Y-m-d|after_or_equal:start_date',
-            'business_units' => 'nullable|array',
+            'business_units'   => 'nullable|array',
             'business_units.*' => 'in:' . implode(',', self::BUSINESS_UNITS),
-            'channel' => 'nullable|array',
-            'channel.*' => 'in:' . implode(',', self::CHANNELS),
+            'channel'          => 'nullable|array',
+            'channel.*'        => 'in:' . implode(',', self::CHANNELS),
+            'start_date'       => 'nullable|date|date_format:Y-m-d',
+            'end_date'         => 'nullable|date|date_format:Y-m-d|after_or_equal:start_date',
+            'date_type'        => 'nullable|in:year,range',
+            'years'            => 'nullable|array',
+            'years.*'          => 'integer|min:2020|max:2030',
         ]);
 
         if ($validator->fails()) {
@@ -40,9 +42,10 @@ class FinancialController extends Controller
         }
 
         $result = $this->financialRepo->getMonthlyRevenue(
-            $request->account_header,
-            $request->start_date,
-            $request->end_date,
+            $request->input('start_date'),
+            $request->input('end_date'),
+            $request->input('date_type'),
+            $request->input('years'),
             $request->input('business_units', null),
             $request->input('channel', null)
         );

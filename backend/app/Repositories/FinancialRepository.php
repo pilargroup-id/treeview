@@ -20,13 +20,22 @@ class FinancialRepository
     /**
      * Get Monthly Revenue (Credit - Debit)
      */
-    public function getMonthlyRevenue($accountHeader, $startDate, $endDate, $businessUnits = null, $channel = null)
+    public function getMonthlyRevenue($startDate = null, $endDate = null, $dateType = null, $years = null, $businessUnits = null, $channel = null)
     {
         $businessUnitFilter = "";
         if (!empty($businessUnits) || !empty($channel)) {
             $businessUnitFilter = "AND " . $this->buildBusinessUnitConditionForFinancialGL($businessUnits, $channel);
         }
-        
+
+        // Build date filter
+        $dateFilter = "";
+        if ($dateType === 'year' && !empty($years)) {
+            $yearList = implode(',', $years);
+            $dateFilter = "AND EXTRACT(YEAR FROM date) IN ({$yearList})";
+        } elseif ($startDate && $endDate) {
+            $dateFilter = "AND DATE(date) BETWEEN '{$startDate}' AND '{$endDate}'";
+        }
+
         $query = "
             SELECT
                 FORMAT_DATE('%Y-%m', DATE(date)) AS period,
@@ -40,7 +49,7 @@ class FinancialRepository
                 {$this->tablePath}
             WHERE
                 account_header IN ('4000.00.00', '4000.01.00', '4000.08.00', '4000.01.10', '4000.01.11', '4000.01.12', '4000.01.13', '4000.02.00', '4000.03.00', '4000.04.00', '4000.05.00', '4000.06.00', '4000.07.00')
-                AND DATE(date) BETWEEN '{$startDate}' AND '{$endDate}'
+                {$dateFilter}
                 {$businessUnitFilter}
             GROUP BY
                 period, period_label, year, month
@@ -48,12 +57,13 @@ class FinancialRepository
                 year, month
         ";
 
-        $cacheKey = "monthly_revenue_{$accountHeader}_{$startDate}_{$endDate}_" . md5(json_encode($businessUnits) . json_encode($channel));
+        $cacheKey = "monthly_revenue_" . md5($startDate . $endDate . $dateType . json_encode($years) . json_encode($businessUnits) . json_encode($channel));
 
         return Cache::store('file')->remember($cacheKey, 60, function () use ($query) {
             return $this->bigQueryService->runQuery($query);
         });
     }
+
 
     /**
      * Query 2: Invoice Sales & Quantity by Business Unit (Revenue from GL)
@@ -131,7 +141,7 @@ class FinancialRepository
             invoice_quantity AS (
                 SELECT
                     t2.invoice_number,
-                    SUM(t2.quantity) as total_quantity
+                    SUM(t2.quantity) as invoice_quantity
                 FROM
                     `even-gearbox-255203.ds_netbackup.detail_invoice` t2
                 WHERE
@@ -143,7 +153,7 @@ class FinancialRepository
                 SELECT
                     {$dateGrouping} as period,
                     a.business_unit,
-                    SUM(IFNULL(b.total_quantity, 0)) as total_quantity
+                    SUM(IFNULL(b.invoice_quantity, 0)) as invoice_quantity
                 FROM
                     approved_invoices a
                 LEFT JOIN
@@ -155,15 +165,14 @@ class FinancialRepository
             ),
             credit_memo_summary AS (
                 SELECT
-                    " . ($dateType === 'year' ? "FORMAT_DATE('%Y-%m', DATE(h_date))" : 
-                        ($dateType === 'compare_year' ? "FORMAT_DATE('%m-%d', DATE(h_date))" : 
-                        "FORMAT_DATE('%Y-%m-%d', DATE(h_date))")) . " as period,
-                    h_department_name as business_unit,  -- Langsung pakai department
+                    FORMAT_DATE('%Y-%m', DATE(h_date)) as period,
+                    h_department_name as business_unit,
                     SUM(d_quantity) as total_credit_memo_qty
                 FROM
                     `even-gearbox-255203.ds_netbackup.credit_memo_item`
                 WHERE
-                    h_status = 'Fully Applied'
+                    h_type = 'Credit Memo'
+                    AND h_status = 'Fully Applied'
                     AND " . $this->buildBusinessUnitConditionForCreditMemo($businessUnits, $channel) . "
                     " . $this->buildDateFilterForCreditMemo($years, $dateType, $dateParams) . "
                     AND d_quantity < 0
@@ -220,7 +229,7 @@ class FinancialRepository
                 gl.total_credit,
                 gl.total_debit,
                 gl.total_sales,
-                IFNULL(qs.total_quantity, 0) as total_quantity,
+                IFNULL(qs.invoice_quantity, 0) + IFNULL(cm.total_credit_memo_qty, 0) as total_quantity,
                 IFNULL(cm.total_credit_memo_qty, 0) as credit_memo_qty,
                 CASE 
                     WHEN gl.business_unit IN ('Gosave GT', 'Gosave B2B', 'Gosave E-Com') THEN 
@@ -309,7 +318,7 @@ class FinancialRepository
                     SELECT
                         '{$rangeLabel}' as range_group,
                         'Gosave' as business_unit,
-                        COALESCE(SUM(t2.quantity), 0) as total_quantity
+                        COALESCE(SUM(t2.quantity), 0) as invoice_quantity
                     FROM
                         `even-gearbox-255203.ds_netbackup.header_invoice` t1
                     LEFT JOIN
@@ -329,7 +338,7 @@ class FinancialRepository
                     SELECT
                         '{$rangeLabel}' as range_group,
                         'Goto' as business_unit,
-                        COALESCE(SUM(t2.quantity), 0) as total_quantity
+                        COALESCE(SUM(t2.quantity), 0) as invoice_quantity
                     FROM
                         `even-gearbox-255203.ds_netbackup.header_invoice` t1
                     LEFT JOIN
@@ -439,7 +448,7 @@ class FinancialRepository
         
         $quantitySummaryUnion = !empty($quantitySummaryQueries) 
             ? implode(" UNION ALL ", $quantitySummaryQueries) 
-            : "SELECT NULL as range_group, NULL as business_unit, 0 as total_quantity WHERE 1=0";
+            : "SELECT NULL as range_group, NULL as business_unit, 0 as invoice_quantity WHERE 1=0";
         
         $query = "
             WITH gl_revenue AS (
@@ -463,7 +472,7 @@ class FinancialRepository
                 gl.total_credit,
                 gl.total_debit,
                 gl.total_sales,
-                COALESCE(qs.total_quantity, 0) as total_quantity,
+                COALESCE(qs.invoice_quantity, 0) as invoice_quantity,
                 COALESCE(cm.total_credit_memo_qty, 0) as credit_memo_qty,
                 CASE 
                     WHEN gl.business_unit = 'Gosave' THEN 
