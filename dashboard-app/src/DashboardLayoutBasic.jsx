@@ -6,9 +6,9 @@ import { Tab, Tabs, createTheme, GlobalStyles, useMediaQuery } from '@mui/materi
 import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
 import PriceChangeIcon from '@mui/icons-material/PriceChange';
 import BarChartIcon from '@mui/icons-material/BarChart';
-import AssessmentIcon from '@mui/icons-material/Assessment';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CalendarViewWeekIcon from '@mui/icons-material/CalendarViewWeek';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import { AppProvider } from '@toolpad/core/AppProvider';
 import { DashboardLayout, DashboardSidebarPageItem } from '@toolpad/core/DashboardLayout';
@@ -21,6 +21,7 @@ import ReportMonitorRadius from './sales/ReportMonitorRadius';
 import MonthlyRevenue from './businessUnit/MonthlyRevenue';
 import GotoRevenue from './businessUnit/GotoRevenue';
 import GosaveRevenue from './businessUnit/GosaveRevenue';
+import ChangeProfileAction from './account/ChangeProfileAction';
 import SidebarLogout from './login/logout';
 import { API_URL } from './config/api';
 import { fetchWithAuth } from './utils/fetchWithAuth';
@@ -64,7 +65,7 @@ const BASE_NAVIGATION = [
   {
     segment: 'reports',
     title: 'Touch Point',
-    icon: <AssessmentIcon />,
+    icon: <LocationOnIcon />,
     children: [
       { segment: 'monthly-visit', title: 'Monthly Visit', icon: <CalendarMonthIcon /> },
       { segment: 'weekly-summary', title: 'Weekly Summary', icon: <CalendarViewWeekIcon /> },
@@ -502,7 +503,15 @@ function AccessRestrictedView({ fallbackPath, onNavigate }) {
   );
 }
 
-function DemoPageContent({ pathname, isMobileScreen, sidebarUser, onLogout, accessState, onNavigate }) {
+function DemoPageContent({
+  pathname,
+  isMobileScreen,
+  sidebarUser,
+  onLogout,
+  accessState,
+  onNavigate,
+  onProfileUpdated,
+}) {
   const currentPathname = String(pathname ?? '');
   const fallbackPath = getFirstAllowedPath(accessState);
 
@@ -597,7 +606,11 @@ function DemoPageContent({ pathname, isMobileScreen, sidebarUser, onLogout, acce
   if (currentPathname.includes('user/profile')) {
     return (
       <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
-        <MobileUserProfile user={sidebarUser} onLogout={onLogout} />
+        <MobileUserProfile
+          user={sidebarUser}
+          onLogout={onLogout}
+          onProfileUpdated={onProfileUpdated}
+        />
       </Box>
     );
   }
@@ -916,7 +929,19 @@ export default function DashboardLayoutBasic({ onLogout }) {
         }}
         slots={{
           appTitle: TreeViewAppTitle,
-          sidebarFooter: ({ mini }) => <SidebarLogout mini={mini} onLogout={onLogout} />,
+          sidebarFooter: ({ mini }) => (
+            <SidebarLogout
+              mini={mini}
+              onLogout={onLogout}
+              beforeAction={
+                <ChangeProfileAction
+                  mini={mini}
+                  user={sidebarUser}
+                  onProfileUpdated={syncStoredUserState}
+                />
+              }
+            />
+          ),
         }}
       >
         <LastUpdateHeader />
@@ -1007,6 +1032,7 @@ export default function DashboardLayoutBasic({ onLogout }) {
                 onLogout={onLogout}
                 accessState={accessState}
                 onNavigate={router.navigate}
+                onProfileUpdated={syncStoredUserState}
               />
             </Box>
             {isMobileScreen ? (
