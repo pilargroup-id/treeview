@@ -10,6 +10,8 @@ import BadgeRoundedIcon from '@mui/icons-material/BadgeRounded';
 import EmailRoundedIcon from '@mui/icons-material/EmailRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import Stack from '@mui/material/Stack';
+import ChangeProfileAction from '../../../account/ChangeProfileAction';
 import { performLogout } from '../../../login/logout';
 
 function getText(value, fallback = '-') {
@@ -58,7 +60,7 @@ function ProfileInfoRow({ icon, label, value }) {
   );
 }
 
-export default function MobileUserProfile({ user, onLogout }) {
+export default function MobileUserProfile({ user, onLogout, onProfileUpdated }) {
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
   const displayName = getText(user?.displayName, 'User');
   const role = getText(user?.role, 'Programmer');
@@ -189,39 +191,58 @@ export default function MobileUserProfile({ user, onLogout }) {
         </Box>
       </Paper>
 
-      <Button
-        onClick={handleLogout}
-        disabled={isLoggingOut}
-        variant="contained"
-        fullWidth
-        startIcon={
-          isLoggingOut ? (
-            <CircularProgress size={16} color="inherit" />
-          ) : (
-            <LogoutRoundedIcon sx={{ fontSize: '1rem' }} />
-          )
-        }
-        sx={(theme) => ({
-          mt: 'auto',
-          minHeight: 46,
-          borderRadius: 2,
-          textTransform: 'none',
-          fontWeight: 700,
-          bgcolor: theme.palette.primary.main,
-          color: theme.palette.primary.contrastText,
-          boxShadow: '0 12px 20px rgba(43, 105, 151, 0.24)',
-          '&:hover': {
-            bgcolor: theme.palette.primary.dark,
-            boxShadow: '0 12px 20px rgba(43, 105, 151, 0.3)',
-          },
-          '&.Mui-disabled': {
-            bgcolor: 'rgba(107, 163, 208, 0.55)',
-            color: 'rgba(255, 255, 255, 0.92)',
-          },
-        })}
-      >
-        {isLoggingOut ? 'Logging out...' : 'Logout'}
-      </Button>
+      <Stack spacing={1.2} sx={{ mt: 'auto' }}>
+        <ChangeProfileAction
+          user={user}
+          onProfileUpdated={onProfileUpdated}
+          variant="outlined"
+          buttonSx={{
+            minHeight: 46,
+            borderRadius: 2,
+            fontWeight: 700,
+            color: '#2B6997',
+            borderColor: 'rgba(107, 163, 208, 0.34)',
+            bgcolor: 'rgba(255, 255, 255, 0.88)',
+            '&:hover': {
+              borderColor: '#6BA3D0',
+              bgcolor: 'rgba(107, 163, 208, 0.08)',
+            },
+          }}
+        />
+
+        <Button
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          variant="contained"
+          fullWidth
+          startIcon={
+            isLoggingOut ? (
+              <CircularProgress size={16} color="inherit" />
+            ) : (
+              <LogoutRoundedIcon sx={{ fontSize: '1rem' }} />
+            )
+          }
+          sx={(theme) => ({
+            minHeight: 46,
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 700,
+            bgcolor: theme.palette.primary.main,
+            color: theme.palette.primary.contrastText,
+            boxShadow: '0 12px 20px rgba(43, 105, 151, 0.24)',
+            '&:hover': {
+              bgcolor: theme.palette.primary.dark,
+              boxShadow: '0 12px 20px rgba(43, 105, 151, 0.3)',
+            },
+            '&.Mui-disabled': {
+              bgcolor: 'rgba(107, 163, 208, 0.55)',
+              color: 'rgba(255, 255, 255, 0.92)',
+            },
+          })}
+        >
+          {isLoggingOut ? 'Logging out...' : 'Logout'}
+        </Button>
+      </Stack>
     </Box>
   );
 }
