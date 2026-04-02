@@ -4,40 +4,18 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use App\Services\BigQueryService;
 
 class CheckPermission
 {
-    protected $bigQueryService;
-
-    public function __construct(BigQueryService $bigQueryService)
-    {
-        $this->bigQueryService = $bigQueryService;
-    }
-
     public function handle(Request $request, Closure $next, ...$params)
     {
-        $userId = $request->attributes->get('tree_view_user_id');
+        // Ambil dari JWT payload yang sudah di-inject middleware sebelumnya
+        $department = $request->department;
+        $jobLevel   = $request->job_level;
 
-        if (!$userId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized - No user session',
-            ], 401);
+        if (!$department) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized - No user session'], 401);
         }
-
-        $result = $this->bigQueryService->getUserPermissions($userId);
-
-        if (!$result['success']) {
-            return response()->json([
-                'success' => false,
-                'message' => 'User not found or inactive',
-            ], 404);
-        }
-
-        $permissions = $result['data'];
-        $department = $permissions['department'];
-        $jobLevel = $permissions['job_level'];
 
         $hasPermission = false;
 
@@ -59,12 +37,11 @@ class CheckPermission
                 'message' => 'Forbidden - Insufficient permissions',
                 'user_permissions' => [
                     'department' => $department,
-                    'job_level' => $jobLevel,
+                    'job_level'  => $jobLevel,
                 ],
             ], 403);
         }
 
-        $request->attributes->set('user_permissions', $permissions);
         return $next($request);
     }
 }
