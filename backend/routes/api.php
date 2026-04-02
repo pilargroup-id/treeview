@@ -43,9 +43,9 @@ Route::middleware('tree_view_auth')->group(function () {
     Route::prefix('activity-plans')->group(function () {
         Route::get('/weekly-summary', [ActivityPlanController::class, 'weeklySummary']);
         Route::get('/monthly-visit', [MonthlyVisitController::class, 'index']);
-        Route::get('/details', [ActivityDetailController::class, 'index']);
+        Route::get('/details', [ActivityDetailController::class, 'index']); 
     });
 
-    Route::put('/tree-view/change-profile', [TreeViewAuthController::class, 'changeProfile']);
+    Route::put('/auth/change-profile', [ProfileController::class, 'changeProfile']);
 
 });
