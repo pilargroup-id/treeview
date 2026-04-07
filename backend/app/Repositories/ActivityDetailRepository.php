@@ -95,6 +95,12 @@ class ActivityDetailRepository
             ";
         }
 
+        // Filter by tujuan
+        if (!empty($filters['tujuan'])) {
+            $tujuan = $this->escapeSqlString($filters['tujuan']);
+            $conditions[] = "LOWER(ap.tujuan) = LOWER({$tujuan})";
+        }
+
         $whereClause = implode(' AND ', $conditions);
 
         $query = "
@@ -104,6 +110,7 @@ class ActivityDetailRepository
                     ap.plan_no,
                     ap.customer_id,
                     ap.plan_date,
+                    ap.tujuan,
                     ap.result,
                     ap.result_location_lat,
                     ap.result_location_lng,
@@ -138,6 +145,7 @@ class ActivityDetailRepository
                     customer_name,
                     plan_no,
                     plan_date,
+                    tujuan,
                     result_location_lat,
                     result_location_lng,
                     result_location_accuracy,
@@ -152,6 +160,7 @@ class ActivityDetailRepository
                 customer_name,
                 plan_no,
                 plan_date,
+                tujuan,
                 result_location_lat,
                 result_location_lng,
                 result_location_accuracy,
@@ -181,6 +190,7 @@ class ActivityDetailRepository
                 'customer_name' => $row['customer_name'],
                 'plan_no' => $row['plan_no'] ?? null,
                 'plan_date' => $this->formatDate($row['plan_date']),
+                'tujuan' => $row['tujuan'] ?? null,
                 'result_location_lat' => $row['result_location_lat'] ?? null,
                 'result_location_lng' => $row['result_location_lng'] ?? null,
                 'result_location_accuracy' => $row['result_location_accuracy'],
