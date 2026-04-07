@@ -7,6 +7,7 @@ import { w2grid, w2layout, w2ui, w2utils } from 'w2ui';
 import 'w2ui/w2ui-2.0.min.css';
 import { API_URL } from '../config/api';
 import SummarySales from './SummaryMonthlyVisit';
+import { exportMatrixToXlsx } from '../utils/exportToXlsx';
 import { fetchWithAuth } from '../utils/fetchWithAuth';
 
 const GRID_NAME = 'reportSalesGrid';
@@ -62,6 +63,16 @@ const TOOLBAR_SVGS = {
       <path fill="currentColor" d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6 0 2.97-2.17 5.43-5 5.91v2.02c3.95-.49 7-3.85 7-7.93 0-4.42-3.58-8-8-8m-6 8c0-1.65.67-3.15 1.76-4.24L6.34 7.34C4.9 8.79 4 10.79 4 13c0 4.08 3.05 7.44 7 7.93v-2.02c-2.83-.48-5-2.94-5-5.91"/>
     </svg>
   `,
+  refresh: `
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M17.65 6.35A7.95 7.95 0 0 0 12 4V1L7 6l5 5V7a5 5 0 1 1-5 5H5a7 7 0 1 0 12.65-5.65Z"/>
+    </svg>
+  `,
+  export: `
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M5 20h14v-2H5v2Zm7-18-5.5 5.5h3.5V15h4V7.5H17.5L12 2Z"/>
+    </svg>
+  `,
 };
 
 const TOOLBAR_ICONS = {
@@ -70,6 +81,8 @@ const TOOLBAR_ICONS = {
   wilayah: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.wilayah}</span>`,
   sales: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.sales}</span>`,
   reset: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.reset}</span>`,
+  refresh: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.refresh}</span>`,
+  export: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.export}</span>`,
 };
 
 export default function ReportTableSales() {
@@ -92,6 +105,7 @@ export default function ReportTableSales() {
 
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
+  const [reloadTick, setReloadTick] = React.useState(0);
 
   const [filters, setFilters] = React.useState(() => ({
     query: '',
@@ -156,7 +170,7 @@ export default function ReportTableSales() {
       });
 
     return () => controller.abort();
-  }, [period]);
+  }, [period, reloadTick]);
 
   React.useEffect(() => {
     const lockTarget = lockBoxRef.current;
@@ -241,6 +255,31 @@ export default function ReportTableSales() {
   React.useEffect(() => {
     latestLoadErrorRef.current = loadError;
   }, [loadError]);
+
+  const exportCurrentRows = React.useCallback(() => {
+    try {
+      const currentRows = Array.isArray(latestFilteredRowsRef.current) ? latestFilteredRowsRef.current : [];
+      const currentPeriod = String(latestPeriodRef.current ?? getCurrentPeriod()).trim() || getCurrentPeriod();
+
+      exportMatrixToXlsx({
+        fileName: `report-monthly-visit-${currentPeriod}.xlsx`,
+        sheetName: 'Monthly Visit',
+        rows: [
+          ['Sales', 'Wilayah', 'Customer', 'Visit', 'Follow Up', 'Missed'],
+          ...currentRows.map((row) => [
+            row?.sales_name ?? '',
+            row?.wilayah ?? '',
+            row?.customer_name ?? '',
+            row?.visit_count ?? 0,
+            row?.follow_up_count ?? 0,
+            row?.missed_count ?? 0,
+          ]),
+        ],
+      });
+    } catch (error) {
+      console.error('Failed to export monthly visit report:', error);
+    }
+  }, []);
 
   const renderSummaryTab = React.useCallback(() => {
     const summaryEl = document.getElementById(MAIN_SUMMARY_ID);
@@ -407,12 +446,24 @@ export default function ReportTableSales() {
             items: [{ id: 'ALL', text: 'Semua', checked: true }],
           },
           { type: 'spacer', id: 'tbSpacer1' },
-          { type: 'button', id: 'tbReset', icon: TOOLBAR_ICONS.reset, hint: 'Reset Filter' },
+          { type: 'button', id: 'tbRefresh', text: 'Refresh', icon: TOOLBAR_ICONS.refresh, hint: 'Refresh Data' },
+          { type: 'button', id: 'tbExport', text: 'Export XLSX', icon: TOOLBAR_ICONS.export, hint: 'Export ke XLSX' },
+          { type: 'button', id: 'tbReset', text: 'Reset', icon: TOOLBAR_ICONS.reset, hint: 'Reset Filter' },
         ]);
 
         grid.toolbar.on('click', (event) => {
           const target = String(event.target ?? '');
           if (!target) return;
+
+          if (target === 'tbRefresh') {
+            setReloadTick((value) => value + 1);
+            return;
+          }
+
+          if (target === 'tbExport') {
+            exportCurrentRows();
+            return;
+          }
 
           if (target === 'tbReset') {
             setFilters({
@@ -494,7 +545,7 @@ export default function ReportTableSales() {
       gridRef.current = null;
       layoutRef.current = null;
     };
-  }, [setMainTab]);
+  }, [exportCurrentRows, setMainTab]);
 
   React.useEffect(() => {
     const tabId = String(activeMainTabRef.current || 'data');

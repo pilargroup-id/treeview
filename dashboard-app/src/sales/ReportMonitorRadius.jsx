@@ -7,6 +7,7 @@ import { w2grid, w2layout, w2popup, w2ui, w2utils } from 'w2ui';
 import 'w2ui/w2ui-2.0.min.css';
 import { API_URL } from '../config/api';
 import SummaryResult from './SummaryRadius';
+import { exportMatrixToXlsx } from '../utils/exportToXlsx';
 import { fetchWithAuth } from '../utils/fetchWithAuth';
 
 const GRID_NAME = 'reportResultGrid';
@@ -52,6 +53,16 @@ const TOOLBAR_SVGS = {
       <path fill="currentColor" d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6 0 2.97-2.17 5.43-5 5.91v2.02c3.95-.49 7-3.85 7-7.93 0-4.42-3.58-8-8-8m-6 8c0-1.65.67-3.15 1.76-4.24L6.34 7.34C4.9 8.79 4 10.79 4 13c0 4.08 3.05 7.44 7 7.93v-2.02c-2.83-.48-5-2.94-5-5.91"/>
     </svg>
   `,
+  refresh: `
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M17.65 6.35A7.95 7.95 0 0 0 12 4V1L7 6l5 5V7a5 5 0 1 1-5 5H5a7 7 0 1 0 12.65-5.65Z"/>
+    </svg>
+  `,
+  export: `
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M5 20h14v-2H5v2Zm7-18-5.5 5.5h3.5V15h4V7.5H17.5L12 2Z"/>
+    </svg>
+  `,
 };
 
 const TOOLBAR_ICONS = {
@@ -59,6 +70,8 @@ const TOOLBAR_ICONS = {
   wilayah: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.wilayah}</span>`,
   radius: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.radius}</span>`,
   reset: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.reset}</span>`,
+  refresh: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.refresh}</span>`,
+  export: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.export}</span>`,
 };
 
 const ID_NUMBER = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 });
@@ -254,6 +267,7 @@ export default function ReportTableResult() {
   const toolbarInputsRef = React.useRef([]);
   const activeMainTabRef = React.useRef('data');
   const latestFilteredRowsRef = React.useRef([]);
+  const latestFiltersRef = React.useRef(null);
   const abortRef = React.useRef(null);
   const requestIdRef = React.useRef(0);
   const [gridReadyTick, setGridReadyTick] = React.useState(0);
@@ -261,6 +275,7 @@ export default function ReportTableResult() {
 
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
+  const [reloadTick, setReloadTick] = React.useState(0);
 
   const [filters, setFilters] = React.useState(() => ({
     query: '',
@@ -298,6 +313,8 @@ export default function ReportTableResult() {
     if (endDate) {
       params.set('end_date', endDate);
     }
+
+    params.set('tujuan', 'Visit');
 
     const url = `${buildApiUrl('activity-plans/details')}?${params.toString()}`;
 
@@ -346,7 +363,7 @@ export default function ReportTableResult() {
       });
 
     return () => controller.abort();
-  }, [filters.start_date, filters.end_date, filters.wilayah]);
+  }, [filters.start_date, filters.end_date, filters.wilayah, reloadTick]);
 
   React.useEffect(() => {
     const lockTarget = lockBoxRef.current;
@@ -362,7 +379,9 @@ export default function ReportTableResult() {
   }, [isLoading, loadError]);
 
   const rows = React.useMemo(() => {
-    const list = Array.isArray(sourceData) ? sourceData : [];
+    const list = Array.isArray(sourceData)
+      ? sourceData.filter((item) => String(item?.tujuan ?? '').trim().toLowerCase() === 'visit')
+      : [];
     return list.map((item, index) => ({
       id: index + 1,
       sales_name: item?.sales_name ?? '-',
@@ -370,6 +389,7 @@ export default function ReportTableResult() {
       customer_name: item?.customer_name ?? '-',
       plan_no: item?.plan_no ?? '-',
       plan_date: item?.plan_date ?? '-',
+      tujuan: item?.tujuan ?? '-',
       result_location_lat: item?.result_location_lat ?? null,
       result_location_lng: item?.result_location_lng ?? null,
       result_location_accuracy: item?.result_location_accuracy ?? null,
@@ -425,6 +445,44 @@ export default function ReportTableResult() {
   React.useEffect(() => {
     latestFilteredRowsRef.current = filteredRows;
   }, [filteredRows]);
+
+  React.useEffect(() => {
+    latestFiltersRef.current = filters;
+  }, [filters]);
+
+  const exportCurrentRows = React.useCallback(() => {
+    try {
+      const currentRows = Array.isArray(latestFilteredRowsRef.current) ? latestFilteredRowsRef.current : [];
+      const currentFilters = latestFiltersRef.current ?? {};
+      const startDate = String(currentFilters?.start_date ?? '').trim() || 'all';
+      const endDate = String(currentFilters?.end_date ?? '').trim() || 'all';
+
+      exportMatrixToXlsx({
+        fileName: `report-monitor-radius-${startDate}_${endDate}.xlsx`,
+        sheetName: 'Monitor Radius',
+        rows: [
+          ['Sales', 'Wilayah', 'Customer', 'Plan No', 'Tanggal Visit', 'Radius', 'Result', 'Maps Address', 'Foto'],
+          ...currentRows.map((row) => {
+            const maps = buildMapsUrls(row?.result_location_lat ?? null, row?.result_location_lng ?? null);
+            const photoUrl = normalizeHttpUrl(row?.user_photo ?? null);
+            return [
+              row?.sales_name ?? '',
+              row?.wilayah ?? '',
+              row?.customer_name ?? '',
+              row?.plan_no ?? '',
+              row?.plan_date ?? '',
+              parseMaybeNumber(row?.result_location_accuracy) ?? '',
+              row?.result ?? '',
+              maps?.openUrl ?? '',
+              photoUrl ?? '',
+            ];
+          }),
+        ],
+      });
+    } catch (error) {
+      console.error('Failed to export monitor radius report:', error);
+    }
+  }, []);
 
   const MAIN_DATA_ID = `${LAYOUT_NAME}__tab_data`;
   const MAIN_SUMMARY_ID = `${LAYOUT_NAME}__tab_summary`;
@@ -642,10 +700,10 @@ export default function ReportTableResult() {
               { id: 'IN_200', text: `Dalam \u2264 ${RADIUS_THRESHOLD_METERS} m`, checked: false },
               { id: 'OUT_200', text: `Luar > ${RADIUS_THRESHOLD_METERS} m`, checked: false },
             ],
-          },
-           {
-             type: 'html',
-             id: 'tbDates',
+            },
+            {
+              type: 'html',
+              id: 'tbDates',
              html: `
                <div class="tv-sales-toolbar-dates" title="Filter tanggal (maks 31 hari)">
                  <span class="tv-sales-toolbar-dates__label">Dari</span>
@@ -660,20 +718,32 @@ export default function ReportTableResult() {
                    <input id="${GRID_NAME}__end_date" type="date" class="w2ui-input tv-sales-toolbar-dates__input tv-sales-toolbar-dates__native" />
                    <input id="${GRID_NAME}__end_date_display" type="text" class="w2ui-input tv-sales-toolbar-dates__input tv-sales-toolbar-dates__display" placeholder="dd-mm-yy" readonly tabindex="-1" aria-hidden="true" />
                  </div>
-               </div>
-             `,
-           },
-          { type: 'spacer', id: 'tbSpacer1' },
-          { type: 'button', id: 'tbReset', icon: TOOLBAR_ICONS.reset, hint: 'Reset Filter' },
+                </div>
+              `,
+            },
+           { type: 'spacer', id: 'tbSpacer1' },
+           { type: 'button', id: 'tbRefresh', text: 'Refresh', icon: TOOLBAR_ICONS.refresh, hint: 'Refresh Data' },
+           { type: 'button', id: 'tbExport', text: 'Export XLSX', icon: TOOLBAR_ICONS.export, hint: 'Export ke XLSX' },
+           { type: 'button', id: 'tbReset', text: 'Reset', icon: TOOLBAR_ICONS.reset, hint: 'Reset Filter' },
         ]);
 
         grid.toolbar.on('click', (event) => {
           const target = String(event.target ?? '');
           if (!target) return;
 
-           if (target === 'tbReset') {
-             const now = new Date();
-             const nextStart = toDateInputValue(new Date(now.getFullYear(), now.getMonth(), 1));
+           if (target === 'tbRefresh') {
+             setReloadTick((value) => value + 1);
+             return;
+           }
+
+           if (target === 'tbExport') {
+             exportCurrentRows();
+             return;
+           }
+
+            if (target === 'tbReset') {
+              const now = new Date();
+              const nextStart = toDateInputValue(new Date(now.getFullYear(), now.getMonth(), 1));
              const nextEnd = toDateInputValue(now);
              setFilters({
                query: '',
@@ -787,7 +857,7 @@ export default function ReportTableResult() {
       gridRef.current = null;
       layoutRef.current = null;
     };
-  }, []);
+  }, [exportCurrentRows]);
 
   React.useEffect(() => {
     const tabId = String(activeMainTabRef.current || 'data');

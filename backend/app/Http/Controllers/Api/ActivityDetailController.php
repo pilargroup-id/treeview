@@ -32,6 +32,7 @@ class ActivityDetailController extends Controller
             'state' => 'nullable|string|max:255',
             'sales_name' => 'nullable|string|max:255',
             'customer_name' => 'nullable|string|max:255',
+            'tujuan' => 'nullable|string|in:Visit,Follow Up',
         ]);
 
         // Validate date range (max 1 month / 31 days)
@@ -56,6 +57,7 @@ class ActivityDetailController extends Controller
             'state' => $validated['state'] ?? null,
             'sales_name' => $validated['sales_name'] ?? null,
             'customer_name' => $validated['customer_name'] ?? null,
+            'tujuan' => $validated['tujuan'] ?? null,
         ];
 
         // Get data from repository

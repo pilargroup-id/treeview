@@ -7,6 +7,7 @@ import { w2grid, w2layout, w2ui, w2utils } from 'w2ui';
 import 'w2ui/w2ui-2.0.min.css';
 import { API_URL } from '../config/api';
 import SummaryCustomer from './SummaryWeeklyVisit';
+import { exportMatrixToXlsx } from '../utils/exportToXlsx';
 import { fetchWithAuth } from '../utils/fetchWithAuth';
 
 
@@ -73,6 +74,16 @@ const TOOLBAR_SVGS = {
       <path fill="currentColor" d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6 0 2.97-2.17 5.43-5 5.91v2.02c3.95-.49 7-3.85 7-7.93 0-4.42-3.58-8-8-8m-6 8c0-1.65.67-3.15 1.76-4.24L6.34 7.34C4.9 8.79 4 10.79 4 13c0 4.08 3.05 7.44 7 7.93v-2.02c-2.83-.48-5-2.94-5-5.91"/>
     </svg>
   `,
+  refresh: `
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M17.65 6.35A7.95 7.95 0 0 0 12 4V1L7 6l5 5V7a5 5 0 1 1-5 5H5a7 7 0 1 0 12.65-5.65Z"/>
+    </svg>
+  `,
+  export: `
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M5 20h14v-2H5v2Zm7-18-5.5 5.5h3.5V15h4V7.5H17.5L12 2Z"/>
+    </svg>
+  `,
 };
 
 const TOOLBAR_ICONS = {
@@ -81,6 +92,8 @@ const TOOLBAR_ICONS = {
   wilayah: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.wilayah}</span>`,
   sales: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.sales}</span>`,
   reset: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.reset}</span>`,
+  refresh: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.refresh}</span>`,
+  export: `<span class="tv-w2ui-svg" aria-hidden="true">${TOOLBAR_SVGS.export}</span>`,
 };
 
 function monthNameToIndex(monthNameRaw) {
@@ -175,6 +188,7 @@ export default function DataTableMonthly() {
   const summaryRootRef = React.useRef(null);
   const activeMainTabRef = React.useRef('data');
   const latestFilteredRowsRef = React.useRef([]);
+  const latestFiltersRef = React.useRef(null);
   const latestVisibleMonthsRef = React.useRef([]);
   const abortRef = React.useRef(null);
   const requestIdRef = React.useRef(0);
@@ -183,6 +197,7 @@ export default function DataTableMonthly() {
 
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
+  const [reloadTick, setReloadTick] = React.useState(0);
 
   const [filters, setFilters] = React.useState(() => ({
     query: '',
@@ -268,7 +283,7 @@ export default function DataTableMonthly() {
       });
 
     return () => controller.abort();
-  }, [filters.year, filters.wilayah, visibleMonths]);
+  }, [filters.year, filters.wilayah, visibleMonths, reloadTick]);
 
   React.useEffect(() => {
     const lockTarget = lockBoxRef.current;
@@ -368,8 +383,65 @@ export default function DataTableMonthly() {
   }, [filteredRows]);
 
   React.useEffect(() => {
+    latestFiltersRef.current = filters;
+  }, [filters]);
+
+  React.useEffect(() => {
     latestVisibleMonthsRef.current = visibleMonths;
   }, [visibleMonths]);
+
+  const exportCurrentRows = React.useCallback(() => {
+    try {
+      const currentRows = Array.isArray(latestFilteredRowsRef.current) ? latestFilteredRowsRef.current : [];
+      const currentVisibleMonths = Array.isArray(latestVisibleMonthsRef.current) ? latestVisibleMonthsRef.current : [];
+      const currentFilters = latestFiltersRef.current ?? {};
+      const currentYear = Number(currentFilters?.year);
+      const exportYear = Number.isInteger(currentYear) ? currentYear : new Date().getFullYear();
+
+      const headerTop = ['Sales', 'Wilayah', 'Customer'];
+      const headerBottom = ['', '', ''];
+      const merges = [
+        { s: { r: 0, c: 0 }, e: { r: 1, c: 0 } },
+        { s: { r: 0, c: 1 }, e: { r: 1, c: 1 } },
+        { s: { r: 0, c: 2 }, e: { r: 1, c: 2 } },
+      ];
+
+      currentVisibleMonths.forEach((monthIndex, index) => {
+        const startColumn = 3 + index * WEEK_COLUMNS.length;
+        headerTop.push(MONTH_LABELS[monthIndex] ?? `Bulan ${monthIndex + 1}`, '', '', '');
+        headerBottom.push(...WEEK_COLUMNS);
+        merges.push({
+          s: { r: 0, c: startColumn },
+          e: { r: 0, c: startColumn + WEEK_COLUMNS.length - 1 },
+        });
+      });
+
+      exportMatrixToXlsx({
+        fileName: `report-weekly-visit-${exportYear}.xlsx`,
+        sheetName: 'Weekly Visit',
+        rows: [
+          headerTop,
+          headerBottom,
+          ...currentRows.map((row) => {
+            const cells = [row?.sales_name ?? '', row?.wilayah ?? '', row?.customer ?? ''];
+
+            currentVisibleMonths.forEach((monthIndex) => {
+              const monthData = row?.monthsByIndex?.[monthIndex] ?? null;
+              for (let weekIndex = 0; weekIndex < WEEK_COLUMNS.length; weekIndex += 1) {
+                const weekKey = `week${weekIndex + 1}`;
+                cells.push(monthData?.[weekKey] ?? '');
+              }
+            });
+
+            return cells;
+          }),
+        ],
+        merges,
+      });
+    } catch (error) {
+      console.error('Failed to export weekly visit report:', error);
+    }
+  }, []);
 
   const MAIN_DATA_ID = `${LAYOUT_NAME}__tab_data`;
   const MAIN_SUMMARY_ID = `${LAYOUT_NAME}__tab_summary`;
@@ -542,12 +614,24 @@ export default function DataTableMonthly() {
             items: [{ id: 'ALL', text: 'Semua', checked: true }],
           },
           { type: 'spacer', id: 'tbSpacer1' },
-          { type: 'button', id: 'tbReset', icon: TOOLBAR_ICONS.reset, hint: 'Reset Filter' },
+          { type: 'button', id: 'tbRefresh', text: 'Refresh', icon: TOOLBAR_ICONS.refresh, hint: 'Refresh Data' },
+          { type: 'button', id: 'tbExport', text: 'Export XLSX', icon: TOOLBAR_ICONS.export, hint: 'Export ke XLSX' },
+          { type: 'button', id: 'tbReset', text: 'Reset', icon: TOOLBAR_ICONS.reset, hint: 'Reset Filter' },
         ]);
 
         grid.toolbar.on('click', (event) => {
           const target = String(event.target ?? '');
           if (!target) return;
+
+          if (target === 'tbRefresh') {
+            setReloadTick((value) => value + 1);
+            return;
+          }
+
+          if (target === 'tbExport') {
+            exportCurrentRows();
+            return;
+          }
 
           if (target === 'tbReset') {
             setFilters({
@@ -639,7 +723,7 @@ export default function DataTableMonthly() {
       gridRef.current = null;
       layoutRef.current = null;
     };
-  }, []);
+  }, [exportCurrentRows]);
 
   React.useEffect(() => {
     const tabId = String(activeMainTabRef.current || 'data');
