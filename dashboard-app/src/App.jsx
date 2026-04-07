@@ -9,6 +9,28 @@ function hasStoredToken() {
   return Boolean(String(storedToken ?? '').trim());
 }
 
+function extractUserFromToken(token) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    
+    // Decode JWT payload (second part)
+    const payload = JSON.parse(atob(parts[1]));
+    return {
+      id: payload.sub,
+      internal_id: payload.internal_id,
+      username: payload.username,
+      name: payload.name,
+      department: payload.department,
+      job_position: payload.job_position,
+      job_level: payload.job_level,
+      apps: payload.apps,
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = React.useState(hasStoredToken);
 
@@ -22,6 +44,12 @@ function App() {
     if (urlToken && !localStorage.getItem('authToken')) {
       // Save token from URL to localStorage
       localStorage.setItem('authToken', urlToken);
+      
+      // Extract user data from JWT token and save it
+      const userData = extractUserFromToken(urlToken);
+      if (userData) {
+        localStorage.setItem('authUser', JSON.stringify(userData));
+      }
       
       // Update auth state
       setIsAuthenticated(true);
