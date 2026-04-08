@@ -5,17 +5,17 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Tooltip from '@mui/material/Tooltip';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import { API_URL } from '../config/api';
+import {
+  clearClientAuth,
+  notifyAuthStateChange,
+  redirectToCentralPortal,
+} from '../utils/authSession';
 
 function buildLogoutUrl() {
   const base = String(API_URL ?? '').replace(/\/+$/, '');
   if (!base) return '/api/tree-view/logout';
   if (/\/api$/i.test(base)) return `${base}/tree-view/logout`;
   return `${base}/api/tree-view/logout`;
-}
-
-function clearClientSession() {
-  localStorage.removeItem('authToken');
-  localStorage.removeItem('authUser');
 }
 
 async function requestServerLogout() {
@@ -34,23 +34,28 @@ async function requestServerLogout() {
 
 export async function performLogout(onLogout) {
   await requestServerLogout();
-  clearClientSession();
+  clearClientAuth();
+  notifyAuthStateChange();
 
   if (typeof onLogout === 'function') {
-    onLogout();
+    await onLogout();
     return;
   }
 
-  window.location.reload();
+  redirectToCentralPortal();
 }
 
-export default function Logout({ mini = false, onLogout, beforeAction = null }) {
+export default function Logout({ mini = false, onLogout, beforeAction = null, label = 'Logout' }) {
   const [isLoading, setIsLoading] = React.useState(false);
 
   const handleLogout = async () => {
     if (isLoading) return;
     setIsLoading(true);
-    await performLogout(onLogout);
+    try {
+      await performLogout(onLogout);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const button = (
@@ -61,7 +66,7 @@ export default function Logout({ mini = false, onLogout, beforeAction = null }) 
       fullWidth
       disabled={isLoading}
       startIcon={!mini && !isLoading ? <LogoutRoundedIcon fontSize="small" /> : null}
-      aria-label="Logout"
+      aria-label={label}
       sx={{
         minHeight: 40,
         minWidth: 0,
@@ -80,7 +85,7 @@ export default function Logout({ mini = false, onLogout, beforeAction = null }) 
       ) : mini ? (
         <LogoutRoundedIcon fontSize="small" />
       ) : (
-        'Logout'
+        label
       )}
     </Button>
   );
@@ -95,7 +100,7 @@ export default function Logout({ mini = false, onLogout, beforeAction = null }) 
       }}
     >
       {beforeAction ? <Box sx={{ mb: 0.5 }}>{beforeAction}</Box> : null}
-      {mini ? <Tooltip title="Logout">{button}</Tooltip> : button}
+      {mini ? <Tooltip title={label}>{button}</Tooltip> : button}
     </Box>
   );
 }

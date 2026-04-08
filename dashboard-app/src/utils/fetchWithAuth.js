@@ -1,24 +1,16 @@
-export const AUTH_STATE_CHANGE_EVENT = 'tree-view-auth-state-change';
+import {
+  AUTH_STATE_CHANGE_EVENT,
+  clearClientAuth,
+  notifyAuthStateChange,
+  redirectToCentralPortal,
+} from './authSession';
 
-export function clearClientAuth() {
-  localStorage.removeItem('authToken');
-  localStorage.removeItem('authUser');
-}
-
-function notifyAuthStateChange() {
-  if (typeof window === 'undefined') return;
-  window.dispatchEvent(new Event(AUTH_STATE_CHANGE_EVENT));
-}
+export { AUTH_STATE_CHANGE_EVENT } from './authSession';
 
 function redirectToLogin() {
   clearClientAuth();
   notifyAuthStateChange();
-
-  if (typeof window === 'undefined') return;
-
-  if (window.location.pathname !== '/') {
-    window.history.replaceState(null, '', '/');
-  }
+  redirectToCentralPortal();
 }
 
 export async function fetchWithAuth(url, options = {}) {

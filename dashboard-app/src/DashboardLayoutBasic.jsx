@@ -40,6 +40,7 @@ import MobileUserProfile from './mobile/mobileComponents/user/MobileUserProfile'
 const DASHBOARD_BACKGROUND_LIGHT =
   'linear-gradient(135deg, #F5F7FA 0%, #F8F9FA 50%, #FAFBFC 100%)';
 
+const LOGOUT_ACTION_LABEL = 'Kembali ke Pilar Group';
 const USER_PROFILE_SEGMENT = '__sidebar_user_profile__';
 const DEFAULT_SIDEBAR_USER = {
   displayName: 'User',
@@ -507,6 +508,7 @@ function DemoPageContent({
   pathname,
   isMobileScreen,
   sidebarUser,
+  logoutLabel,
   onLogout,
   accessState,
   onNavigate,
@@ -608,6 +610,7 @@ function DemoPageContent({
       <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
         <MobileUserProfile
           user={sidebarUser}
+          logoutLabel={logoutLabel}
           onLogout={onLogout}
           onProfileUpdated={onProfileUpdated}
         />
@@ -932,6 +935,7 @@ export default function DashboardLayoutBasic({ onLogout }) {
           sidebarFooter: ({ mini }) => (
             <SidebarLogout
               mini={mini}
+              label={LOGOUT_ACTION_LABEL}
               onLogout={onLogout}
               beforeAction={
                 <ChangeProfileAction
@@ -1029,6 +1033,7 @@ export default function DashboardLayoutBasic({ onLogout }) {
                 pathname={router.pathname}
                 isMobileScreen={isMobileScreen}
                 sidebarUser={sidebarUser}
+                logoutLabel={LOGOUT_ACTION_LABEL}
                 onLogout={onLogout}
                 accessState={accessState}
                 onNavigate={router.navigate}

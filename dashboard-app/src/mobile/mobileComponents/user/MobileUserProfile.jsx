@@ -60,7 +60,12 @@ function ProfileInfoRow({ icon, label, value }) {
   );
 }
 
-export default function MobileUserProfile({ user, onLogout, onProfileUpdated }) {
+export default function MobileUserProfile({
+  user,
+  onLogout,
+  onProfileUpdated,
+  logoutLabel = 'Logout',
+}) {
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
   const displayName = getText(user?.displayName, 'User');
   const role = getText(user?.role, 'Programmer');
@@ -72,7 +77,11 @@ export default function MobileUserProfile({ user, onLogout, onProfileUpdated }) 
   const handleLogout = React.useCallback(async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
-    await performLogout(onLogout);
+    try {
+      await performLogout(onLogout);
+    } finally {
+      setIsLoggingOut(false);
+    }
   }, [isLoggingOut, onLogout]);
 
   return (
@@ -222,6 +231,7 @@ export default function MobileUserProfile({ user, onLogout, onProfileUpdated }) 
               <LogoutRoundedIcon sx={{ fontSize: '1rem' }} />
             )
           }
+          aria-label={logoutLabel}
           sx={(theme) => ({
             minHeight: 46,
             borderRadius: 2,
@@ -240,7 +250,7 @@ export default function MobileUserProfile({ user, onLogout, onProfileUpdated }) 
             },
           })}
         >
-          {isLoggingOut ? 'Logging out...' : 'Logout'}
+          {isLoggingOut ? 'Mengalihkan...' : logoutLabel}
         </Button>
       </Stack>
     </Box>
