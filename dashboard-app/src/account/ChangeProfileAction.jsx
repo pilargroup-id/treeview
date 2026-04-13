@@ -264,7 +264,7 @@ export default function ChangeProfileAction({
         triggerButton
       )}
 
-      <Dialog open={open} onClose={handleClose} fullWidth maxWidth="xs">
+      {/* <Dialog open={open} onClose={handleClose} fullWidth maxWidth="xs">
         <Box component="form" onSubmit={handleSubmit}>
           <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <ManageAccountsRoundedIcon fontSize="small" sx={{ color: '#6B7280' }} />
@@ -354,7 +354,7 @@ export default function ChangeProfileAction({
             </Button>
           </DialogActions>
         </Box>
-      </Dialog>
+      </Dialog> */}
 
       <Snackbar
         open={Boolean(successMessage)}
