@@ -115,6 +115,8 @@ class ActivityDetailRepository
                     ap.result_location_lat,
                     ap.result_location_lng,
                     ap.result_location_accuracy,
+                    ap.customer_location_lat,
+                    ap.customer_location_lng,
                     ap.user_photo,
                     ap.sales_internal_id,
                     ap.updated_at,
@@ -149,6 +151,8 @@ class ActivityDetailRepository
                     result_location_lat,
                     result_location_lng,
                     result_location_accuracy,
+                    customer_location_lat,
+                    customer_location_lng,
                     result,
                     user_photo
                 FROM ranked_plans
@@ -164,6 +168,8 @@ class ActivityDetailRepository
                 result_location_lat,
                 result_location_lng,
                 result_location_accuracy,
+                customer_location_lat,
+                customer_location_lng,
                 result,
                 user_photo
             FROM filtered_plans
@@ -194,6 +200,8 @@ class ActivityDetailRepository
                 'result_location_lat' => $row['result_location_lat'] ?? null,
                 'result_location_lng' => $row['result_location_lng'] ?? null,
                 'result_location_accuracy' => $row['result_location_accuracy'],
+                'customer_location_lat' => $row['customer_location_lat'] ?? null,
+                'customer_location_lng' => $row['customer_location_lng'] ?? null,
                 'result' => $row['result'],
                 'user_photo' => $this->buildPhotoUrl($row['user_photo']),
             ];

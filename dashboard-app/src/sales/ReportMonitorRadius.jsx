@@ -75,7 +75,8 @@ const TOOLBAR_ICONS = {
 };
 
 const ID_NUMBER = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 });
-const RADIUS_THRESHOLD_METERS = 200;
+const RADIUS_THRESHOLD_METERS = 2000;
+const RADIUS_THRESHOLD_LABEL = '2 km';
 
 function toDateInputValue(date) {
   if (!(date instanceof Date)) return '';
@@ -153,6 +154,16 @@ function buildApiUrl(pathname) {
   return `${prefix}/${cleanPath}`;
 }
 
+function ensurePhotoColumnLast(columns) {
+  if (!Array.isArray(columns)) return [];
+  const list = [...columns];
+  const photoIndex = list.findIndex((col) => col?.field === 'user_photo');
+  if (photoIndex < 0 || photoIndex === list.length - 1) return list;
+  const [photoCol] = list.splice(photoIndex, 1);
+  list.push(photoCol);
+  return list;
+}
+
 function buildColumns() {
   const base = [
     {
@@ -215,8 +226,8 @@ function buildColumns() {
       attr: 'style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"',
     },
     {
-      field: 'maps_address',
-      text: 'Maps Address',
+      field: 'result_location',
+      text: 'Result Location',
       size: '100px',
       sortable: false,
       resizable: true,
@@ -227,7 +238,27 @@ function buildColumns() {
         const dataLat = escapeAttr(String(parseMaybeNumber(record?.result_location_lat)));
         const dataLng = escapeAttr(String(parseMaybeNumber(record?.result_location_lng)));
         return `
-          <button type="button" class="tv-map-btn" data-lat="${dataLat}" data-lng="${dataLng}" title="Buka Maps" aria-label="Buka Maps">
+          <button type="button" class="tv-map-btn" data-lat="${dataLat}" data-lng="${dataLng}" data-map-title="Result Location" title="Buka Maps" aria-label="Buka Maps">
+            <span class="tv-map-btn__icon" aria-hidden="true">${TOOLBAR_SVGS.map}</span>
+            <span class="tv-map-btn__text">Maps</span>
+          </button>
+        `.trim();
+      },
+    },
+    {
+      field: 'customer_location',
+      text: 'Customer Location',
+      size: '150px',
+      sortable: false,
+      resizable: true,
+      attr: 'style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"',
+      render(record) {
+        const urls = buildMapsUrls(record?.customer_location_lat ?? null, record?.customer_location_lng ?? null);
+        if (!urls) return '-';
+        const dataLat = escapeAttr(String(parseMaybeNumber(record?.customer_location_lat)));
+        const dataLng = escapeAttr(String(parseMaybeNumber(record?.customer_location_lng)));
+        return `
+          <button type="button" class="tv-map-btn" data-lat="${dataLat}" data-lng="${dataLng}" data-map-title="Customer Location" title="Buka Maps Customer Location" aria-label="Buka Maps Customer Location">
             <span class="tv-map-btn__icon" aria-hidden="true">${TOOLBAR_SVGS.map}</span>
             <span class="tv-map-btn__text">Maps</span>
           </button>
@@ -255,7 +286,7 @@ function buildColumns() {
     },
   ];
 
-  return base;
+  return ensurePhotoColumnLast(base);
 }
 
 export default function ReportTableResult() {
@@ -281,7 +312,7 @@ export default function ReportTableResult() {
     query: '',
     sales: 'ALL',
     wilayah: 'ALL',
-    radius: 'ALL', // ALL | IN_200 | OUT_200
+    radius: 'ALL', // ALL | IN_2KM | OUT_2KM
     start_date: toDateInputValue(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
     end_date: toDateInputValue(new Date()),
   }));
@@ -393,6 +424,8 @@ export default function ReportTableResult() {
       result_location_lat: item?.result_location_lat ?? null,
       result_location_lng: item?.result_location_lng ?? null,
       result_location_accuracy: item?.result_location_accuracy ?? null,
+      customer_location_lat: item?.customer_location_lat ?? null,
+      customer_location_lng: item?.customer_location_lng ?? null,
       result: item?.result == null || item?.result === '' ? '-' : item.result,
       user_photo: item?.user_photo ?? null,
     }));
@@ -426,8 +459,8 @@ export default function ReportTableResult() {
       if (radiusFilter !== 'ALL') {
         const radius = parseMaybeNumber(row.result_location_accuracy);
         if (radius == null) return false;
-        if (radiusFilter === 'IN_200' && !(radius <= RADIUS_THRESHOLD_METERS)) return false;
-        if (radiusFilter === 'OUT_200' && !(radius > RADIUS_THRESHOLD_METERS)) return false;
+        if (radiusFilter === 'IN_2KM' && !(radius <= RADIUS_THRESHOLD_METERS)) return false;
+        if (radiusFilter === 'OUT_2KM' && !(radius > RADIUS_THRESHOLD_METERS)) return false;
       }
 
       if (!normalizedQuery) return true;
@@ -600,6 +633,7 @@ export default function ReportTableResult() {
         if (mapBtn) {
           const urls = buildMapsUrls(mapBtn.getAttribute('data-lat'), mapBtn.getAttribute('data-lng'));
           if (!urls) return;
+          const mapTitle = String(mapBtn.getAttribute('data-map-title') ?? 'Maps').trim() || 'Maps';
           const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
           const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 768;
           const width = Math.max(520, Math.min(980, viewportWidth - 40));
@@ -608,7 +642,7 @@ export default function ReportTableResult() {
           const openUrl = escapeAttr(urls.openUrl);
 
           w2popup.open({
-            title: `Maps (${urls.label})`,
+            title: `${mapTitle} (${urls.label})`,
             showMax: true,
             width,
             height,
@@ -697,8 +731,8 @@ export default function ReportTableResult() {
             selected: 'ALL',
             items: [
               { id: 'ALL', text: 'Semua', checked: true },
-              { id: 'IN_200', text: `Dalam \u2264 ${RADIUS_THRESHOLD_METERS} m`, checked: false },
-              { id: 'OUT_200', text: `Luar > ${RADIUS_THRESHOLD_METERS} m`, checked: false },
+              { id: 'IN_2KM', text: `Dalam \u2264 ${RADIUS_THRESHOLD_LABEL}`, checked: false },
+              { id: 'OUT_2KM', text: `Luar > ${RADIUS_THRESHOLD_LABEL}`, checked: false },
             ],
             },
             {
@@ -780,7 +814,7 @@ export default function ReportTableResult() {
 
           if (parentId === 'tbRadius') {
             const next =
-              subId === 'IN_200' || subId === 'OUT_200'
+              subId === 'IN_2KM' || subId === 'OUT_2KM'
                 ? subId
                 : 'ALL';
             setFilters((prev) => ({ ...prev, radius: next }));
@@ -879,6 +913,8 @@ export default function ReportTableResult() {
         result_location_lat: row.result_location_lat,
         result_location_lng: row.result_location_lng,
         result_location_accuracy: row.result_location_accuracy,
+        customer_location_lat: row.customer_location_lat,
+        customer_location_lng: row.customer_location_lng,
         result: row.result,
         user_photo: row.user_photo,
       };
@@ -889,6 +925,17 @@ export default function ReportTableResult() {
     grid.total = records.length;
     grid.refresh();
   }, [pagedFilteredRows, gridReadyTick]);
+
+  React.useEffect(() => {
+    const grid = gridRef.current ?? w2ui[GRID_NAME];
+    if (!grid || !Array.isArray(grid.columns)) return;
+    const reordered = ensurePhotoColumnLast(grid.columns);
+    if (reordered.length !== grid.columns.length) return;
+    const changed = reordered.some((col, index) => col?.field !== grid.columns[index]?.field);
+    if (!changed) return;
+    grid.columns = reordered;
+    grid.refresh();
+  }, [gridReadyTick]);
 
   React.useEffect(() => {
     const total = filteredRows.length;
@@ -937,18 +984,18 @@ export default function ReportTableResult() {
     }
 
     const radiusLabel =
-      filters.radius === 'IN_200'
-        ? `Dalam \u2264 ${RADIUS_THRESHOLD_METERS} m`
-        : filters.radius === 'OUT_200'
-          ? `Luar > ${RADIUS_THRESHOLD_METERS} m`
+      filters.radius === 'IN_2KM'
+        ? `Dalam \u2264 ${RADIUS_THRESHOLD_LABEL}`
+        : filters.radius === 'OUT_2KM'
+          ? `Luar > ${RADIUS_THRESHOLD_LABEL}`
           : 'Semua';
     const tbRadius = grid.toolbar.get('tbRadius');
     if (tbRadius) {
       tbRadius.selected = filters.radius;
       tbRadius.items = [
         { id: 'ALL', text: 'Semua', checked: filters.radius === 'ALL' },
-        { id: 'IN_200', text: `Dalam \u2264 ${RADIUS_THRESHOLD_METERS} m`, checked: filters.radius === 'IN_200' },
-        { id: 'OUT_200', text: `Luar > ${RADIUS_THRESHOLD_METERS} m`, checked: filters.radius === 'OUT_200' },
+        { id: 'IN_2KM', text: `Dalam \u2264 ${RADIUS_THRESHOLD_LABEL}`, checked: filters.radius === 'IN_2KM' },
+        { id: 'OUT_2KM', text: `Luar > ${RADIUS_THRESHOLD_LABEL}`, checked: filters.radius === 'OUT_2KM' },
       ];
       tbRadius.text = `Radius: ${radiusLabel}`;
       grid.toolbar.refresh('tbRadius');
