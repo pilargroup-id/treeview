@@ -40,7 +40,7 @@ import MobileUserProfile from './mobile/mobileComponents/user/MobileUserProfile'
 const DASHBOARD_BACKGROUND_LIGHT =
   'linear-gradient(135deg, #F5F7FA 0%, #F8F9FA 50%, #FAFBFC 100%)';
 
-const LOGOUT_ACTION_LABEL = 'Kembali ke Pilar Group';
+const LOGOUT_ACTION_LABEL = 'Kembali Ke PilarGroup';
 const USER_PROFILE_SEGMENT = '__sidebar_user_profile__';
 const DEFAULT_SIDEBAR_USER = {
   displayName: 'User',
@@ -1053,3 +1053,5 @@ export default function DashboardLayoutBasic({ onLogout }) {
     </AppProvider>
   );
 }
+
+
