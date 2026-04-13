@@ -35,6 +35,7 @@ import TreeViewWordmark from './components/TreeViewWordmark';
 import NavBottom, { DEFAULT_MOBILE_BOTTOM_NAV_ITEMS } from './mobile/templateMobile/NavBottom';
 import MobileMonthlyVisit from './mobile/mobileComponents/salesReport/MobileMonthlyVisit';
 import MobileWeekly from './mobile/mobileComponents/salesReport/MobileWeekly';
+import MobileMonitorRadius from './mobile/mobileComponents/salesReport/MobileMonitorRadius';
 import MobileUserProfile from './mobile/mobileComponents/user/MobileUserProfile';
 
 const DASHBOARD_BACKGROUND_LIGHT =
@@ -600,7 +601,7 @@ function DemoPageContent({
   if (currentPathname.includes('reports/monitor-radius') || currentPathname.includes('reports/result')) {
     return (
       <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
-        <ReportMonitorRadius />
+        {isMobileScreen ? <MobileMonitorRadius /> : <ReportMonitorRadius />}
       </Box>
     );
   }
