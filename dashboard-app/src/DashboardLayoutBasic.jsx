@@ -21,7 +21,6 @@ import ReportMonitorRadius from './sales/ReportMonitorRadius';
 import MonthlyRevenue from './businessUnit/MonthlyRevenue';
 import GotoRevenue from './businessUnit/GotoRevenue';
 import GosaveRevenue from './businessUnit/GosaveRevenue';
-import ChangeProfileAction from './account/ChangeProfileAction';
 import SidebarLogout from './login/logout';
 import { API_URL } from './config/api';
 import { fetchWithAuth } from './utils/fetchWithAuth';
@@ -938,13 +937,6 @@ export default function DashboardLayoutBasic({ onLogout }) {
               mini={mini}
               label={LOGOUT_ACTION_LABEL}
               onLogout={onLogout}
-              beforeAction={
-                <ChangeProfileAction
-                  mini={mini}
-                  user={sidebarUser}
-                  onProfileUpdated={syncStoredUserState}
-                />
-              }
             />
           ),
         }}
