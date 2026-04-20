@@ -2,6 +2,7 @@ import React from 'react';
 import DashboardLayoutBasic from './DashboardLayoutBasic';
 import LoginPage from './login/loginPage';
 import { AUTH_STATE_CHANGE_EVENT } from './utils/fetchWithAuth';
+import BackgroundMain from './Template/BackgroundMain';
 
 function hasStoredToken() {
   if (typeof window === 'undefined') return false;
@@ -28,11 +29,16 @@ function App() {
     };
   }, []);
 
-  if (!isAuthenticated) {
-    return <LoginPage onLoginSuccess={() => setIsAuthenticated(true)} />;
-  }
-
-  return <DashboardLayoutBasic onLogout={() => setIsAuthenticated(false)} />;
+  return (
+    !isAuthenticated ? (
+      <>
+        <BackgroundMain />
+        <LoginPage onLoginSuccess={() => setIsAuthenticated(true)} />
+      </>
+    ) : (
+      <DashboardLayoutBasic onLogout={() => setIsAuthenticated(false)} />
+    )
+  );
 }
 
 export default App;

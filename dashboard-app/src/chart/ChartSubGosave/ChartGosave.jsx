@@ -42,6 +42,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ErrorBoundary from '../ChartBU/ErrorBoundary';
 import { API_URL } from '../../config/api';
 import { buildRangeChartModel } from '../ChartBU/rangeChartModel';
+import RevenueLastUpdate from '../../components/RevenueLastUpdate';
 import {
   GOSAVE_SUB_BUSINESS_UNIT_OPTIONS,
   loadGosaveMultiRangeCompareYearData,
@@ -660,7 +661,7 @@ const SubBusinessUnitDropdown = React.memo(({ value, options = [], onChange }) =
             bgcolor: '#FFFFFF',
             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
             '&.Mui-focused': {
-              color: '#6BA3D0'
+              color: '#2F6FB2'
             }
           }}
         >
@@ -726,7 +727,7 @@ const SubBusinessUnitDropdown = React.memo(({ value, options = [], onChange }) =
               borderColor: '#E0E0E0'
             },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#6BA3D0',
+              borderColor: '#2F6FB2',
               borderWidth: '1px'
             }
           }}
@@ -739,10 +740,10 @@ const SubBusinessUnitDropdown = React.memo(({ value, options = [], onChange }) =
                 fontSize: '0.875rem',
                 fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
                 '&.Mui-selected': {
-                  bgcolor: 'rgba(107, 163, 208, 0.08)',
-                  color: '#6BA3D0',
+                  bgcolor: 'rgba(47, 111, 178, 0.08)',
+                  color: '#2F6FB2',
                   '&:hover': {
-                    bgcolor: 'rgba(107, 163, 208, 0.12)'
+                    bgcolor: 'rgba(47, 111, 178, 0.12)'
                   }
                 }
               }}
@@ -790,7 +791,7 @@ const FilterTypeDropdown = React.memo(({ value, onChange }) => {
             color: '#757575',
             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
             '&.Mui-focused': {
-              color: '#6BA3D0'
+              color: '#2F6FB2'
             }
           }}
         >
@@ -849,14 +850,14 @@ const FilterTypeDropdown = React.memo(({ value, onChange }) => {
             bgcolor: '#FFFFFF',
             transition: 'all 0.2s ease',
             '& .MuiOutlinedInput-notchedOutline': {
-              borderColor: (value === 'range' || value === 'specific' || value === 'multi_range') ? '#6BA3D0' : '#E5E5E5',
+              borderColor: (value === 'range' || value === 'specific' || value === 'multi_range') ? '#2F6FB2' : '#E5E5E5',
               borderWidth: '1px'
             },
             '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: (value === 'range' || value === 'specific' || value === 'multi_range') ? '#6BA3D0' : '#E0E0E0'
+              borderColor: (value === 'range' || value === 'specific' || value === 'multi_range') ? '#2F6FB2' : '#E0E0E0'
             },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#6BA3D0',
+              borderColor: '#2F6FB2',
               borderWidth: '1px'
             }
           }}
@@ -869,10 +870,10 @@ const FilterTypeDropdown = React.memo(({ value, onChange }) => {
                 fontSize: '0.875rem',
                 fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
                 '&.Mui-selected': {
-                  bgcolor: 'rgba(107, 163, 208, 0.08)',
-                  color: '#6BA3D0',
+                  bgcolor: 'rgba(47, 111, 178, 0.08)',
+                  color: '#2F6FB2',
                   '&:hover': {
-                    bgcolor: 'rgba(107, 163, 208, 0.12)'
+                    bgcolor: 'rgba(47, 111, 178, 0.12)'
                   }
                 }
               }}
@@ -935,19 +936,21 @@ const DataTypeButtons = React.memo(({ value = 'sales', onChange }) => {
                 boxShadow: 'none',
                 ...(isSelected
                   ? {
-                      bgcolor: '#6BA3D0',
+                      background: 'linear-gradient(135deg, #2f9a8f 0%, #23857a 100%)',
                       color: '#FFFFFF',
+                      boxShadow: '0 8px 18px rgba(35, 133, 122, 0.22)',
                       '&:hover': {
-                        bgcolor: '#5A9FD0',
-                        boxShadow: 'none'
+                        background: 'linear-gradient(135deg, #2a8e84 0%, #1f756c 100%)',
+                        boxShadow: '0 10px 20px rgba(35, 133, 122, 0.28)'
                       }
                     }
                   : {
                       borderColor: '#D1D5DB',
                       color: '#4B5563',
                       '&:hover': {
-                        borderColor: '#6BA3D0',
-                        bgcolor: 'rgba(107, 163, 208, 0.06)'
+                        borderColor: '#23857a',
+                        color: '#1f5f59',
+                        bgcolor: 'rgba(35, 133, 122, 0.08)'
                       }
                     })
               }}
@@ -1022,14 +1025,14 @@ const FilterSection = React.memo(({
             color: '#9E9E9E',
             transition: 'all 0.2s ease',
             '&:hover': {
-              color: '#6BA3D0',
+              color: '#2F6FB2',
               bgcolor: '#FAFAFA'
             },
             '&:disabled': {
               color: '#E0E0E0'
             },
             '&:focus-visible': {
-              outline: '2px solid #6BA3D0',
+              outline: '2px solid #2F6FB2',
               outlineOffset: '2px'
             }
           }}
@@ -1091,8 +1094,8 @@ const FilterSection = React.memo(({
                 color: '#7C8EA6'
               },
               '&:hover': {
-                borderColor: '#6BA3D0',
-                bgcolor: 'rgba(107, 163, 208, 0.06)',
+                borderColor: '#2F6FB2',
+                bgcolor: 'rgba(47, 111, 178, 0.06)',
                 color: '#42556F',
                 '& .MuiButton-startIcon svg': {
                   color: '#6B85A6'
@@ -1114,19 +1117,19 @@ const FilterSection = React.memo(({
         aria-label="Load data button"
         sx={{ 
           mt: { xs: 0.5, lg: 'auto' },
-          bgcolor: '#6BA3D0',
+          background: 'linear-gradient(135deg, #2f9a8f 0%, #23857a 100%)',
           color: 'white',
           textTransform: 'none',
           fontSize: '0.8125rem',
-          fontWeight: 500,
+          fontWeight: 600,
           fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
           py: 1.125,
           borderRadius: '10px',
-          boxShadow: 'none',
+          boxShadow: '0 10px 22px rgba(35, 133, 122, 0.24)',
           transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
-            bgcolor: '#5A9FD0',
-            boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)'
+            background: 'linear-gradient(135deg, #2a8e84 0%, #1f756c 100%)',
+            boxShadow: '0 12px 24px rgba(35, 133, 122, 0.3)'
           },
           '&:active': {
             transform: 'scale(0.98)',
@@ -1139,7 +1142,7 @@ const FilterSection = React.memo(({
             boxShadow: 'none'
           },
           '&:focus-visible': {
-            outline: '2px solid #6BA3D0',
+            outline: '2px solid #23857a',
             outlineOffset: '2px'
           }
         }}
@@ -1194,7 +1197,7 @@ const LegendToggles = React.memo(({
             bgcolor: '#FAFAFA'
           },
           '&:focus-visible': {
-            outline: '2px solid #6BA3D0',
+            outline: '2px solid #2F6FB2',
             outlineOffset: '2px'
           }
         }}
@@ -1242,7 +1245,7 @@ const LegendToggles = React.memo(({
             bgcolor: '#FAFAFA'
           },
           '&:focus-visible': {
-            outline: '2px solid #6BA3D0',
+            outline: '2px solid #2F6FB2',
             outlineOffset: '2px'
           }
         }}
@@ -1290,7 +1293,7 @@ const LegendToggles = React.memo(({
             bgcolor: '#FAFAFA'
           },
           '&:focus-visible': {
-            outline: '2px solid #6BA3D0',
+            outline: '2px solid #2F6FB2',
             outlineOffset: '2px'
           }
         }}
@@ -1416,17 +1419,33 @@ const SummaryCardCompact = React.memo(({
         borderColor: '#D1D5DB'
       }
     }}>
-      <Typography sx={{
-        fontSize: { xs: '0.9375rem', md: '1rem' },
-        fontWeight: 600,
-        color: '#212121',
-        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-        letterSpacing: '-0.01em',
-        lineHeight: 1.4,
-        mb: 0.5
-      }}>
-        Ringkasan Data
-      </Typography>
+      <Box
+        sx={{
+          mb: 1.25,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 1,
+          flexWrap: 'wrap'
+        }}
+      >
+        <Typography sx={{
+          fontSize: { xs: '0.9375rem', md: '1rem' },
+          fontWeight: 600,
+          color: '#212121',
+          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+          letterSpacing: '-0.01em',
+          lineHeight: 1.4
+        }}>
+          Ringkasan Data
+        </Typography>
+        <RevenueLastUpdate
+          sx={{
+            flexShrink: 0,
+            maxWidth: { xs: '100%', sm: 320 },
+          }}
+        />
+      </Box>
 
       <Box sx={{
         display: { xs: 'flex', sm: 'grid' },
@@ -1509,7 +1528,7 @@ const SummaryCardCompact = React.memo(({
                         height: 5,
                         mt: '7px',
                         borderRadius: '50%',
-                        backgroundColor: '#6BA3D0',
+                        backgroundColor: '#2F6FB2',
                         flexShrink: 0
                       }}
                     />
@@ -1546,7 +1565,7 @@ const SummaryCardCompact = React.memo(({
                       width: 6,
                       height: 6,
                       borderRadius: '50%',
-                      backgroundColor: item.hasData ? '#6BA3D0' : '#BDBDBD',
+                      backgroundColor: item.hasData ? '#2F6FB2' : '#BDBDBD',
                       flexShrink: 0
                     }}
                   />
@@ -1567,7 +1586,7 @@ const SummaryCardCompact = React.memo(({
                     textTransform: 'none',
                     fontSize: '0.75rem',
                     fontWeight: 600,
-                    color: '#6BA3D0',
+                    color: '#2F6FB2',
                     fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
                     '&:hover': {
                       bgcolor: 'transparent',
@@ -2605,29 +2624,30 @@ function ChartGosaveContent({
       <Box sx={{
         width: '100%',
         maxWidth: 'min(100%, 1880px)',
+        mx: 'auto',
         mr: 'auto',
-        minHeight: '100%',
-        height: 'auto',
+        minHeight: 0,
+        height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        background: 'linear-gradient(135deg, #F5F7FA 0%, #F8F9FA 50%, #FAFBFC 100%)',
-        pt: { xs: 1.75, sm: 2.25, md: 3, xl: 3.5 },
-        px: { xs: 1, sm: 1.5, md: 2, xl: 2.5 },
-        pb: { xs: 1.75, sm: 2.25, md: 3, xl: 3.5 },
-        gap: { xs: 2, md: 2.5, xl: 3 },
+        background: 'transparent',
+        pt: { xs: 0.75, sm: 1, md: 1.5, xl: 1.75 },
+        px: { xs: 0.75, sm: 1, md: 1.5, xl: 1.75 },
+        pb: { xs: 0.75, sm: 1, md: 1.25, xl: 1.5 },
+        gap: { xs: 1.25, md: 1.5, xl: 2 },
         fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
         position: 'relative',
         overflowX: 'hidden',
-        overflowY: 'visible',
+        overflowY: 'hidden',
         '&::before': {
-          content: '""',
+          content: 'none',
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(107, 163, 208, 0.03) 1px, transparent 0)',
-          backgroundSize: '24px 24px',
+          backgroundImage: 'none',
+          backgroundSize: 'auto',
           pointerEvents: 'none',
           zIndex: 0
         }
@@ -2656,7 +2676,7 @@ function ChartGosaveContent({
         <Box sx={{
           display: 'flex',
           flexDirection: { xs: 'column', lg: 'row' },
-          gap: { xs: 2, md: 2.5, xl: 3 },
+          gap: { xs: 1.25, md: 1.5, xl: 2 },
           alignItems: 'stretch',
           position: 'relative',
           zIndex: 1
@@ -2690,7 +2710,7 @@ function ChartGosaveContent({
             minWidth: 0,
             display: 'flex',
             flexDirection: 'column',
-            gap: { xs: 2, md: 2.5, xl: 3 },
+            gap: { xs: 1.25, md: 1.5, xl: 2 },
             height: '100%'
           }}>
             <Box sx={{
@@ -2769,10 +2789,10 @@ function ChartGosaveContent({
           borderRadius: '14px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)',
           border: '1px solid #E5E7EB',
-          mt: { xs: 0.5, md: 1 },
-          pt: { xs: 2.25, md: 2.75, xl: 3.25 },
-          px: { xs: 2.25, md: 2.75, xl: 3.25 },
-          pb: { xs: 1.25, md: 1.5, xl: 1.75 },
+          mt: { xs: 0.25, md: 0.5 },
+          pt: { xs: 1.5, md: 1.75, xl: 2 },
+          px: { xs: 1.5, md: 1.75, xl: 2 },
+          pb: { xs: 1, md: 1.25, xl: 1.5 },
           display: 'flex',
           flexDirection: 'column',
           transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -2787,12 +2807,12 @@ function ChartGosaveContent({
           }
         }}>
           <Box sx={{
-            mb: 2,
+            mb: 1.25,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             flexWrap: 'wrap',
-            gap: 1.5
+            gap: 1
           }}>
           <Typography sx={{
               fontSize: { xs: '0.875rem', md: '1rem' },
@@ -2840,7 +2860,7 @@ function ChartGosaveContent({
                   onToggleTotal={() => setShowTotal(!showTotal)}
                   sx={{
                     mb: 0,
-                    gap: 0.5
+                    gap: 0.375
                   }}
                 />
               ) : (
@@ -2872,9 +2892,8 @@ function ChartGosaveContent({
             sx={{
               width: '100%',
               overflowX: 'auto',
-              overflowY: 'visible',
-              pb: 0.25,
-              scrollbarGutter: 'stable both-edges'
+              overflowY: 'hidden',
+              pb: 0
             }}
           >
             <Box
@@ -2906,7 +2925,7 @@ function ChartGosaveContent({
                     size={40} 
                     thickness={3.5}
                     sx={{
-                      color: '#6BA3D0',
+                      color: '#2F6FB2',
                       mb: 1.5,
                       '& .MuiCircularProgress-circle': {
                         strokeLinecap: 'round',
@@ -2969,7 +2988,7 @@ function ChartGosaveContent({
                     fill: '#757575'
                   },
                   '& .MuiChartsAxisHighlight-root': {
-                    stroke: 'rgba(107, 163, 208, 0.65)',
+                    stroke: 'rgba(47, 111, 178, 0.65)',
                     strokeDasharray: '6 4',
                     strokeWidth: 1.2
                   }

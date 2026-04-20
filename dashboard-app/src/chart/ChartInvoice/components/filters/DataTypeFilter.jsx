@@ -86,7 +86,7 @@ function DataTypeFilter({ dataType, onChange }) {
               fontSize: '0.875rem',
               fontWeight: isPenjualanSelected ? 600 : 500,
               fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-              bgcolor: isPenjualanSelected ? '#6BA3D0' : 'transparent',
+              bgcolor: isPenjualanSelected ? '#2F6FB2' : 'transparent',
               color: isPenjualanSelected ? 'white' : '#757575',
               border: isPenjualanSelected ? 'none' : '1px solid #E5E5E5',
               borderRadius: '12px',
@@ -94,7 +94,7 @@ function DataTypeFilter({ dataType, onChange }) {
               boxShadow: 'none',
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
               '&:hover': {
-                bgcolor: isPenjualanSelected ? '#5A9FD0' : '#FAFAFA',
+                bgcolor: isPenjualanSelected ? '#1F4E8C' : '#FAFAFA',
                 border: isPenjualanSelected ? 'none' : '1px solid #E0E0E0',
                 boxShadow: 'none'
               },
@@ -116,7 +116,7 @@ function DataTypeFilter({ dataType, onChange }) {
               fontSize: '0.875rem',
               fontWeight: isQuantitySelected ? 600 : 500,
               fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-              bgcolor: isQuantitySelected ? '#6BA3D0' : 'transparent',
+              bgcolor: isQuantitySelected ? '#2F6FB2' : 'transparent',
               color: isQuantitySelected ? 'white' : '#757575',
               border: isQuantitySelected ? 'none' : '1px solid #E5E5E5',
               borderRadius: '12px',
@@ -124,7 +124,7 @@ function DataTypeFilter({ dataType, onChange }) {
               boxShadow: 'none',
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
               '&:hover': {
-                bgcolor: isQuantitySelected ? '#5A9FD0' : '#FAFAFA',
+                bgcolor: isQuantitySelected ? '#1F4E8C' : '#FAFAFA',
                 border: isQuantitySelected ? 'none' : '1px solid #E0E0E0',
                 boxShadow: 'none'
               },
@@ -146,7 +146,7 @@ function DataTypeFilter({ dataType, onChange }) {
               fontSize: '0.875rem',
               fontWeight: isOrderSelected ? 600 : 500,
               fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-              bgcolor: isOrderSelected ? '#6BA3D0' : 'transparent',
+              bgcolor: isOrderSelected ? '#2F6FB2' : 'transparent',
               color: isOrderSelected ? 'white' : '#757575',
               border: isOrderSelected ? 'none' : '1px solid #E5E5E5',
               borderRadius: '12px',
@@ -154,7 +154,7 @@ function DataTypeFilter({ dataType, onChange }) {
               boxShadow: 'none',
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
               '&:hover': {
-                bgcolor: isOrderSelected ? '#5A9FD0' : '#FAFAFA',
+                bgcolor: isOrderSelected ? '#1F4E8C' : '#FAFAFA',
                 border: isOrderSelected ? 'none' : '1px solid #E0E0E0',
                 boxShadow: 'none'
               },

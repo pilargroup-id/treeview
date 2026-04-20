@@ -107,10 +107,10 @@ class ErrorBoundary extends React.Component {
               startIcon={<RefreshIcon />}
               onClick={this.handleReset}
               sx={{
-                bgcolor: '#6BA3D0',
+                bgcolor: '#2F6FB2',
                 textTransform: 'none',
                 '&:hover': {
-                  bgcolor: '#5A9FD0'
+                  bgcolor: '#1F4E8C'
                 }
               }}
             >

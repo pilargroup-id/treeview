@@ -65,14 +65,14 @@ function MobileRingkasanBU({
               color: '#9E9E9E',
               transition: 'all 0.2s ease',
               '&:hover': {
-                color: '#6BA3D0',
+                color: '#2F6FB2',
                 bgcolor: '#FAFAFA'
               },
               '&:disabled': {
                 color: '#E0E0E0'
               },
               '&:focus-visible': {
-                outline: '2px solid #6BA3D0',
+                outline: '2px solid #2F6FB2',
                 outlineOffset: '2px'
               }
             }}

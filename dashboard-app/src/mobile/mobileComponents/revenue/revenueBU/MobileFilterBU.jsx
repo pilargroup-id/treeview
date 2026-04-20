@@ -102,7 +102,7 @@ function MobileFilterBU({
             color: '#757575',
             fontFamily: FONT_FAMILY,
             '&.Mui-focused': {
-              color: '#6BA3D0'
+              color: '#2F6FB2'
             }
           }}
         >
@@ -166,14 +166,14 @@ function MobileFilterBU({
             bgcolor: '#FFFFFF',
             transition: 'all 0.2s ease',
             '& .MuiOutlinedInput-notchedOutline': {
-              borderColor: isCalendarFilterType(filterType) ? '#6BA3D0' : '#E5E5E5',
+              borderColor: isCalendarFilterType(filterType) ? '#2F6FB2' : '#E5E5E5',
               borderWidth: '1px'
             },
             '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: isCalendarFilterType(filterType) ? '#6BA3D0' : '#E0E0E0'
+              borderColor: isCalendarFilterType(filterType) ? '#2F6FB2' : '#E0E0E0'
             },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#6BA3D0',
+              borderColor: '#2F6FB2',
               borderWidth: '1px'
             }
           }}
@@ -186,10 +186,10 @@ function MobileFilterBU({
                 fontSize: '0.875rem',
                 fontFamily: FONT_FAMILY,
                 '&.Mui-selected': {
-                  bgcolor: 'rgba(107, 163, 208, 0.08)',
-                  color: '#6BA3D0',
+                  bgcolor: 'rgba(47, 111, 178, 0.08)',
+                  color: '#2F6FB2',
                   '&:hover': {
-                    bgcolor: 'rgba(107, 163, 208, 0.12)'
+                    bgcolor: 'rgba(47, 111, 178, 0.12)'
                   }
                 }
               }}
@@ -235,7 +235,7 @@ function MobileFilterBU({
                   fontSize: '0.75rem',
                   fontWeight: isSelected ? 600 : 500,
                   fontFamily: FONT_FAMILY,
-                  bgcolor: isSelected ? '#6BA3D0' : 'transparent',
+                  bgcolor: isSelected ? '#23857a' : 'transparent',
                   color: isSelected ? '#FFFFFF' : '#757575',
                   border: isSelected ? 'none' : '1px solid #E5E5E5',
                   borderRadius: '10px',
@@ -243,19 +243,20 @@ function MobileFilterBU({
                   minWidth: 0,
                   py: 0.625,
                   px: 1.5,
-                  boxShadow: 'none',
+                  boxShadow: isSelected ? '0 8px 18px rgba(35, 133, 122, 0.22)' : 'none',
                   transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                   '&:hover': {
-                    bgcolor: isSelected ? '#5A9FD0' : '#FAFAFA',
-                    border: isSelected ? 'none' : '1px solid #E0E0E0',
-                    boxShadow: 'none'
+                    bgcolor: isSelected ? '#1f756c' : 'rgba(35, 133, 122, 0.06)',
+                    border: isSelected ? 'none' : '1px solid #23857a',
+                    color: isSelected ? '#FFFFFF' : '#1f5f59',
+                    boxShadow: isSelected ? '0 10px 20px rgba(35, 133, 122, 0.28)' : 'none'
                   },
                   '&:active': {
                     transform: 'scale(0.98)',
                     transition: 'all 0.1s ease'
                   },
                   '&:focus-visible': {
-                    outline: '2px solid #6BA3D0',
+                    outline: '2px solid #23857a',
                     outlineOffset: '2px'
                   }
                 }}
@@ -303,8 +304,8 @@ function MobileFilterBU({
               color: '#7C8EA6'
             },
             '&:hover': {
-              borderColor: '#6BA3D0',
-              bgcolor: 'rgba(107, 163, 208, 0.06)',
+              borderColor: '#2F6FB2',
+              bgcolor: 'rgba(47, 111, 178, 0.06)',
               color: '#42556F',
               '& .MuiButton-startIcon svg': {
                 color: '#6B85A6'
@@ -420,7 +421,7 @@ function MobileFilterBU({
         aria-label="Load data button"
         sx={{
           mt: 0.5,
-          bgcolor: '#6BA3D0',
+          bgcolor: '#2F6FB2',
           color: '#FFFFFF',
           textTransform: 'none',
           fontSize: '0.8125rem',
@@ -431,8 +432,8 @@ function MobileFilterBU({
           boxShadow: 'none',
           transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
-            bgcolor: '#5A9FD0',
-            boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)'
+            bgcolor: '#1F4E8C',
+            boxShadow: '0 2px 4px rgba(47, 111, 178, 0.2)'
           },
           '&:active': {
             transform: 'scale(0.98)',
@@ -445,7 +446,7 @@ function MobileFilterBU({
             boxShadow: 'none'
           },
           '&:focus-visible': {
-            outline: '2px solid #6BA3D0',
+            outline: '2px solid #2F6FB2',
             outlineOffset: '2px'
           }
         }}

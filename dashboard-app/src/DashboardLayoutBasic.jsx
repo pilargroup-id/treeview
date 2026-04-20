@@ -23,8 +23,6 @@ import GotoRevenue from './businessUnit/GotoRevenue';
 import GosaveRevenue from './businessUnit/GosaveRevenue';
 import ChangeProfileAction from './account/ChangeProfileAction';
 import SidebarLogout from './login/logout';
-import { API_URL } from './config/api';
-import { fetchWithAuth } from './utils/fetchWithAuth';
 import {
   getFirstAllowedPath,
   getStoredAuthUser,
@@ -36,6 +34,16 @@ import NavBottom, { DEFAULT_MOBILE_BOTTOM_NAV_ITEMS } from './mobile/templateMob
 import MobileMonthlyVisit from './mobile/mobileComponents/salesReport/MobileMonthlyVisit';
 import MobileWeekly from './mobile/mobileComponents/salesReport/MobileWeekly';
 import MobileUserProfile from './mobile/mobileComponents/user/MobileUserProfile';
+import Sidebar from './Template/Sidebar';
+import Header from './Template/Header';
+import BackgroundMain from './Template/BackgroundMain';
+import {
+  defaultNavigationPath,
+  implementedNavigationPaths,
+  primaryNavigationItems,
+  secondaryNavigationItems,
+  BASE_NAVIGATION,
+} from './Template/Navigation';
 
 const DASHBOARD_BACKGROUND_LIGHT =
   'linear-gradient(135deg, #F5F7FA 0%, #F8F9FA 50%, #FAFBFC 100%)';
@@ -49,30 +57,6 @@ const DEFAULT_SIDEBAR_USER = {
   username: 'User',
   email: '-',
 };
-
-const BASE_NAVIGATION = [
-  {
-    segment: 'dashboard',
-    title: 'Revenue',
-    icon: <PriceChangeIcon />,
-    children: [
-      { segment: 'MonthlyRevenue', title: 'BU Revenue', icon: <BarChartIcon /> },
-      { segment: 'GotoRevenue', title: 'Goto Revenue', icon: <BarChartIcon /> },
-      { segment: 'GosaveRevenue', title: 'Gosave Revenue', icon: <BarChartIcon /> },
-    ],
-  },
-  { kind: 'divider' },
-  {
-    segment: 'reports',
-    title: 'Touch Point',
-    icon: <LocationOnIcon />,
-    children: [
-      { segment: 'monthly-visit', title: 'Monthly Visit', icon: <CalendarMonthIcon /> },
-      { segment: 'weekly-summary', title: 'Weekly Summary', icon: <CalendarViewWeekIcon /> },
-      { segment: 'monitor-radius', title: 'Monitor Radius', icon: <MyLocationIcon /> },
-    ],
-  },
-];
 
 function a11yProps(index) {
   return {
@@ -255,9 +239,9 @@ const demoTheme = createTheme({
     light: {
       palette: {
         primary: {
-          main: '#6BA3D0', // Biru soft yang matching dengan tombol
-          light: '#89B7DC',
-          dark: '#5A9FD0',
+          main: '#2F6FB2', // Biru soft yang matching dengan tombol
+          light: '#2F6FB2',
+          dark: '#1F4E8C',
           contrastText: '#FFFFFF',
         },
         background: {
@@ -273,20 +257,20 @@ const demoTheme = createTheme({
       styleOverrides: {
         root: {
           '&.Mui-selected': {
-            backgroundColor: 'rgba(107, 163, 208, 0.12) !important',
-            color: '#6BA3D0 !important',
+            backgroundColor: 'rgba(47, 111, 178, 0.12) !important',
+            color: '#2F6FB2 !important',
             '&:hover': {
-              backgroundColor: 'rgba(107, 163, 208, 0.16) !important',
+              backgroundColor: 'rgba(47, 111, 178, 0.16) !important',
             },
             '& .MuiListItemIcon-root': {
-              color: '#6BA3D0 !important',
+              color: '#2F6FB2 !important',
             },
             '& svg': {
-              color: '#6BA3D0 !important',
+              color: '#2F6FB2 !important',
             },
           },
           '&:hover': {
-            backgroundColor: 'rgba(107, 163, 208, 0.08)',
+            backgroundColor: 'rgba(47, 111, 178, 0.08)',
           },
         },
       },
@@ -295,11 +279,11 @@ const demoTheme = createTheme({
       styleOverrides: {
         root: {
           '&.Mui-selected': {
-            color: '#6BA3D0 !important',
+            color: '#2F6FB2 !important',
           },
           '& svg': {
             '&.Mui-selected': {
-              color: '#6BA3D0 !important',
+              color: '#2F6FB2 !important',
             },
           },
         },
@@ -309,9 +293,9 @@ const demoTheme = createTheme({
       styleOverrides: {
         root: {
           '&.Mui-selected': {
-            color: '#6BA3D0 !important',
+            color: '#2F6FB2 !important',
             '& svg': {
-              color: '#6BA3D0 !important',
+              color: '#2F6FB2 !important',
             },
           },
         },
@@ -350,8 +334,8 @@ function SidebarUserItem({ mini, user }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: 'rgba(107, 163, 208, 0.2)',
-              border: '1px solid rgba(107, 163, 208, 0.28)',
+              backgroundColor: 'rgba(47, 111, 178, 0.2)',
+              border: '1px solid rgba(47, 111, 178, 0.28)',
             }}
           >
             <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#0F172A', letterSpacing: 0.35 }}>
@@ -394,8 +378,8 @@ function SidebarUserItem({ mini, user }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: 'rgba(107, 163, 208, 0.2)',
-            border: '1px solid rgba(107, 163, 208, 0.28)',
+            backgroundColor: 'rgba(47, 111, 178, 0.2)',
+            border: '1px solid rgba(47, 111, 178, 0.28)',
           }}
         >
           <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A', letterSpacing: 0.4 }}>
@@ -491,9 +475,9 @@ function AccessRestrictedView({ fallbackPath, onNavigate }) {
           textTransform: 'none',
           borderRadius: '12px',
           px: 2.5,
-          bgcolor: '#6BA3D0',
+          bgcolor: '#2F6FB2',
           '&:hover': {
-            bgcolor: '#5A9FD0',
+            bgcolor: '#1F4E8C',
           },
         }}
       >
@@ -545,7 +529,7 @@ function DemoPageContent({
 
   if (currentPathname.includes('MonthlyRevenue')) {
     return (
-      <Box sx={{ p: 0, height: '100%', overflow: 'auto' }}>
+      <Box sx={{ p: 0, height: '100%', overflow: 'hidden' }}>
         <MonthlyRevenue />
       </Box>
     );
@@ -553,7 +537,7 @@ function DemoPageContent({
 
   if (currentPathname.includes('GotoRevenue')) {
     return (
-      <Box sx={{ p: 0, height: '100%', overflow: 'auto' }}>
+      <Box sx={{ p: 0, height: '100%', overflow: 'hidden' }}>
         <GotoRevenue />
       </Box>
     );
@@ -561,7 +545,7 @@ function DemoPageContent({
 
   if (currentPathname.includes('GosaveRevenue')) {
     return (
-      <Box sx={{ p: 0, height: '100%', overflow: 'auto' }}>
+      <Box sx={{ p: 0, height: '100%', overflow: 'hidden' }}>
         <GosaveRevenue />
       </Box>
     );
@@ -636,155 +620,6 @@ function DemoPageContent({
 }
 
 
-function LastUpdateHeader() {
-  const [lastUpdates, setLastUpdates] = React.useState([]);
-  const [isError, setIsError] = React.useState(false);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [currentIndex, setCurrentIndex] = React.useState(0);
-  const [show, setShow] = React.useState(true);
-  const timeoutRef = React.useRef();
-
-  React.useEffect(() => {
-    setIsLoading(true);
-    fetchWithAuth(`${API_URL}/financial/last-update`, {
-      method: 'GET',
-    })
-      .then(response => response.json())
-      .then(data => {
-        if (data.status === 'success' && Array.isArray(data.data)) {
-          setLastUpdates(data.data);
-          setIsError(false);
-        } else {
-          setLastUpdates([]);
-          setIsError(true);
-        }
-        setIsLoading(false);
-      })
-      .catch(() => {
-        setLastUpdates([]);
-        setIsError(true);
-        setIsLoading(false);
-      });
-  }, []);
-
-  // Animasi: hanya satu data tampil, bergantian
-  React.useEffect(() => {
-    if (isLoading) return;
-    let maxLength = isError ? 1 : lastUpdates.length;
-    if (maxLength === 0) return;
-    setCurrentIndex(0);
-    setShow(true);
-    clearTimeout(timeoutRef.current);
-    function cycle() {
-      setShow(false);
-      timeoutRef.current = setTimeout(() => {
-        setCurrentIndex((prev) => {
-          const nextIdx = (prev + 1) % maxLength;
-          // Setelah index berubah, trigger animasi masuk
-          setTimeout(() => setShow(true), 30); 
-          return nextIdx;
-        });
-        timeoutRef.current = setTimeout(cycle, 1800);
-      }, 400); 
-    }
-    timeoutRef.current = setTimeout(cycle, 1800);
-    return () => clearTimeout(timeoutRef.current);
-  }, [lastUpdates, isError, isLoading]);
-
-  return (
-    <Box
-      sx={{
-        position: 'fixed',
-        top: 16,
-        right: 16,
-        zIndex: 1300,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1,
-        px: 2,
-        py: 1,
-        borderRadius: 1,
-        bgcolor: 'rgba(255, 255, 255, 0.95)',
-        boxShadow: '0 2px 8px rgba(255, 255, 255, 0.15)',
-        // backdropFilter: 'blur(10px)',
-        minHeight: '32px',
-      }}
-    >
-      {isLoading ? (
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{
-            fontWeight: 500,
-            fontSize: '0.75rem',
-          }}
-        >
-          Loading...
-        </Typography>
-      ) : isError ? (
-        <>
-          <span
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              transition: 'opacity 0.4s cubic-bezier(.4,0,.6,1)',
-              opacity: show ? 1 : 0,
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" fill="#90caf9" />
-              <path d="M12 6v6l4 2" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
-          <Typography
-            variant="body2"
-            color="error"
-            sx={{
-              fontWeight: 500,
-              fontSize: '0.75rem',
-              transition: 'opacity 0.4s cubic-bezier(.4,0,.6,1)',
-              opacity: show ? 1 : 0,
-            }}
-          >
-            Last update: Gagal mengambil data
-          </Typography>
-        </>
-      ) : (
-        lastUpdates.length > 0 && (
-          <Box key={lastUpdates[currentIndex].source_table + currentIndex} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <span
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                transition: 'opacity 0.4s cubic-bezier(.4,0,.6,1)',
-                opacity: show ? 1 : 0,
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" fill="#90caf9" />
-                <path d="M12 6v6l4 2" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{
-                fontWeight: 500,
-                fontSize: '0.75rem',
-                whiteSpace: 'nowrap',
-                transition: 'opacity 0.4s cubic-bezier(.4,0,.6,1)',
-                opacity: show ? 1 : 0,
-              }}
-            >
-              {lastUpdates[currentIndex].source_table}: {lastUpdates[currentIndex].last_date}
-            </Typography>
-          </Box>
-        )
-      )}
-    </Box>
-  );
-}
-
 export default function DashboardLayoutBasic({ onLogout }) {
   const initialAuthUser = getStoredAuthUser();
   const initialAccessState = resolveAccessState(initialAuthUser);
@@ -852,199 +687,129 @@ export default function DashboardLayoutBasic({ onLogout }) {
     }
   }, [accessState, router]);
 
+  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
+  const [sidebarMobileOpen, setSidebarMobileOpen] = React.useState(false);
+
+  const handleToggleCollapse = React.useCallback(() => {
+    setSidebarCollapsed((prev) => !prev);
+  }, []);
+
+  const handleCloseMobile = React.useCallback(() => {
+    setSidebarMobileOpen(false);
+  }, []);
+
+  const handleMenuToggle = React.useCallback(() => {
+    setSidebarMobileOpen((prev) => !prev);
+  }, []);
+
   return (
-    <AppProvider
-      navigation={navigation}
-      router={router}
-      theme={demoTheme}
-      branding={{
-        logo: <></>,
-        title: '',
-      }}
-    >
-      <GlobalStyles
-        styles={{
-          '[data-toolpad-color-scheme] [role="menuitem"][aria-selected="true"]': {
-            backgroundColor: 'rgba(107, 163, 208, 0.12) !important',
-            color: '#6BA3D0 !important',
-            '& svg': {
-              color: '#6BA3D0 !important',
-            },
-            '&:hover': {
-              backgroundColor: 'rgba(107, 163, 208, 0.16) !important',
-            },
-          },
-          '[data-toolpad-color-scheme] [role="menuitem"]:hover': {
-            backgroundColor: 'rgba(107, 163, 208, 0.08) !important',
-          },
-
-          '[data-toolpad-color-scheme] [role="menuitem"][aria-selected="true"] svg': {
-            color: '#6BA3D0 !important',
-          },
-          '[data-toolpad-color-scheme] [role="menuitem"][aria-selected="true"] .MuiSvgIcon-root': {
-            color: '#6BA3D0 !important',
-          },
-
-          '[data-toolpad-color-scheme] [role="menuitem"][aria-selected="true"] [role="menuitem"][aria-selected="true"]': {
-            backgroundColor: 'rgba(107, 163, 208, 0.12) !important',
-            color: '#6BA3D0 !important',
-            '& svg': {
-              color: '#6BA3D0 !important',
-            },
-          },
+    <div className="dashboard-layout">
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        mobileOpen={sidebarMobileOpen}
+        activePath={router.pathname}
+        userName={sidebarUser.displayName}
+        userRole={sidebarUser.role}
+        primaryItems={primaryNavigationItems}
+        secondaryItems={secondaryNavigationItems}
+        onAction={(action, item) => {
+          if (action === 'change-profile') {
+            // Handle change profile
+          }
         }}
+        onNavigate={router.navigate}
+        onToggleCollapse={handleToggleCollapse}
+        onCloseMobile={handleCloseMobile}
       />
-      <DashboardLayout
-        hideNavigation={isMobileScreen}
-        sidebarExpandedWidth={260}
-        renderPageItem={(item, { mini }) =>
-          item.segment === USER_PROFILE_SEGMENT ? (
-            <SidebarUserItem mini={mini} user={sidebarUser} />
-          ) : (
-            <DashboardSidebarPageItem item={item} />
-          )
-        }
-        sx={{
-          '& .MuiAppBar-root': {
-            boxShadow: 'none',
-          },
-          '& > .MuiBox-root:last-child > .MuiToolbar-root': {
-            position: 'relative',
-            '&::after': {
-              content: '""',
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: 0,
-              height: 1,
-              boxShadow: '0 4px 14px rgba(15, 23, 42, 0.08)',
-              pointerEvents: 'none',
-            },
-          },
-          '& .MuiDrawer-paper': {
-            backgroundColor: '#FFFFFF',
-            boxShadow: '4px 0 14px rgba(15, 23, 42, 0.08)',
-            borderRight: '1px solid rgba(107, 163, 208, 0.18)',
-          },
-        }}
-        slots={{
-          appTitle: TreeViewAppTitle,
-          sidebarFooter: ({ mini }) => (
-            <SidebarLogout
-              mini={mini}
-              onLogout={onLogout}
-              beforeAction={
-                <ChangeProfileAction
-                  mini={mini}
-                  user={sidebarUser}
-                  onProfileUpdated={syncStoredUserState}
-                />
-              }
-            />
-          ),
-        }}
-      >
-        <LastUpdateHeader />
-        <Box
-          sx={(theme) => ({
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100vh',
-            overflow: 'hidden',
-            position: 'relative',
-            background: isMobileScreen
-              ? '#F7FAFC'
-              : theme.palette.mode === 'dark'
-                ? 'linear-gradient(135deg, rgba(18, 18, 18, 0.95) 0%, rgba(24, 24, 24, 0.98) 50%, rgba(30, 30, 30, 1) 100%)'
-                : DASHBOARD_BACKGROUND_LIGHT,
-            '&::before': {
-              content: isMobileScreen ? 'none' : '""',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundImage:
-                theme.palette.mode === 'dark'
-                  ? 'radial-gradient(circle at 1px 1px, rgba(107, 163, 208, 0.06) 1px, transparent 0)'
-                  : 'radial-gradient(circle at 1px 1px, rgba(107, 163, 208, 0.03) 1px, transparent 0)',
-              backgroundSize: '24px 24px',
-              pointerEvents: 'none',
-              zIndex: 0,
-            },
-          })}
-        >
+      <div className="main-content">
+        <Header
+          title="treeView"
+          onMenuToggle={handleMenuToggle}
+          showMenuButton={isMobileScreen}
+        />
+        <div className="page-content">
           <Box
             sx={{
               position: 'relative',
-              zIndex: 1,
-              flex: 1,
+              minHeight: '100%',
               overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-              minHeight: 0,
             }}
           >
-            {isMobileScreen ? (
-              <Box
-                sx={{
-                  px: 1.05,
-                  pt: 0.55,
-                  bgcolor: 'rgba(255, 255, 255, 0.76)',
-                  backdropFilter: 'blur(10px)',
-                  WebkitBackdropFilter: 'blur(10px)',
-                }}
-              >
-                {mobileChildTabs.length > 0 ? (
-                  <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                    <Tabs
-                      value={activeMobileChildTab}
-                      onChange={handleMobileChildTabChange}
-                      aria-label="mobile tabs"
-                    >
-                      {mobileChildTabs.map((tab, index) => (
-                        <Tab
-                          key={tab.value}
-                          value={tab.value}
-                          label={tab.label}
-                          {...a11yProps(index)}
-                        />
-                      ))}
-                    </Tabs>
-                  </Box>
-                ) : null}
-              </Box>
-            ) : null}
+            <BackgroundMain position="absolute" zIndex={0} />
             <Box
-              sx={{
+              sx={(theme) => ({
                 position: 'relative',
                 zIndex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100%',
                 flex: 1,
                 overflow: 'hidden',
                 minHeight: 0,
-                pb: isMobileScreen ? 'calc(env(safe-area-inset-bottom, 0px) + 78px)' : 0,
-              }}
+                background: 'transparent',
+              })}
             >
-              <DemoPageContent
-                pathname={router.pathname}
-                isMobileScreen={isMobileScreen}
-                sidebarUser={sidebarUser}
-                onLogout={onLogout}
-                accessState={accessState}
-                onNavigate={router.navigate}
-                onProfileUpdated={syncStoredUserState}
-              />
+              {isMobileScreen ? (
+                <Box
+                  sx={{
+                    px: 1.05,
+                    pt: 0.55,
+                    bgcolor: 'rgba(255, 255, 255, 0.76)',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                  }}
+                >
+                  {mobileChildTabs.length > 0 ? (
+                    <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                      <Tabs
+                        value={activeMobileChildTab}
+                        onChange={handleMobileChildTabChange}
+                        aria-label="mobile tabs"
+                      >
+                        {mobileChildTabs.map((tab, index) => (
+                          <Tab
+                            key={tab.value}
+                            value={tab.value}
+                            label={tab.label}
+                            {...a11yProps(index)}
+                          />
+                        ))}
+                      </Tabs>
+                    </Box>
+                  ) : null}
+                </Box>
+              ) : null}
+              <Box
+                sx={{
+                  position: 'relative',
+                  zIndex: 1,
+                  flex: 1,
+                  overflow: 'hidden',
+                  minHeight: 0,
+                  pb: isMobileScreen ? 'calc(env(safe-area-inset-bottom, 0px) + 78px)' : 0,
+                }}
+              >
+                <DemoPageContent
+                  pathname={router.pathname}
+                  isMobileScreen={isMobileScreen}
+                  sidebarUser={sidebarUser}
+                  onLogout={onLogout}
+                  accessState={accessState}
+                  onNavigate={router.navigate}
+                  onProfileUpdated={syncStoredUserState}
+                />
+              </Box>
+              {isMobileScreen ? (
+                <NavBottom
+                  pathname={router.pathname}
+                  onNavigate={router.navigate}
+                  items={mobileBottomNavItems}
+                />
+              ) : null}
             </Box>
-            {isMobileScreen ? (
-              <NavBottom
-                pathname={router.pathname}
-                onNavigate={router.navigate}
-                items={mobileBottomNavItems}
-              />
-            ) : null}
           </Box>
-        </Box>
-      </DashboardLayout>
-    </AppProvider>
+        </div>
+      </div>
+    </div>
   );
 }

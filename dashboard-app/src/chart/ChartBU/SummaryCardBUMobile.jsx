@@ -4,6 +4,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import BusinessIcon from '@mui/icons-material/Business';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import RevenueLastUpdate from '../../components/RevenueLastUpdate';
 
 function SummaryCardBUMobile({
   filterType = 'monthly',
@@ -118,7 +119,8 @@ function SummaryCardBUMobile({
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 1,
-          width: '100%'
+          width: '100%',
+          flexWrap: 'wrap'
         }}
       >
         <Typography
@@ -134,6 +136,11 @@ function SummaryCardBUMobile({
         >
           Ringkasan Data
         </Typography>
+        <RevenueLastUpdate
+          sx={{
+            maxWidth: '100%',
+          }}
+        />
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
           {canOpenFilter ? (
             <Button
@@ -176,7 +183,7 @@ function SummaryCardBUMobile({
                 minWidth: 0,
                 px: 1.15,
                 borderRadius: '9px',
-                bgcolor: '#6BA3D0',
+                bgcolor: '#2F6FB2',
                 color: '#FFFFFF',
                 textTransform: 'none',
                 fontSize: '0.75rem',
@@ -185,8 +192,8 @@ function SummaryCardBUMobile({
                 fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
                 boxShadow: 'none',
                 '&:hover': {
-                  bgcolor: '#5A9FD0',
-                  boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)'
+                  bgcolor: '#1F4E8C',
+                  boxShadow: '0 2px 4px rgba(47, 111, 178, 0.2)'
                 },
                 '&:disabled': {
                   bgcolor: '#F5F5F5',

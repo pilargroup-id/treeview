@@ -101,7 +101,7 @@ function FilterSection({
             color: '#9E9E9E',
             transition: 'all 0.2s ease',
             '&:hover': {
-              color: '#6BA3D0',
+              color: '#2F6FB2',
               bgcolor: '#FAFAFA'
             },
             '&:disabled': {
@@ -137,10 +137,10 @@ function FilterSection({
           transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
           bgcolor: 'transparent',
           '&:hover': {
-            borderColor: '#6BA3D0',
-            bgcolor: 'rgba(107, 163, 208, 0.04)',
+            borderColor: '#2F6FB2',
+            bgcolor: 'rgba(47, 111, 178, 0.04)',
             transform: 'translateY(-1px)',
-            boxShadow: '0 2px 8px rgba(107, 163, 208, 0.15)',
+            boxShadow: '0 2px 8px rgba(47, 111, 178, 0.15)',
           },
         }}
       >
@@ -185,10 +185,10 @@ function FilterSection({
             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': {
-              borderColor: '#6BA3D0',
-              bgcolor: 'rgba(107, 163, 208, 0.04)',
+              borderColor: '#2F6FB2',
+              bgcolor: 'rgba(47, 111, 178, 0.04)',
               transform: 'translateY(-1px)',
-              boxShadow: '0 2px 8px rgba(107, 163, 208, 0.15)',
+              boxShadow: '0 2px 8px rgba(47, 111, 178, 0.15)',
             },
             '& .MuiBadge-badge': {
               fontSize: '0.625rem',

@@ -133,12 +133,12 @@ export const DatePickerManual = ({
         },
         '& .rdrDayToday .rdrDayNumber span': {
           fontWeight: 600,
-          color: '#6BA3D0',
+          color: '#2F6FB2',
         },
         // Single date selection - tidak ada range
         // Range selection styles
         '& .rdrDaySelected, & .rdrDayStartEdge, & .rdrDayEndEdge': {
-          backgroundColor: '#6BA3D0 !important',
+          backgroundColor: '#2F6FB2 !important',
           color: '#FFFFFF !important',
           borderRadius: '4px !important',
           '& .rdrDayNumber span': {
@@ -146,19 +146,19 @@ export const DatePickerManual = ({
             fontWeight: 600,
           },
           '&:hover': {
-            backgroundColor: '#5A9FD0 !important',
+            backgroundColor: '#1F4E8C !important',
           }
         },
         // Days in range
         '& .rdrDayInRange': {
-          backgroundColor: 'rgba(107, 163, 208, 0.15) !important',
+          backgroundColor: 'rgba(47, 111, 178, 0.15) !important',
           color: '#475569 !important',
           '& .rdrDayNumber span': {
             color: '#475569 !important',
             fontWeight: 500,
           },
           '&:hover': {
-            backgroundColor: 'rgba(107, 163, 208, 0.25) !important',
+            backgroundColor: 'rgba(47, 111, 178, 0.25) !important',
           }
         },
         '& .rdrDayDisabled': {
@@ -254,7 +254,7 @@ export const DatePickerManual = ({
           onChange={handleSelect}
           minDate={getMinDate()}
           maxDate={getMaxDate()}
-          color="#6BA3D0"
+          color="#2F6FB2"
           months={1}
           direction="horizontal"
           locale={enGB}
@@ -279,8 +279,8 @@ export const DatePickerManual = ({
             disabled={!selectionDate?.startDate || !selectionDate?.endDate}
             startIcon={<AddIcon sx={{ fontSize: '1rem' }} />}
             sx={{
-              borderColor: '#6BA3D0',
-              color: '#6BA3D0',
+              borderColor: '#2F6FB2',
+              color: '#2F6FB2',
               textTransform: 'none',
               fontSize: '0.8125rem',
               fontWeight: 600,
@@ -292,9 +292,9 @@ export const DatePickerManual = ({
               height: '38px',
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
               '&:hover': {
-                borderColor: '#5A9FD0',
-                bgcolor: 'rgba(107, 163, 208, 0.08)',
-                boxShadow: '0 2px 4px rgba(107, 163, 208, 0.15)',
+                borderColor: '#1F4E8C',
+                bgcolor: 'rgba(47, 111, 178, 0.08)',
+                boxShadow: '0 2px 4px rgba(47, 111, 178, 0.15)',
                 transform: 'translateY(-1px)'
               },
               '&:active': {

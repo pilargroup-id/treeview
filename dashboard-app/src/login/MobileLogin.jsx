@@ -14,19 +14,8 @@ export default function MobileLogin(props) {
         justifyContent: 'center',
         position: 'relative',
         overflow: 'hidden',
-        background: `linear-gradient(180deg, ${PAGE_BACKGROUND} 0%, #EEF5FB 100%)`,
+        background: 'transparent',
         width: '100%',
-        '&::after': {
-          content: '""',
-          position: 'absolute',
-          right: -120,
-          bottom: -160,
-          width: 320,
-          height: 320,
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(107, 163, 208, 0.16) 0%, rgba(107, 163, 208, 0) 70%)',
-          filter: 'blur(18px)',
-        },
       }}
     >
       <Box
@@ -36,6 +25,7 @@ export default function MobileLogin(props) {
           left: 0,
           right: 0,
           zIndex: 0,
+          display: 'none', // Hide the original header background
         }}
       >
         <HeaderBackground />
@@ -71,7 +61,7 @@ export default function MobileLogin(props) {
               minHeight: 60,
               display: 'inline-flex',
               alignItems: 'center',
-              color: '#FFFFFF',
+              color: '#1F4E8C', // Changed from white to dark blue since background is light
               fontWeight: 700,
               fontSize: { xs: '2.2rem', sm: '2.6rem' },
               lineHeight: 1,
@@ -82,7 +72,7 @@ export default function MobileLogin(props) {
           </Typography>
           <Typography
             sx={{
-              color: 'rgba(255, 255, 255, 0.9)',
+              color: '#2F6FB2', // Adjusted color for light background
               fontSize: { xs: '0.95rem', sm: '1rem' },
               lineHeight: 1.55,
               maxWidth: 240,

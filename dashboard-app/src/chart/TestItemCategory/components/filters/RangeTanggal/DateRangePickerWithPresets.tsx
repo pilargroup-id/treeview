@@ -428,15 +428,15 @@ export const DateRangePickerWithPresets: React.FC<DateRangePickerWithPresetsProp
                 <CalendarMonthRoundedIcon 
                   sx={{ 
                     fontSize: '1.1rem',
-                    color: showPicker ? '#6BA3D0' : '#64748B',
+                    color: showPicker ? '#2F6FB2' : '#64748B',
                     transition: 'color 0.2s ease'
                   }} 
                 />
               }
               sx={{
-                borderColor: showPicker ? '#6BA3D0' : '#E2E8F0',
-                color: showPicker ? '#6BA3D0' : '#475569',
-                bgcolor: showPicker ? 'rgba(107, 163, 208, 0.08)' : 'transparent',
+                borderColor: showPicker ? '#2F6FB2' : '#E2E8F0',
+                color: showPicker ? '#2F6FB2' : '#475569',
+                bgcolor: showPicker ? 'rgba(47, 111, 178, 0.08)' : 'transparent',
                 textTransform: 'none',
                 fontSize: '0.8125rem',
                 fontWeight: showPicker ? 600 : 500,
@@ -446,12 +446,12 @@ export const DateRangePickerWithPresets: React.FC<DateRangePickerWithPresetsProp
                 py: 0.875,
                 minWidth: '180px',
                 height: '38px',
-                boxShadow: showPicker ? '0 2px 4px rgba(107, 163, 208, 0.15)' : 'none',
+                boxShadow: showPicker ? '0 2px 4px rgba(47, 111, 178, 0.15)' : 'none',
                 transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 '&:hover': {
-                  borderColor: '#6BA3D0',
-                  bgcolor: showPicker ? 'rgba(107, 163, 208, 0.12)' : 'rgba(107, 163, 208, 0.06)',
-                  boxShadow: showPicker ? '0 2px 6px rgba(107, 163, 208, 0.2)' : 'none',
+                  borderColor: '#2F6FB2',
+                  bgcolor: showPicker ? 'rgba(47, 111, 178, 0.12)' : 'rgba(47, 111, 178, 0.06)',
+                  boxShadow: showPicker ? '0 2px 6px rgba(47, 111, 178, 0.2)' : 'none',
                   transform: 'translateY(-1px)'
                 },
                 '&:active': {
@@ -647,7 +647,7 @@ export const DateRangePickerWithPresets: React.FC<DateRangePickerWithPresetsProp
                       }
                     }}
                   >
-                    ✕
+                    âœ•
                   </Button>
                 </Box>
 
@@ -683,8 +683,8 @@ export const DateRangePickerWithPresets: React.FC<DateRangePickerWithPresetsProp
                             textTransform: 'none',
                             fontSize: '0.875rem',
                             fontWeight: selectedPreset === preset.key ? 600 : 400,
-                            color: selectedPreset === preset.key ? '#6BA3D0' : '#475569',
-                            bgcolor: selectedPreset === preset.key ? 'rgba(107, 163, 208, 0.08)' : 'transparent',
+                            color: selectedPreset === preset.key ? '#2F6FB2' : '#475569',
+                            bgcolor: selectedPreset === preset.key ? 'rgba(47, 111, 178, 0.08)' : 'transparent',
                             borderRadius: 1.5,
                             px: 1.5,
                             py: 0.875,
@@ -693,9 +693,9 @@ export const DateRangePickerWithPresets: React.FC<DateRangePickerWithPresetsProp
                             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                             '&:hover': {
                               bgcolor: selectedPreset === preset.key 
-                                ? 'rgba(107, 163, 208, 0.12)' 
-                                : 'rgba(107, 163, 208, 0.06)',
-                              color: '#6BA3D0',
+                                ? 'rgba(47, 111, 178, 0.12)' 
+                                : 'rgba(47, 111, 178, 0.06)',
+                              color: '#2F6FB2',
                             },
                           }}
                         >
@@ -767,10 +767,10 @@ export const DateRangePickerWithPresets: React.FC<DateRangePickerWithPresetsProp
                         height: '40px',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         '&:hover': {
-                          borderColor: '#6BA3D0',
-                          color: '#6BA3D0',
-                          bgcolor: 'rgba(107, 163, 208, 0.08)',
-                          boxShadow: '0 2px 4px rgba(107, 163, 208, 0.15)',
+                          borderColor: '#2F6FB2',
+                          color: '#2F6FB2',
+                          bgcolor: 'rgba(47, 111, 178, 0.08)',
+                          boxShadow: '0 2px 4px rgba(47, 111, 178, 0.15)',
                         }
                       }}
                     >
@@ -782,7 +782,7 @@ export const DateRangePickerWithPresets: React.FC<DateRangePickerWithPresetsProp
                       onClick={handleAddRange}
                       disabled={rangeDates.length >= MAX_RANGE_DATES}
                       sx={{
-                        bgcolor: '#6BA3D0',
+                        bgcolor: '#2F6FB2',
                         color: 'white',
                         textTransform: 'none',
                         fontSize: '0.875rem',
@@ -793,16 +793,16 @@ export const DateRangePickerWithPresets: React.FC<DateRangePickerWithPresetsProp
                         py: 0.75,
                         minWidth: '140px',
                         height: '40px',
-                        boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)',
+                        boxShadow: '0 2px 4px rgba(47, 111, 178, 0.2)',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         '&:hover': {
-                          bgcolor: '#5A9FD0',
-                          boxShadow: '0 4px 8px rgba(107, 163, 208, 0.3)',
+                          bgcolor: '#1F4E8C',
+                          boxShadow: '0 4px 8px rgba(47, 111, 178, 0.3)',
                           transform: 'translateY(-1px)'
                         },
                         '&:active': {
                           transform: 'translateY(0)',
-                          boxShadow: '0 2px 4px rgba(107, 163, 208, 0.25)'
+                          boxShadow: '0 2px 4px rgba(47, 111, 178, 0.25)'
                         },
                         '&:disabled': {
                           bgcolor: '#E2E8F0',
@@ -1047,7 +1047,7 @@ export const DateRangePickerWithPresets: React.FC<DateRangePickerWithPresetsProp
                   width: 6,
                   height: 6,
                   borderRadius: '50%',
-                  backgroundColor: invoiceData && invoiceData.length > 0 ? '#6BA3D0' : '#BDBDBD',
+                  backgroundColor: invoiceData && invoiceData.length > 0 ? '#2F6FB2' : '#BDBDBD',
                   flexShrink: 0
                 }}
               />
