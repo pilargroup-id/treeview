@@ -129,6 +129,8 @@ class ActivityDetailRepository
                           THEN COALESCE(NULLIF(TRIM(CAST(ap.state AS STRING)), ''), 'CHECKIN')
                         ELSE COALESCE(NULLIF(TRIM(CAST(mc.state AS STRING)), ''), '-')
                     END as wilayah,
+                    NULLIF(TRIM(CAST(mc.address AS STRING)), '') as customer_address,
+                    NULLIF(TRIM(CAST(mc.city AS STRING)), '') as customer_city,
                     COALESCE(ms.name, '-') as sales_name,
                     ROW_NUMBER() OVER (PARTITION BY ap.id ORDER BY ap.updated_at DESC) as rn
                 FROM {$projectDataset}.activity_plans ap
@@ -143,6 +145,8 @@ class ActivityDetailRepository
                     sales_name,
                     wilayah,
                     customer_name,
+                    customer_address,
+                    customer_city,
                     plan_no,
                     plan_date,
                     tujuan,
@@ -158,6 +162,8 @@ class ActivityDetailRepository
                 sales_name,
                 wilayah,
                 customer_name,
+                customer_address,
+                customer_city,
                 plan_no,
                 plan_date,
                 tujuan,
@@ -188,6 +194,8 @@ class ActivityDetailRepository
                 'sales_name' => $row['sales_name'],
                 'wilayah' => $row['wilayah'],
                 'customer_name' => $row['customer_name'],
+                'customer_address' => $row['customer_address'] ?? null,
+                'customer_city' => $row['customer_city'] ?? null,
                 'plan_no' => $row['plan_no'] ?? null,
                 'plan_date' => $this->formatDate($row['plan_date']),
                 'tujuan' => $row['tujuan'] ?? null,

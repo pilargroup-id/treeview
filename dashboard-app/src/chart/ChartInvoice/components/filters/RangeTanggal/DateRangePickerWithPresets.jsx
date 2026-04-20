@@ -38,6 +38,7 @@ export const DateRangePickerWithPresets = ({
   calendarMonths = 2,
   calendarDirection = 'horizontal',
   hidePresetPanel = false,
+  hideTrigger = false,
   mobileModal = false,
   mobileFullPage = false
 }) => {
@@ -396,7 +397,7 @@ export const DateRangePickerWithPresets = ({
       gap: 1.5,
       position: 'relative'
     }}>
-      {showTitle ? (
+      {!hideTrigger && showTitle ? (
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
@@ -417,56 +418,58 @@ export const DateRangePickerWithPresets = ({
       ) : null}
 
       {/* Tombol untuk menampilkan DateRangePicker */}
-      <Box sx={{ mb: 2, position: 'relative' }} ref={anchorRef}>
-        <Button 
-          variant="outlined" 
-          size="small" 
-          onClick={() => setShowPicker(!showPicker)}
-          disabled={isRangeLimitReached}
-          startIcon={
-            <CalendarMonthRoundedIcon 
-              sx={{ 
-                fontSize: '1.1rem',
-                color: showPicker ? '#2F6FB2' : '#64748B',
-                transition: 'color 0.2s ease'
-              }} 
-            />
-          }
-          sx={{
-            borderColor: showPicker ? '#2F6FB2' : '#E2E8F0',
-            color: showPicker ? '#2F6FB2' : '#475569',
-            bgcolor: showPicker ? 'rgba(47, 111, 178, 0.08)' : 'transparent',
-            textTransform: 'none',
-            fontSize: '0.8125rem',
-            fontWeight: showPicker ? 600 : 500,
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            borderRadius: 1.5,
-            px: 2,
-            py: 0.875,
-            minWidth: '180px',
-            height: '38px',
-            boxShadow: showPicker ? '0 2px 4px rgba(47, 111, 178, 0.15)' : 'none',
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-            '&:hover': {
-              borderColor: '#2F6FB2',
-              bgcolor: showPicker ? 'rgba(47, 111, 178, 0.12)' : 'rgba(47, 111, 178, 0.06)',
-              boxShadow: showPicker ? '0 2px 6px rgba(47, 111, 178, 0.2)' : 'none',
-              transform: 'translateY(-1px)'
-            },
-            '&:active': {
-              transform: 'translateY(0)'
-            },
-            '&:disabled': {
-              borderColor: '#E2E8F0',
-              color: '#94A3B8',
-              bgcolor: '#F8FAFC',
-              transform: 'none',
-              cursor: 'not-allowed'
+      <Box sx={{ mb: hideTrigger ? 0 : 2, position: 'relative' }} ref={anchorRef}>
+        {!hideTrigger ? (
+          <Button 
+            variant="outlined" 
+            size="small" 
+            onClick={() => setShowPicker(!showPicker)}
+            disabled={isRangeLimitReached}
+            startIcon={
+              <CalendarMonthRoundedIcon 
+                sx={{ 
+                  fontSize: '1.1rem',
+                  color: showPicker ? '#2F6FB2' : '#64748B',
+                  transition: 'color 0.2s ease'
+                }} 
+              />
             }
-          }}
-        >
-          {showPicker ? 'Tutup Kalender' : 'Pilih Range Tanggal'}
-        </Button>
+            sx={{
+              borderColor: showPicker ? '#2F6FB2' : '#E2E8F0',
+              color: showPicker ? '#2F6FB2' : '#475569',
+              bgcolor: showPicker ? 'rgba(47, 111, 178, 0.08)' : 'transparent',
+              textTransform: 'none',
+              fontSize: '0.8125rem',
+              fontWeight: showPicker ? 600 : 500,
+              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              borderRadius: 1.5,
+              px: 2,
+              py: 0.875,
+              minWidth: '180px',
+              height: '38px',
+              boxShadow: showPicker ? '0 2px 4px rgba(47, 111, 178, 0.15)' : 'none',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              '&:hover': {
+                borderColor: '#2F6FB2',
+                bgcolor: showPicker ? 'rgba(47, 111, 178, 0.12)' : 'rgba(47, 111, 178, 0.06)',
+                boxShadow: showPicker ? '0 2px 6px rgba(47, 111, 178, 0.2)' : 'none',
+                transform: 'translateY(-1px)'
+              },
+              '&:active': {
+                transform: 'translateY(0)'
+              },
+              '&:disabled': {
+                borderColor: '#E2E8F0',
+                color: '#94A3B8',
+                bgcolor: '#F8FAFC',
+                transform: 'none',
+                cursor: 'not-allowed'
+              }
+            }}
+          >
+            {showPicker ? 'Tutup Kalender' : 'Pilih Range Tanggal'}
+          </Button>
+        ) : null}
 
         {/* Backdrop Overlay dengan Portal */}
         {showPicker && (
@@ -930,20 +933,22 @@ export const DateRangePickerWithPresets = ({
         )}
       </Box>
 
-      <Typography sx={{ 
-        fontSize: '0.75rem', 
-        color: '#64748B',
-        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        lineHeight: 1.5,
-        mt: 0.5,
-        fontStyle: 'italic'
-      }}>
-        {showPicker 
-          ? '* Pilih range tanggal menggunakan kalender, lalu klik "Tambah Range". Tahun akan diambil dari tanggal yang dipilih.'
-          : allowReplaceExistingRange && rangeDates.length > 0
-            ? '* Klik tombol "Pilih Range Tanggal" untuk mengganti range yang sudah ada.'
-            : '* Klik tombol "Pilih Range Tanggal" untuk memilih range tanggal.'}
-      </Typography>
+      {!hideTrigger ? (
+        <Typography sx={{ 
+          fontSize: '0.75rem', 
+          color: '#64748B',
+          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          lineHeight: 1.5,
+          mt: 0.5,
+          fontStyle: 'italic'
+        }}>
+          {showPicker 
+            ? '* Pilih range tanggal menggunakan kalender, lalu klik "Tambah Range". Tahun akan diambil dari tanggal yang dipilih.'
+            : allowReplaceExistingRange && rangeDates.length > 0
+              ? '* Klik tombol "Pilih Range Tanggal" untuk mengganti range yang sudah ada.'
+              : '* Klik tombol "Pilih Range Tanggal" untuk memilih range tanggal.'}
+        </Typography>
+      ) : null}
 
       {showSummary ? (
         <Box sx={{ 
@@ -1240,7 +1245,7 @@ export const DateRangePickerWithPresets = ({
       ) : null}
 
       {/* Daftar Range yang Sudah Ditambahkan */}
-      {rangeDates.length > 0 && (
+      {!hideTrigger && rangeDates.length > 0 && (
         <Box sx={{ 
           display: 'flex', 
           flexWrap: 'wrap', 
