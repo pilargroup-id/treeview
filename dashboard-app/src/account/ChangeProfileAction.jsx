@@ -235,7 +235,7 @@ export default function ChangeProfileAction({
     textTransform: 'none',
     color: variant === 'text' ? 'text.secondary' : undefined,
     '&:hover': {
-      bgcolor: variant === 'text' ? 'rgba(107, 163, 208, 0.08)' : undefined,
+      bgcolor: variant === 'text' ? 'rgba(47, 111, 178, 0.08)' : undefined,
       color: variant === 'text' ? '#2B6997' : undefined,
     },
   };
@@ -344,9 +344,9 @@ export default function ChangeProfileAction({
                 minWidth: 160,
                 textTransform: 'none',
                 fontWeight: 700,
-                bgcolor: '#6BA3D0',
+                bgcolor: '#2F6FB2',
                 '&:hover': {
-                  bgcolor: '#5A9FD0',
+                  bgcolor: '#1F4E8C',
                 },
               }}
             >

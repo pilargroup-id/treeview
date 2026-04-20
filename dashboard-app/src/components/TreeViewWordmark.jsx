@@ -4,7 +4,7 @@ import Typography from '@mui/material/Typography';
 
 export default function TreeViewWordmark({
   fontSize = { xs: '1.05rem', sm: '1.22rem' },
-  treeColor = '#6BA3D0',
+  treeColor = '#2F6FB2',
   viewColor = '#7A8EA5',
   treeWeight = 700,
   viewWeight = 600,

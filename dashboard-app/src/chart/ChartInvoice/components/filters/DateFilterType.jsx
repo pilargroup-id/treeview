@@ -34,7 +34,7 @@ function DateFilterType({ value, onChange }) {
             color: '#757575',
             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
             '&.Mui-focused': {
-              color: '#6BA3D0'
+              color: '#2F6FB2'
             }
           }}
         >
@@ -99,14 +99,14 @@ function DateFilterType({ value, onChange }) {
             bgcolor: '#FFFFFF',
             transition: 'all 0.2s ease',
             '& .MuiOutlinedInput-notchedOutline': {
-              borderColor: (value === 'range' || value === 'specific') ? '#6BA3D0' : '#E5E5E5',
+              borderColor: (value === 'range' || value === 'specific') ? '#2F6FB2' : '#E5E5E5',
               borderWidth: '1px'
             },
             '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: (value === 'range' || value === 'specific') ? '#6BA3D0' : '#E0E0E0'
+              borderColor: (value === 'range' || value === 'specific') ? '#2F6FB2' : '#E0E0E0'
             },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#6BA3D0',
+              borderColor: '#2F6FB2',
               borderWidth: '1px'
             }
           }}
@@ -117,10 +117,10 @@ function DateFilterType({ value, onChange }) {
             fontSize: '0.875rem', 
             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
             '&.Mui-selected': {
-              bgcolor: 'rgba(107, 163, 208, 0.08)',
-              color: '#6BA3D0',
+              bgcolor: 'rgba(47, 111, 178, 0.08)',
+              color: '#2F6FB2',
               '&:hover': {
-                bgcolor: 'rgba(107, 163, 208, 0.12)'
+                bgcolor: 'rgba(47, 111, 178, 0.12)'
               }
             }
           }}
@@ -133,11 +133,11 @@ function DateFilterType({ value, onChange }) {
             fontSize: '0.875rem', 
             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
             '&.Mui-selected': {
-              bgcolor: 'rgba(107, 163, 208, 0.08)',
-              color: '#6BA3D0',
+              bgcolor: 'rgba(47, 111, 178, 0.08)',
+              color: '#2F6FB2',
               fontWeight: 600,
               '&:hover': {
-                bgcolor: 'rgba(107, 163, 208, 0.12)'
+                bgcolor: 'rgba(47, 111, 178, 0.12)'
               }
             }
           }}
@@ -150,11 +150,11 @@ function DateFilterType({ value, onChange }) {
             fontSize: '0.875rem', 
             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
             '&.Mui-selected': {
-              bgcolor: 'rgba(107, 163, 208, 0.08)',
-              color: '#6BA3D0',
+              bgcolor: 'rgba(47, 111, 178, 0.08)',
+              color: '#2F6FB2',
               fontWeight: 600,
               '&:hover': {
-                bgcolor: 'rgba(107, 163, 208, 0.12)'
+                bgcolor: 'rgba(47, 111, 178, 0.12)'
               }
             }
           }}

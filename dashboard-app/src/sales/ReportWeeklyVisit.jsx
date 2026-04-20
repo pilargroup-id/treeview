@@ -878,23 +878,23 @@ export default function DataTableMonthly() {
           }
 
           .tv-report-customers .w2ui-tabs .w2ui-scroll-wrapper .w2ui-tab:hover {
-            background-color: rgba(107, 163, 208, 0.08);
-            color: #6BA3D0;
+            background-color: rgba(47, 111, 178, 0.08);
+            color: #2F6FB2;
           }
 
           .tv-report-customers .w2ui-tabs .w2ui-scroll-wrapper .w2ui-tab.active {
-            background-color: rgba(107, 163, 208, 0.12);
-            color: #6BA3D0 !important;
-            border-bottom: 2px solid #6BA3D0 !important;
+            background-color: rgba(47, 111, 178, 0.12);
+            color: #2F6FB2 !important;
+            border-bottom: 2px solid #2F6FB2 !important;
             font-weight: 400 !important;
           }
 
           .tv-report-customers .w2ui-tabs.w2ui-tabs-up .w2ui-scroll-wrapper .w2ui-tab.active {
-            border-top: 2px solid #6BA3D0 !important;
+            border-top: 2px solid #2F6FB2 !important;
           }
 
           .tv-report-customers .w2ui-tabs .w2ui-scroll-wrapper .w2ui-tab:focus {
-            outline: 2px solid rgba(107, 163, 208, 0.45);
+            outline: 2px solid rgba(47, 111, 178, 0.45);
             outline-offset: 2px;
           }
 
@@ -1086,8 +1086,8 @@ export default function DataTableMonthly() {
             top: 5px;
             width: 7px;
             height: 4px;
-            border-left: 2px solid #6BA3D0;
-            border-bottom: 2px solid #6BA3D0;
+            border-left: 2px solid #2F6FB2;
+            border-bottom: 2px solid #2F6FB2;
             transform: rotate(-45deg);
           }
 

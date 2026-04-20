@@ -317,7 +317,7 @@ function ItemTes() {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(107, 163, 208, 0.03) 1px, transparent 0)',
+          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(47, 111, 178, 0.03) 1px, transparent 0)',
           backgroundSize: '24px 24px',
           pointerEvents: 'none',
           zIndex: 0

@@ -44,8 +44,8 @@ function FloatingButtonFilter({
           px: 2.5,
           borderRadius: '15px',
           border: '1px solid rgba(255, 255, 255, 0.38)',
-          bgcolor: '#6BA3D0',
-          background: 'linear-gradient(140deg, #5F98C6 0%, #6BA3D0 46%, #78ADD7 100%)',
+          bgcolor: '#2F6FB2',
+          background: 'linear-gradient(140deg, #5F98C6 0%, #2F6FB2 46%, #78ADD7 100%)',
           color: '#FFFFFF',
           textTransform: 'none',
           fontSize: '0.875rem',
@@ -56,7 +56,7 @@ function FloatingButtonFilter({
           gap: 1,
           transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
-            bgcolor: '#5A9FD0',
+            bgcolor: '#1F4E8C',
             background: 'linear-gradient(140deg, #568DB8 0%, #619ECA 48%, #6EA8D2 100%)',
             boxShadow: '0 16px 30px rgba(67, 115, 154, 0.38)',
             transform: 'translateY(-1px)'

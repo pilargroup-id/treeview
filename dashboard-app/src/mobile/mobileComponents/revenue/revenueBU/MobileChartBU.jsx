@@ -298,7 +298,7 @@ function LegendItem({ label, active, type, onToggle }) {
           bgcolor: active ? accentTone.surface : 'rgba(248, 250, 252, 0.85)'
         },
         '&:focus-visible': {
-          outline: '2px solid rgba(107, 163, 208, 0.45)',
+          outline: '2px solid rgba(47, 111, 178, 0.45)',
           outlineOffset: '2px'
         }
       }}
@@ -541,7 +541,7 @@ function MobileChartBU({
                     size={34}
                     thickness={4}
                     sx={{
-                      color: '#6BA3D0',
+                      color: '#2F6FB2',
                       mb: 1.25
                     }}
                   />
@@ -609,7 +609,7 @@ function MobileChartBU({
                     fill: '#64748B'
                   },
                   '& .MuiChartsAxisHighlight-root': {
-                    stroke: 'rgba(107, 163, 208, 0.65)',
+                    stroke: 'rgba(47, 111, 178, 0.65)',
                     strokeDasharray: '6 4',
                     strokeWidth: 1.2
                   }

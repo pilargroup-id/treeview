@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import CssBaseline from '@mui/material/CssBaseline';
 import GlobalStyles from '@mui/material/GlobalStyles';
+import './style/app.css';
 import App from './App';
 
 ReactDOM.createRoot(document.getElementById('root')).render(

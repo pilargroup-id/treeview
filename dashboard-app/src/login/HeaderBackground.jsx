@@ -14,7 +14,7 @@ export default function HeaderBackground() {
     >
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #6BA3D0, #5A92BF)',
+          background: 'linear-gradient(135deg, #2F6FB2, #1F4E8C)',
           height: '100%',
           width: '100%',
         }}

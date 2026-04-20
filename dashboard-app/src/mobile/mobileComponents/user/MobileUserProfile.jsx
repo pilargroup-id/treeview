@@ -30,7 +30,7 @@ function ProfileInfoRow({ icon, label, value }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          bgcolor: 'rgba(107, 163, 208, 0.14)',
+          bgcolor: 'rgba(47, 111, 178, 0.14)',
           color: '#2B6997',
           flexShrink: 0,
         }}
@@ -108,8 +108,8 @@ export default function MobileUserProfile({ user, onLogout, onProfileUpdated }) 
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: '1px solid rgba(107, 163, 208, 0.3)',
-                bgcolor: 'rgba(107, 163, 208, 0.17)',
+                border: '1px solid rgba(47, 111, 178, 0.3)',
+                bgcolor: 'rgba(47, 111, 178, 0.17)',
                 color: '#0F172A',
                 fontSize: '1.06rem',
                 fontWeight: 700,
@@ -201,11 +201,11 @@ export default function MobileUserProfile({ user, onLogout, onProfileUpdated }) 
             borderRadius: 2,
             fontWeight: 700,
             color: '#2B6997',
-            borderColor: 'rgba(107, 163, 208, 0.34)',
+            borderColor: 'rgba(47, 111, 178, 0.34)',
             bgcolor: 'rgba(255, 255, 255, 0.88)',
             '&:hover': {
-              borderColor: '#6BA3D0',
-              bgcolor: 'rgba(107, 163, 208, 0.08)',
+              borderColor: '#2F6FB2',
+              bgcolor: 'rgba(47, 111, 178, 0.08)',
             },
           }}
         />
@@ -235,7 +235,7 @@ export default function MobileUserProfile({ user, onLogout, onProfileUpdated }) 
               boxShadow: '0 12px 20px rgba(43, 105, 151, 0.3)',
             },
             '&.Mui-disabled': {
-              bgcolor: 'rgba(107, 163, 208, 0.55)',
+              bgcolor: 'rgba(47, 111, 178, 0.55)',
               color: 'rgba(255, 255, 255, 0.92)',
             },
           })}

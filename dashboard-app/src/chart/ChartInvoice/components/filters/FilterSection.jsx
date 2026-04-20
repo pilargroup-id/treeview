@@ -61,7 +61,7 @@ function FilterSection({
             color: '#9E9E9E',
             transition: 'all 0.2s ease',
             '&:hover': {
-              color: '#6BA3D0',
+              color: '#2F6FB2',
               bgcolor: '#FAFAFA'
             },
             '&:disabled': {
@@ -91,7 +91,7 @@ function FilterSection({
         size="medium"
         fullWidth
         sx={{ 
-          bgcolor: '#6BA3D0',
+          bgcolor: '#2F6FB2',
           color: 'white',
           textTransform: 'none',
           fontSize: '0.875rem',
@@ -102,8 +102,8 @@ function FilterSection({
           boxShadow: 'none',
           transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
-            bgcolor: '#5A9FD0',
-            boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)'
+            bgcolor: '#1F4E8C',
+            boxShadow: '0 2px 4px rgba(47, 111, 178, 0.2)'
           },
           '&:active': {
             transform: 'scale(0.98)',

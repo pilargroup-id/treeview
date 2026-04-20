@@ -274,7 +274,7 @@ function createYearFilterChart({
     },
     plugins: {
       hoverGuideLine: {
-        color: 'rgba(107, 163, 208, 0.55)',
+        color: 'rgba(47, 111, 178, 0.55)',
         lineWidth: 1.2,
         dashPattern: [6, 4]
       },
@@ -873,7 +873,7 @@ function createSpecificDateChart({
     },
     plugins: {
       hoverGuideLine: {
-        color: 'rgba(107, 163, 208, 0.55)',
+        color: 'rgba(47, 111, 178, 0.55)',
         lineWidth: 1.2,
         dashPattern: [6, 4]
       },
@@ -1303,7 +1303,7 @@ function createRangeChart({
     },
     plugins: {
       hoverGuideLine: {
-        color: 'rgba(107, 163, 208, 0.55)',
+        color: 'rgba(47, 111, 178, 0.55)',
         lineWidth: 1.2,
         dashPattern: [6, 4]
       },

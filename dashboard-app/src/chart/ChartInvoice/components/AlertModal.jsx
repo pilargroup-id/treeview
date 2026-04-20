@@ -19,8 +19,8 @@ import {
 } from '@mui/icons-material';
 
 const AlertModal = ({ open, onClose, title, message, severity = 'info' }) => {
-  const BLUE_PRIMARY = '#6BA3D0'; 
-  const BLUE_DARK = '#5A9FD0';    
+  const BLUE_PRIMARY = '#2F6FB2'; 
+  const BLUE_DARK = '#1F4E8C';    
   const BLUE_MEDIUM = '#4A8FD0';  
   const BLUE_LIGHT = '#7BB3E0';   
 

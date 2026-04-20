@@ -999,23 +999,23 @@ export default function ReportTableResult() {
           }
 
           .tv-report-customers .w2ui-tabs .w2ui-scroll-wrapper .w2ui-tab:hover {
-            background-color: rgba(107, 163, 208, 0.08);
-            color: #6BA3D0;
+            background-color: rgba(47, 111, 178, 0.08);
+            color: #2F6FB2;
           }
 
           .tv-report-customers .w2ui-tabs .w2ui-scroll-wrapper .w2ui-tab.active {
-            background-color: rgba(107, 163, 208, 0.12);
-            color: #6BA3D0 !important;
-            border-bottom: 2px solid #6BA3D0 !important;
+            background-color: rgba(47, 111, 178, 0.12);
+            color: #2F6FB2 !important;
+            border-bottom: 2px solid #2F6FB2 !important;
             font-weight: 400 !important;
           }
 
           .tv-report-customers .w2ui-tabs.w2ui-tabs-up .w2ui-scroll-wrapper .w2ui-tab.active {
-            border-top: 2px solid #6BA3D0 !important;
+            border-top: 2px solid #2F6FB2 !important;
           }
 
           .tv-report-customers .w2ui-tabs .w2ui-scroll-wrapper .w2ui-tab:focus {
-            outline: 2px solid rgba(107, 163, 208, 0.45);
+            outline: 2px solid rgba(47, 111, 178, 0.45);
             outline-offset: 2px;
           }
 
@@ -1128,7 +1128,7 @@ export default function ReportTableResult() {
             padding-right: 26px;
           }
           .tv-sales-toolbar-datefield:focus-within .tv-sales-toolbar-dates__display {
-            outline: 2px solid rgba(107, 163, 208, 0.45);
+            outline: 2px solid rgba(47, 111, 178, 0.45);
             outline-offset: 1px;
           }
 
@@ -1162,8 +1162,8 @@ export default function ReportTableResult() {
             line-height: 1;
           }
           .tv-photo-btn:hover {
-            background: rgba(107, 163, 208, 0.08);
-            border-color: rgba(107, 163, 208, 0.6);
+            background: rgba(47, 111, 178, 0.08);
+            border-color: rgba(47, 111, 178, 0.6);
             color: #1f2937;
           }
           .tv-photo-popup {
@@ -1215,8 +1215,8 @@ export default function ReportTableResult() {
             line-height: 1;
           }
           .tv-map-btn:hover {
-            background: rgba(107, 163, 208, 0.08);
-            border-color: rgba(107, 163, 208, 0.6);
+            background: rgba(47, 111, 178, 0.08);
+            border-color: rgba(47, 111, 178, 0.6);
             color: #1f2937;
           }
           .tv-map-popup {

@@ -19,7 +19,7 @@ export default function SummaryCustomer({ rows, visibleMonths, monthLabels, isLo
   const safeRows = Array.isArray(rows) ? rows : [];
   const months = Array.isArray(visibleMonths) ? visibleMonths : [];
   const labels = Array.isArray(monthLabels) ? monthLabels : [];
-  const accentBlue = '#6BA3D0';
+  const accentBlue = '#2F6FB2';
 
   const sectionTitleStyle = React.useMemo(
     () => ({
@@ -49,7 +49,7 @@ export default function SummaryCustomer({ rows, visibleMonths, monthLabels, isLo
     items.sort((a, b) => b.value - a.value || a.label.localeCompare(b.label));
 
     const maxValue = Math.max(...items.map((it) => it.value), 1);
-    const palette = ['#6BA3D0', '#7AA4D3', '#8CB3D9', '#5B8AB8', '#4A709F'];
+    const palette = ['#2F6FB2', '#2F6FB2', '#2F6FB2', '#1F4E8C', '#163A6B'];
 
     return items.map((it, idx) => ({
       ...it,
@@ -95,7 +95,7 @@ export default function SummaryCustomer({ rows, visibleMonths, monthLabels, isLo
     return months.map((m) => labels[m] ?? `Bulan ${String(m + 1)}`).join(', ');
   }, [months, labels]);
 
-  const colors = ['#6BA3D0', '#7AA4D3', '#5B8AB8', '#4A709F'];
+  const colors = ['#2F6FB2', '#2F6FB2', '#1F4E8C', '#163A6B'];
   const chartBars = React.useMemo(() => {
     const maxValue = Math.max(grand.week1, grand.week2, grand.week3, grand.week4, 1);
     return [

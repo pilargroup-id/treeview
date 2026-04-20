@@ -11,6 +11,7 @@ import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import { useAlert } from '../../../hooks/useAlert';
 import AlertModal from '../../AlertModal';
+import RevenueLastUpdate from '../../../../../components/RevenueLastUpdate';
 
 const formatDateDisplay = (monthDay, year) => {
   const [month, day] = monthDay.split('-');
@@ -426,15 +427,15 @@ export const DateRangePickerWithPresets = ({
             <CalendarMonthRoundedIcon 
               sx={{ 
                 fontSize: '1.1rem',
-                color: showPicker ? '#6BA3D0' : '#64748B',
+                color: showPicker ? '#2F6FB2' : '#64748B',
                 transition: 'color 0.2s ease'
               }} 
             />
           }
           sx={{
-            borderColor: showPicker ? '#6BA3D0' : '#E2E8F0',
-            color: showPicker ? '#6BA3D0' : '#475569',
-            bgcolor: showPicker ? 'rgba(107, 163, 208, 0.08)' : 'transparent',
+            borderColor: showPicker ? '#2F6FB2' : '#E2E8F0',
+            color: showPicker ? '#2F6FB2' : '#475569',
+            bgcolor: showPicker ? 'rgba(47, 111, 178, 0.08)' : 'transparent',
             textTransform: 'none',
             fontSize: '0.8125rem',
             fontWeight: showPicker ? 600 : 500,
@@ -444,12 +445,12 @@ export const DateRangePickerWithPresets = ({
             py: 0.875,
             minWidth: '180px',
             height: '38px',
-            boxShadow: showPicker ? '0 2px 4px rgba(107, 163, 208, 0.15)' : 'none',
+            boxShadow: showPicker ? '0 2px 4px rgba(47, 111, 178, 0.15)' : 'none',
             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': {
-              borderColor: '#6BA3D0',
-              bgcolor: showPicker ? 'rgba(107, 163, 208, 0.12)' : 'rgba(107, 163, 208, 0.06)',
-              boxShadow: showPicker ? '0 2px 6px rgba(107, 163, 208, 0.2)' : 'none',
+              borderColor: '#2F6FB2',
+              bgcolor: showPicker ? 'rgba(47, 111, 178, 0.12)' : 'rgba(47, 111, 178, 0.06)',
+              boxShadow: showPicker ? '0 2px 6px rgba(47, 111, 178, 0.2)' : 'none',
               transform: 'translateY(-1px)'
             },
             '&:active': {
@@ -682,7 +683,7 @@ export const DateRangePickerWithPresets = ({
                           color: '#64748B',
                           fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
                           '&.Mui-focused': {
-                            color: '#6BA3D0'
+                            color: '#2F6FB2'
                           }
                         }}
                       >
@@ -725,7 +726,7 @@ export const DateRangePickerWithPresets = ({
                             borderColor: '#CBD5E1'
                           },
                           '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                            borderColor: '#6BA3D0'
+                            borderColor: '#2F6FB2'
                           }
                         }}
                       >
@@ -785,8 +786,8 @@ export const DateRangePickerWithPresets = ({
                               textTransform: 'none',
                               fontSize: '0.875rem',
                               fontWeight: selectedPreset === preset.key ? 600 : 400,
-                              color: selectedPreset === preset.key ? '#6BA3D0' : '#475569',
-                              bgcolor: selectedPreset === preset.key ? 'rgba(107, 163, 208, 0.08)' : 'transparent',
+                              color: selectedPreset === preset.key ? '#2F6FB2' : '#475569',
+                              bgcolor: selectedPreset === preset.key ? 'rgba(47, 111, 178, 0.08)' : 'transparent',
                               borderRadius: 1.5,
                               px: 1.5,
                               py: 0.875,
@@ -795,9 +796,9 @@ export const DateRangePickerWithPresets = ({
                               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                               '&:hover': {
                                 bgcolor: selectedPreset === preset.key
-                                  ? 'rgba(107, 163, 208, 0.12)'
-                                  : 'rgba(107, 163, 208, 0.06)',
-                                color: '#6BA3D0',
+                                  ? 'rgba(47, 111, 178, 0.12)'
+                                  : 'rgba(47, 111, 178, 0.06)',
+                                color: '#2F6FB2',
                               },
                             }}
                           >
@@ -872,10 +873,10 @@ export const DateRangePickerWithPresets = ({
                         height: '40px',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         '&:hover': {
-                          borderColor: '#6BA3D0',
-                          color: '#6BA3D0',
-                          bgcolor: 'rgba(107, 163, 208, 0.08)',
-                          boxShadow: '0 2px 4px rgba(107, 163, 208, 0.15)',
+                          borderColor: '#2F6FB2',
+                          color: '#2F6FB2',
+                          bgcolor: 'rgba(47, 111, 178, 0.08)',
+                          boxShadow: '0 2px 4px rgba(47, 111, 178, 0.15)',
                         }
                       }}
                     >
@@ -887,7 +888,7 @@ export const DateRangePickerWithPresets = ({
                       onClick={handleAddRange}
                       disabled={isRangeLimitReached}
                       sx={{
-                        bgcolor: '#6BA3D0',
+                        bgcolor: '#2F6FB2',
                         color: 'white',
                         textTransform: 'none',
                         fontSize: '0.875rem',
@@ -899,16 +900,16 @@ export const DateRangePickerWithPresets = ({
                         py: 0.75,
                         minWidth: isMobilePicker ? 0 : '140px',
                         height: '40px',
-                        boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)',
+                        boxShadow: '0 2px 4px rgba(47, 111, 178, 0.2)',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         '&:hover': {
-                          bgcolor: '#5A9FD0',
-                          boxShadow: '0 4px 8px rgba(107, 163, 208, 0.3)',
+                          bgcolor: '#1F4E8C',
+                          boxShadow: '0 4px 8px rgba(47, 111, 178, 0.3)',
                           transform: 'translateY(-1px)'
                         },
                         '&:active': {
                           transform: 'translateY(0)',
-                          boxShadow: '0 2px 4px rgba(107, 163, 208, 0.25)'
+                          boxShadow: '0 2px 4px rgba(47, 111, 178, 0.25)'
                         },
                         '&:disabled': {
                           bgcolor: '#E2E8F0',
@@ -950,17 +951,32 @@ export const DateRangePickerWithPresets = ({
           pt: 1.5,
           borderTop: '1px solid #F1F5F9'
         }}>
-          <Typography sx={{ 
-            fontSize: '0.875rem', 
-            fontWeight: 600, 
-            color: '#0F172A',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            letterSpacing: '-0.01em',
-            lineHeight: 1.3,
-            mb: 1
-          }}>
-            Ringkasan Data
-          </Typography>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 1,
+              flexWrap: 'wrap',
+              mb: 1
+            }}
+          >
+            <Typography sx={{ 
+              fontSize: '0.875rem', 
+              fontWeight: 600, 
+              color: '#0F172A',
+              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              letterSpacing: '-0.01em',
+              lineHeight: 1.3
+            }}>
+              Ringkasan Data
+            </Typography>
+            <RevenueLastUpdate
+              sx={{
+                maxWidth: '100%',
+              }}
+            />
+          </Box>
           
           <Box sx={{ 
             display: 'grid',
@@ -1153,7 +1169,7 @@ export const DateRangePickerWithPresets = ({
                     width: 6,
                     height: 6,
                     borderRadius: '50%',
-                    backgroundColor: invoiceData && invoiceData.length > 0 ? '#6BA3D0' : '#BDBDBD',
+                    backgroundColor: invoiceData && invoiceData.length > 0 ? '#2F6FB2' : '#BDBDBD',
                     flexShrink: 0
                   }}
                 />

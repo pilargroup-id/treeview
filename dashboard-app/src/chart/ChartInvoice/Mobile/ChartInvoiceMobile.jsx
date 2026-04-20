@@ -49,6 +49,7 @@ import { useMobile } from './useMobile';
 import BusinessIcon from '@mui/icons-material/Business';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import RevenueLastUpdate from '../../../components/RevenueLastUpdate';
 
 ChartJS.register(
   CategoryScale,
@@ -138,7 +139,7 @@ function ChartInvoiceMobile() {
         ctx.moveTo(x, chartArea.top);
         ctx.lineTo(x, chartArea.bottom);
         ctx.lineWidth = pluginOptions?.lineWidth ?? 1.2;
-        ctx.strokeStyle = pluginOptions?.color ?? 'rgba(107, 163, 208, 0.55)';
+        ctx.strokeStyle = pluginOptions?.color ?? 'rgba(47, 111, 178, 0.55)';
         ctx.setLineDash(pluginOptions?.dashPattern ?? [6, 4]);
         ctx.stroke();
         ctx.restore();
@@ -912,7 +913,7 @@ function ChartInvoiceMobile() {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(107, 163, 208, 0.03) 1px, transparent 0)',
+        backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(47, 111, 178, 0.03) 1px, transparent 0)',
         backgroundSize: '24px 24px',
         pointerEvents: 'none',
         zIndex: 0
@@ -958,12 +959,12 @@ function ChartInvoiceMobile() {
               onClick={() => setFilterDrawerOpen(true)}
               size="small"
               sx={{
-                color: '#6BA3D0',
-                bgcolor: 'rgba(107, 163, 208, 0.1)',
+                color: '#2F6FB2',
+                bgcolor: 'rgba(47, 111, 178, 0.1)',
                 ml: 1,
                 flexShrink: 0,
                 '&:hover': {
-                  bgcolor: 'rgba(107, 163, 208, 0.2)'
+                  bgcolor: 'rgba(47, 111, 178, 0.2)'
                 }
               }}
             >
@@ -986,8 +987,8 @@ function ChartInvoiceMobile() {
           flex: 1,
           minWidth: 0,
           '&:hover': {
-            bgcolor: 'rgba(107, 163, 208, 0.05)',
-            borderColor: '#6BA3D0'
+            bgcolor: 'rgba(47, 111, 178, 0.05)',
+            borderColor: '#2F6FB2'
           },
           '&:active': {
             transform: 'scale(0.98)'
@@ -1013,7 +1014,7 @@ function ChartInvoiceMobile() {
             }}>
               Pilih Tahun
             </Typography>
-            <IconButton size="small" sx={{ color: '#6BA3D0', ml: 1, flexShrink: 0 }}>
+            <IconButton size="small" sx={{ color: '#2F6FB2', ml: 1, flexShrink: 0 }}>
               <MenuIcon fontSize="small" />
             </IconButton>
           </Box>
@@ -1207,17 +1208,32 @@ function ChartInvoiceMobile() {
             overflow: 'hidden',
             p: 2
           }}>
-          <Typography sx={{ 
-            fontSize: '0.875rem', 
-            fontWeight: 600, 
-            color: '#0F172A',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            letterSpacing: '-0.01em',
-            lineHeight: 1.3,
-            mb: 1.5
-          }}>
-            Ringkasan Data
-          </Typography>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 1,
+              flexWrap: 'wrap',
+              mb: 1.5
+            }}
+          >
+            <Typography sx={{ 
+              fontSize: '0.875rem', 
+              fontWeight: 600, 
+              color: '#0F172A',
+              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              letterSpacing: '-0.01em',
+              lineHeight: 1.3
+            }}>
+              Ringkasan Data
+            </Typography>
+            <RevenueLastUpdate
+              sx={{
+                maxWidth: '100%',
+              }}
+            />
+          </Box>
           
           <Box sx={{ 
             display: 'grid',
@@ -1410,7 +1426,7 @@ function ChartInvoiceMobile() {
                     width: 6,
                     height: 6,
                     borderRadius: '50%',
-                    backgroundColor: invoiceData && invoiceData.length > 0 ? '#6BA3D0' : '#BDBDBD',
+                    backgroundColor: invoiceData && invoiceData.length > 0 ? '#2F6FB2' : '#BDBDBD',
                     flexShrink: 0
                   }}
                 />
@@ -1489,15 +1505,15 @@ function ChartInvoiceMobile() {
                 <CalendarMonthRoundedIcon 
                   sx={{ 
                     fontSize: '1.1rem',
-                    color: showRangePicker ? '#6BA3D0' : '#64748B',
+                    color: showRangePicker ? '#2F6FB2' : '#64748B',
                     transition: 'color 0.2s ease'
                   }} 
                 />
               }
               sx={{
-                borderColor: showRangePicker ? '#6BA3D0' : '#E2E8F0',
-                color: showRangePicker ? '#6BA3D0' : '#475569',
-                bgcolor: showRangePicker ? 'rgba(107, 163, 208, 0.08)' : 'transparent',
+                borderColor: showRangePicker ? '#2F6FB2' : '#E2E8F0',
+                color: showRangePicker ? '#2F6FB2' : '#475569',
+                bgcolor: showRangePicker ? 'rgba(47, 111, 178, 0.08)' : 'transparent',
                 textTransform: 'none',
                 fontSize: '0.8125rem',
                 fontWeight: showRangePicker ? 600 : 500,
@@ -1507,12 +1523,12 @@ function ChartInvoiceMobile() {
                 py: 0.875,
                 width: '100%',
                 height: '40px',
-                boxShadow: showRangePicker ? '0 2px 4px rgba(107, 163, 208, 0.15)' : 'none',
+                boxShadow: showRangePicker ? '0 2px 4px rgba(47, 111, 178, 0.15)' : 'none',
                 transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 '&:hover': {
-                  borderColor: '#6BA3D0',
-                  bgcolor: showRangePicker ? 'rgba(107, 163, 208, 0.12)' : 'rgba(107, 163, 208, 0.06)',
-                  boxShadow: showRangePicker ? '0 2px 6px rgba(107, 163, 208, 0.2)' : 'none',
+                  borderColor: '#2F6FB2',
+                  bgcolor: showRangePicker ? 'rgba(47, 111, 178, 0.12)' : 'rgba(47, 111, 178, 0.06)',
+                  boxShadow: showRangePicker ? '0 2px 6px rgba(47, 111, 178, 0.2)' : 'none',
                   transform: 'translateY(-1px)'
                 },
                 '&:active': {
@@ -1808,10 +1824,10 @@ function ChartInvoiceMobile() {
                         height: '40px',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         '&:hover': {
-                          borderColor: '#6BA3D0',
-                          color: '#6BA3D0',
-                          bgcolor: 'rgba(107, 163, 208, 0.08)',
-                          boxShadow: '0 2px 4px rgba(107, 163, 208, 0.15)',
+                          borderColor: '#2F6FB2',
+                          color: '#2F6FB2',
+                          bgcolor: 'rgba(47, 111, 178, 0.08)',
+                          boxShadow: '0 2px 4px rgba(47, 111, 178, 0.15)',
                         }
                       }}
                     >
@@ -1823,7 +1839,7 @@ function ChartInvoiceMobile() {
                       onClick={handleAddRangeFromPicker}
                       disabled={rangeDates.length >= 1}
                       sx={{
-                        bgcolor: '#6BA3D0',
+                        bgcolor: '#2F6FB2',
                         color: 'white',
                         textTransform: 'none',
                         fontSize: '0.875rem',
@@ -1834,16 +1850,16 @@ function ChartInvoiceMobile() {
                         py: 0.75,
                         minWidth: '140px',
                         height: '40px',
-                        boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)',
+                        boxShadow: '0 2px 4px rgba(47, 111, 178, 0.2)',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         '&:hover': {
-                          bgcolor: '#5A9FD0',
-                          boxShadow: '0 4px 8px rgba(107, 163, 208, 0.3)',
+                          bgcolor: '#1F4E8C',
+                          boxShadow: '0 4px 8px rgba(47, 111, 178, 0.3)',
                           transform: 'translateY(-1px)'
                         },
                         '&:active': {
                           transform: 'translateY(0)',
-                          boxShadow: '0 2px 4px rgba(107, 163, 208, 0.25)'
+                          boxShadow: '0 2px 4px rgba(47, 111, 178, 0.25)'
                         },
                         '&:disabled': {
                           bgcolor: '#E2E8F0',
@@ -1878,17 +1894,32 @@ function ChartInvoiceMobile() {
             overflow: 'hidden',
             p: 2
           }}>
-          <Typography sx={{ 
-            fontSize: '0.875rem', 
-            fontWeight: 600, 
-            color: '#0F172A',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            letterSpacing: '-0.01em',
-            lineHeight: 1.3,
-            mb: 1.5
-          }}>
-            Ringkasan Data
-          </Typography>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 1,
+              flexWrap: 'wrap',
+              mb: 1.5
+            }}
+          >
+            <Typography sx={{ 
+              fontSize: '0.875rem', 
+              fontWeight: 600, 
+              color: '#0F172A',
+              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              letterSpacing: '-0.01em',
+              lineHeight: 1.3
+            }}>
+              Ringkasan Data
+            </Typography>
+            <RevenueLastUpdate
+              sx={{
+                maxWidth: '100%',
+              }}
+            />
+          </Box>
           
           <Box sx={{ 
             display: 'grid',
@@ -2081,7 +2112,7 @@ function ChartInvoiceMobile() {
                     width: 6,
                     height: 6,
                     borderRadius: '50%',
-                    backgroundColor: invoiceData && invoiceData.length > 0 ? '#6BA3D0' : '#BDBDBD',
+                    backgroundColor: invoiceData && invoiceData.length > 0 ? '#2F6FB2' : '#BDBDBD',
                     flexShrink: 0
                   }}
                 />
@@ -2160,15 +2191,15 @@ function ChartInvoiceMobile() {
                 <CalendarMonthRoundedIcon 
                   sx={{ 
                     fontSize: '1.1rem',
-                    color: showMultiRangePicker ? '#6BA3D0' : '#64748B',
+                    color: showMultiRangePicker ? '#2F6FB2' : '#64748B',
                     transition: 'color 0.2s ease'
                   }} 
                 />
               }
               sx={{
-                borderColor: showMultiRangePicker ? '#6BA3D0' : '#E2E8F0',
-                color: showMultiRangePicker ? '#6BA3D0' : '#475569',
-                bgcolor: showMultiRangePicker ? 'rgba(107, 163, 208, 0.08)' : 'transparent',
+                borderColor: showMultiRangePicker ? '#2F6FB2' : '#E2E8F0',
+                color: showMultiRangePicker ? '#2F6FB2' : '#475569',
+                bgcolor: showMultiRangePicker ? 'rgba(47, 111, 178, 0.08)' : 'transparent',
                 textTransform: 'none',
                 fontSize: '0.8125rem',
                 fontWeight: showMultiRangePicker ? 600 : 500,
@@ -2178,12 +2209,12 @@ function ChartInvoiceMobile() {
                 py: 0.875,
                 width: '100%',
                 height: '40px',
-                boxShadow: showMultiRangePicker ? '0 2px 4px rgba(107, 163, 208, 0.15)' : 'none',
+                boxShadow: showMultiRangePicker ? '0 2px 4px rgba(47, 111, 178, 0.15)' : 'none',
                 transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 '&:hover': {
-                  borderColor: '#6BA3D0',
-                  bgcolor: showMultiRangePicker ? 'rgba(107, 163, 208, 0.12)' : 'rgba(107, 163, 208, 0.06)',
-                  boxShadow: showMultiRangePicker ? '0 2px 6px rgba(107, 163, 208, 0.2)' : 'none',
+                  borderColor: '#2F6FB2',
+                  bgcolor: showMultiRangePicker ? 'rgba(47, 111, 178, 0.12)' : 'rgba(47, 111, 178, 0.06)',
+                  boxShadow: showMultiRangePicker ? '0 2px 6px rgba(47, 111, 178, 0.2)' : 'none',
                   transform: 'translateY(-1px)'
                 },
                 '&:active': {
@@ -2477,8 +2508,8 @@ function ChartInvoiceMobile() {
                               py: 0.75,
                               px: 1.25,
                               borderRadius: 1.25,
-                              bgcolor: 'rgba(107, 163, 208, 0.08)',
-                              border: '1px solid rgba(107, 163, 208, 0.3)',
+                              bgcolor: 'rgba(47, 111, 178, 0.08)',
+                              border: '1px solid rgba(47, 111, 178, 0.3)',
                             }}
                           >
                             <Typography sx={{
@@ -2497,10 +2528,10 @@ function ChartInvoiceMobile() {
                                 width: '24px',
                                 height: '24px',
                                 p: 0.5,
-                                color: '#6BA3D0',
+                                color: '#2F6FB2',
                                 '&:hover': {
-                                  bgcolor: 'rgba(107, 163, 208, 0.1)',
-                                  color: '#5A8FB8'
+                                  bgcolor: 'rgba(47, 111, 178, 0.1)',
+                                  color: '#1F4E8C'
                                 }
                               }}
                             >
@@ -2547,10 +2578,10 @@ function ChartInvoiceMobile() {
                           height: '40px',
                           transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                           '&:hover': {
-                            borderColor: '#6BA3D0',
-                            color: '#6BA3D0',
-                            bgcolor: 'rgba(107, 163, 208, 0.08)',
-                            boxShadow: '0 2px 4px rgba(107, 163, 208, 0.15)',
+                            borderColor: '#2F6FB2',
+                            color: '#2F6FB2',
+                            bgcolor: 'rgba(47, 111, 178, 0.08)',
+                            boxShadow: '0 2px 4px rgba(47, 111, 178, 0.15)',
                           }
                         }}
                       >
@@ -2562,8 +2593,8 @@ function ChartInvoiceMobile() {
                         onClick={handleAddMultiRange}
                         disabled={!multiRangeSelection.startDate || !multiRangeSelection.endDate || validatedMultiRanges.length >= 5}
                         sx={{
-                          borderColor: '#6BA3D0',
-                          color: '#6BA3D0',
+                          borderColor: '#2F6FB2',
+                          color: '#2F6FB2',
                           textTransform: 'none',
                           fontSize: '0.875rem',
                           fontWeight: 600,
@@ -2575,8 +2606,8 @@ function ChartInvoiceMobile() {
                           height: '40px',
                           transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                           '&:hover': {
-                            bgcolor: 'rgba(107, 163, 208, 0.08)',
-                            boxShadow: '0 2px 4px rgba(107, 163, 208, 0.15)',
+                            bgcolor: 'rgba(47, 111, 178, 0.08)',
+                            boxShadow: '0 2px 4px rgba(47, 111, 178, 0.15)',
                           },
                           '&:disabled': {
                             borderColor: '#E2E8F0',
@@ -2600,7 +2631,7 @@ function ChartInvoiceMobile() {
                       }}
                       disabled={validatedMultiRanges.length === 0}
                       sx={{
-                        bgcolor: '#6BA3D0',
+                        bgcolor: '#2F6FB2',
                         color: 'white',
                         textTransform: 'none',
                         fontSize: '0.875rem',
@@ -2611,16 +2642,16 @@ function ChartInvoiceMobile() {
                         py: 0.75,
                         width: '100%',
                         height: '40px',
-                        boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)',
+                        boxShadow: '0 2px 4px rgba(47, 111, 178, 0.2)',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         '&:hover': {
-                          bgcolor: '#5A9FD0',
-                          boxShadow: '0 4px 8px rgba(107, 163, 208, 0.3)',
+                          bgcolor: '#1F4E8C',
+                          boxShadow: '0 4px 8px rgba(47, 111, 178, 0.3)',
                           transform: 'translateY(-1px)'
                         },
                         '&:active': {
                           transform: 'translateY(0)',
-                          boxShadow: '0 2px 4px rgba(107, 163, 208, 0.25)'
+                          boxShadow: '0 2px 4px rgba(47, 111, 178, 0.25)'
                         },
                         '&:disabled': {
                           bgcolor: '#E2E8F0',
@@ -2684,8 +2715,8 @@ function ChartInvoiceMobile() {
               textTransform: 'none',
               fontSize: '0.75rem',
               fontWeight: 500,
-              color: '#6BA3D0',
-              borderColor: '#6BA3D0',
+              color: '#2F6FB2',
+              borderColor: '#2F6FB2',
               borderWidth: '1px',
               borderRadius: '8px',
               minWidth: 'auto',
@@ -2694,8 +2725,8 @@ function ChartInvoiceMobile() {
               boxShadow: 'none',
               fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
               '&:hover': {
-                borderColor: '#5A9FD0',
-                backgroundColor: 'rgba(107, 163, 208, 0.06)',
+                borderColor: '#1F4E8C',
+                backgroundColor: 'rgba(47, 111, 178, 0.06)',
                 borderWidth: '1px'
               }
             }}
@@ -2756,7 +2787,7 @@ function ChartInvoiceMobile() {
                   size={40} 
                   thickness={3.5}
                   sx={{
-                    color: '#6BA3D0',
+                    color: '#2F6FB2',
                     mb: 1.5
                   }}
                 />
