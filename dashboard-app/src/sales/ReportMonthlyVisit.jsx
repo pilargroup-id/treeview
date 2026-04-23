@@ -64,6 +64,29 @@ export default function ReportMonthlyVisit() {
   const [loadError, setLoadError] = React.useState(null)
 
   React.useEffect(() => {
+    const pageContent = document.querySelector('.page-content')
+    const previousHtmlOverflow = document.documentElement.style.overflow
+    const previousBodyOverflow = document.body.style.overflow
+    const previousPageContentOverflow = pageContent?.style.overflow ?? ''
+
+    document.documentElement.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+
+    if (pageContent) {
+      pageContent.style.overflow = 'hidden'
+    }
+
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow
+      document.body.style.overflow = previousBodyOverflow
+
+      if (pageContent) {
+        pageContent.style.overflow = previousPageContentOverflow
+      }
+    }
+  }, [])
+
+  React.useEffect(() => {
     const parsed = parsePeriod(period) ?? parsePeriod(getCurrentPeriod())
     const month = parsed?.month ?? new Date().getMonth() + 1
     const year = parsed?.year ?? new Date().getFullYear()
@@ -248,7 +271,15 @@ export default function ReportMonthlyVisit() {
 
   return (
     <Box
-      sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}
+      sx={{
+        width: '100%',
+        height: '100%',
+        maxHeight: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0,
+        overflow: 'hidden',
+      }}
       className="tv-report-sales"
     >
       {loadError ? (
@@ -258,52 +289,59 @@ export default function ReportMonthlyVisit() {
       <Paper
         sx={{
           p: 2,
-          display: 'grid',
-          gap: 1.25,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 0.75,
           width: '100%',
           flex: 1,
           minHeight: 0,
           overflow: 'hidden',
         }}
       >
-        <FilterMonthlyVisit
-          filters={filters}
-          period={period}
-          salesOptions={salesOptions}
-          stateOptions={stateOptions}
-          isLoading={isLoading}
-          filteredCount={filteredRows.length}
-          onQueryChange={(value) => {
-            setFilters((current) => ({ ...current, query: value }))
-            setPage(0)
-          }}
-          onPeriodChange={(value) => {
-            const next = String(value ?? '').trim()
-            setPeriod(parsePeriod(next) ? next : getCurrentPeriod())
-            setPage(0)
-          }}
-          onSalesChange={(value) => {
-            setFilters((current) => ({ ...current, sales: value }))
-            setPage(0)
-          }}
-          onWilayahChange={(value) => {
-            setFilters((current) => ({ ...current, wilayah: value }))
-            setPage(0)
-          }}
-          onRefresh={() => setReloadTick((value) => value + 1)}
-          onExport={exportCurrentRows}
-        />
+        <Box sx={{ flexShrink: 0 }}>
+          <FilterMonthlyVisit
+            filters={filters}
+            period={period}
+            salesOptions={salesOptions}
+            stateOptions={stateOptions}
+            isLoading={isLoading}
+            filteredCount={filteredRows.length}
+            onQueryChange={(value) => {
+              setFilters((current) => ({ ...current, query: value }))
+              setPage(0)
+            }}
+            onPeriodChange={(value) => {
+              const next = String(value ?? '').trim()
+              setPeriod(parsePeriod(next) ? next : getCurrentPeriod())
+              setPage(0)
+            }}
+            onSalesChange={(value) => {
+              setFilters((current) => ({ ...current, sales: value }))
+              setPage(0)
+            }}
+            onWilayahChange={(value) => {
+              setFilters((current) => ({ ...current, wilayah: value }))
+              setPage(0)
+            }}
+            onRefresh={() => setReloadTick((value) => value + 1)}
+            onExport={exportCurrentRows}
+          />
+        </Box>
 
         {isLoading ? (
           <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Loading...</Typography>
         ) : null}
 
-        <Box sx={{ minHeight: 0, overflow: 'auto', mt: -0.25 }}>
+        <Box sx={{ minHeight: 0, flex: 1, overflow: 'hidden' }}>
           <DataTable
             columns={columns}
             rows={pagedRows}
             emptyMessage={isLoading ? 'Loading...' : 'Tidak ada data monthly visit'}
             pagination={pagination}
+            scrollBody
+            fillHeight
+            scrollBodyMaxHeight="none"
+            wrapperTopMargin="6px"
           />
         </Box>
       </Paper>

@@ -638,7 +638,15 @@ export default function ReportMonitorRadius() {
 
   return (
     <Box
-      sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}
+      sx={{
+        width: '100%',
+        height: '100vh',
+        maxHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0,
+        overflow: 'hidden',
+      }}
       className="tv-report-customers"
     >
       {loadError ? (
@@ -655,35 +663,47 @@ export default function ReportMonitorRadius() {
           overflow: 'hidden',
         }}
       >
-        <Box sx={{ p: 2, display: 'grid', gap: 1.25, minHeight: 0, flex: 1, overflow: 'hidden' }}>
-          <FilterMonitorRadius
-            filters={filters}
-            dateRangeLabel={dateRangeLabel}
-            salesOptions={salesOptions}
-            stateOptions={stateOptions}
-            radiusOptions={radiusOptions}
-            isLoading={isLoading}
-            filteredCount={filteredRows.length}
-            onQueryChange={(value) => {
-              setFilters((current) => ({ ...current, query: value }))
-              setPage(0)
-            }}
-            onSalesChange={(value) => {
-              setFilters((current) => ({ ...current, sales: value }))
-              setPage(0)
-            }}
-            onWilayahChange={(value) => {
-              setFilters((current) => ({ ...current, wilayah: value }))
-              setPage(0)
-            }}
-            onRadiusChange={(value) => {
-              setFilters((current) => ({ ...current, radius: value }))
-              setPage(0)
-            }}
-            onOpenRangePicker={() => setRangePickerSignal((value) => value + 1)}
-            onRefresh={() => setReloadTick((value) => value + 1)}
-            onExport={exportCurrentRows}
-          />
+        <Box
+          sx={{
+            p: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 0.75,
+            minHeight: 0,
+            flex: 1,
+            overflow: 'hidden',
+          }}
+        >
+          <Box sx={{ flexShrink: 0 }}>
+            <FilterMonitorRadius
+              filters={filters}
+              dateRangeLabel={dateRangeLabel}
+              salesOptions={salesOptions}
+              stateOptions={stateOptions}
+              radiusOptions={radiusOptions}
+              isLoading={isLoading}
+              filteredCount={filteredRows.length}
+              onQueryChange={(value) => {
+                setFilters((current) => ({ ...current, query: value }))
+                setPage(0)
+              }}
+              onSalesChange={(value) => {
+                setFilters((current) => ({ ...current, sales: value }))
+                setPage(0)
+              }}
+              onWilayahChange={(value) => {
+                setFilters((current) => ({ ...current, wilayah: value }))
+                setPage(0)
+              }}
+              onRadiusChange={(value) => {
+                setFilters((current) => ({ ...current, radius: value }))
+                setPage(0)
+              }}
+              onOpenRangePicker={() => setRangePickerSignal((value) => value + 1)}
+              onRefresh={() => setReloadTick((value) => value + 1)}
+              onExport={exportCurrentRows}
+            />
+          </Box>
 
           <Box sx={{ display: 'none' }}>
             <RangeDateFilter
@@ -721,12 +741,15 @@ export default function ReportMonitorRadius() {
             <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Loading...</Typography>
           ) : null}
 
-          <Box sx={{ minHeight: 0, overflow: 'auto', mt: -0.25 }}>
+          <Box sx={{ minHeight: 0, flex: 1, overflow: 'hidden' }}>
             <DataTable
               columns={columns}
               rows={pagedRows}
               emptyMessage={isLoading ? 'Loading...' : 'Tidak ada data monitor radius'}
               pagination={pagination}
+              scrollBody
+              fillHeight
+              wrapperTopMargin="6px"
               getDetailTitle={(row) => row.customer_name}
               getDetailDescription={(row) => `${row.sales_name} - ${row.plan_date}`}
               detailRenderer={(row) => {
