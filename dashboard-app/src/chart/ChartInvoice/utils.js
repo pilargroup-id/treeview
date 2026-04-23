@@ -87,13 +87,13 @@ export function getYearColor(year) {
 
 export const COLOR_BUSINESS_UNIT_SPECIFIC = {
   'Gosave': { 
-    sales: 'rgba(107, 163, 208, 0.8)', 
+    sales: 'rgba(47, 111, 178, 0.8)', 
     salesBorder: 'rgb(107, 163, 208)',
     quantity: 'rgba(137, 183, 220, 0.8)',
     quantityBorder: 'rgb(137, 183, 220)'
   },   
   'Goto': { 
-    sales: 'rgba(107, 163, 208, 0.8)', 
+    sales: 'rgba(47, 111, 178, 0.8)', 
     salesBorder: 'rgb(107, 163, 208)',
     quantity: 'rgba(137, 183, 220, 0.8)',
     quantityBorder: 'rgb(137, 183, 220)'

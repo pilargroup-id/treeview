@@ -349,15 +349,15 @@ function StockDetailsPanel({
                   borderColor: '#E5E7EB',
                   color: '#757575',
                   '&.Mui-selected': {
-                    backgroundColor: '#6BA3D0',
+                    backgroundColor: '#2F6FB2',
                     color: '#FFFFFF',
-                    borderColor: '#6BA3D0',
+                    borderColor: '#2F6FB2',
                     '&:hover': {
                       backgroundColor: '#5a92b8',
                     },
                   },
                   '&:hover': {
-                    backgroundColor: 'rgba(107, 163, 208, 0.08)',
+                    backgroundColor: 'rgba(47, 111, 178, 0.08)',
                   },
                 },
               }}
@@ -375,7 +375,7 @@ function StockDetailsPanel({
                 color: '#9E9E9E',
                 transition: 'all 0.2s ease',
                 '&:hover': {
-                  color: '#6BA3D0',
+                  color: '#2F6FB2',
                   bgcolor: '#FAFAFA',
                 },
               }}

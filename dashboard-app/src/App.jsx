@@ -1,13 +1,16 @@
 import React from 'react';
 import DashboardLayoutBasic from './DashboardLayoutBasic';
-import {
-  AUTH_STATE_CHANGE_EVENT,
-  clearTokenFromUrl,
-  getUrlToken,
-  hasStoredToken,
-  redirectToCentralPortal,
-  storeAuthSession,
-} from './utils/authSession';
+
+import LoginPage from './login/loginPage';
+import { AUTH_STATE_CHANGE_EVENT } from './utils/fetchWithAuth';
+import BackgroundMain from './Template/BackgroundMain';
+
+function hasStoredToken() {
+  if (typeof window === 'undefined') return false;
+  const storedToken = localStorage.getItem('authToken');
+  return Boolean(String(storedToken ?? '').trim());
+}
+
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = React.useState(hasStoredToken);
@@ -54,14 +57,18 @@ function App() {
     };
   }, []);
 
-  React.useEffect(() => {
-    if (!isAuthResolved || isAuthenticated) return;
-    redirectToCentralPortal();
-  }, [isAuthenticated, isAuthResolved]);
 
-  if (!isAuthResolved || !isAuthenticated) return null;
+  return (
+    !isAuthenticated ? (
+      <>
+        <BackgroundMain />
+        <LoginPage onLoginSuccess={() => setIsAuthenticated(true)} />
+      </>
+    ) : (
+      <DashboardLayoutBasic onLogout={() => setIsAuthenticated(false)} />
+    )
+  );
 
-  return <DashboardLayoutBasic onLogout={handleLogout} />;
 }
 
 export default App;

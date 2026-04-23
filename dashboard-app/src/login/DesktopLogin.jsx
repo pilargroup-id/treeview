@@ -20,30 +20,10 @@ export default function DesktopLogin(props) {
           justifyContent: 'center',
           position: 'relative',
           overflow: 'hidden',
-          color: '#FFFFFF',
-          background: 'linear-gradient(135deg, #6FA8DC 0%, #4A90C2 100%)',
+          color: '#1F4E8C', // Changed to dark blue since BackgroundMain is light
+          background: 'transparent',
           px: { md: 7, lg: 9 },
           py: 8,
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: -120,
-            right: -100,
-            width: 320,
-            height: 320,
-            borderRadius: '50%',
-            background: 'rgba(255, 255, 255, 0.08)',
-          },
-          '&::after': {
-            content: '""',
-            position: 'absolute',
-            left: -90,
-            bottom: -120,
-            width: 300,
-            height: 300,
-            borderRadius: '50%',
-            background: 'rgba(255, 255, 255, 0.07)',
-          },
         }}
       >
         <Box
@@ -72,7 +52,7 @@ export default function DesktopLogin(props) {
               maxWidth: 420,
               fontSize: { md: '1.2rem', lg: '1.35rem' },
               lineHeight: 1.75,
-              color: 'rgba(255, 255, 255, 0.9)',
+              color: '#2F6FB2', // Adjusted color for light background
               fontWeight: 400,
             }}
           >
@@ -88,16 +68,9 @@ export default function DesktopLogin(props) {
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
-          backgroundColor: '#F4F7FB',
+          background: 'transparent',
           px: { md: 4, lg: 6 },
           py: 8,
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            inset: 0,
-            background:
-              'radial-gradient(circle at top right, rgba(111, 168, 220, 0.18) 0%, rgba(111, 168, 220, 0) 34%)',
-          },
         }}
       >
         <LoginFormCard

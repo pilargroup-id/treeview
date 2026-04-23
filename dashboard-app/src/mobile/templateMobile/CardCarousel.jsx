@@ -246,7 +246,7 @@ function CardCarousel({
                     position: 'absolute',
                     inset: 0,
                     borderRadius: '999px',
-                    background: 'linear-gradient(90deg, #6BA3D0 0%, #87BBE3 100%)',
+                    background: 'linear-gradient(90deg, #2F6FB2 0%, #2F6FB2 100%)',
                     opacity: 0,
                     transition: 'opacity 220ms ease',
                     zIndex: 0
@@ -254,7 +254,7 @@ function CardCarousel({
                   '&.Mui-selected': {
                     color: '#FFFFFF !important',
                     borderColor: 'transparent',
-                    boxShadow: '0 4px 12px rgba(107, 163, 208, 0.32)'
+                    boxShadow: '0 4px 12px rgba(47, 111, 178, 0.32)'
                   },
                   '&.Mui-selected::before': {
                     opacity: 1

@@ -107,8 +107,8 @@ export default function NavBottom({ pathname, onNavigate, items = DEFAULT_MOBILE
           },
           '& .MuiBottomNavigationAction-root.Mui-selected': {
             color: '#2B6997',
-            bgcolor: 'rgba(107, 163, 208, 0.15)',
-            boxShadow: '0 5px 12px rgba(107, 163, 208, 0.22)',
+            bgcolor: 'rgba(47, 111, 178, 0.15)',
+            boxShadow: '0 5px 12px rgba(47, 111, 178, 0.22)',
             transform: 'translateY(-1px)',
             '& .MuiBottomNavigationAction-label': {
               fontSize: '0.67rem',

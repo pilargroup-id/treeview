@@ -4,8 +4,8 @@ import NoPhotographyIcon from '@mui/icons-material/NoPhotography';
 import GroupsIcon from '@mui/icons-material/Groups';
 import PlaceIcon from '@mui/icons-material/Place';
 
-const ACCENT_BLUE = '#6BA3D0';
-const ACCENT_BLUE_BG = 'rgba(107, 163, 208, 0.12)';
+const ACCENT_BLUE = '#2F6FB2';
+const ACCENT_BLUE_BG = 'rgba(47, 111, 178, 0.12)';
 
 function formatNumber(value) {
   const num = typeof value === 'number' ? value : Number(value);
@@ -237,7 +237,7 @@ export default function SummaryResult({ rows, filters, isLoading, loadError }) {
     return 'Semua';
   }, [filters?.end_date, filters?.start_date]);
 
-  const palette = [ACCENT_BLUE, '#7AA4D3', '#8CB3D9', '#5B8AB8', '#4A709F'];
+  const palette = [ACCENT_BLUE, '#2F6FB2', '#2F6FB2', '#1F4E8C', '#163A6B'];
 
   const salesBars = React.useMemo(() => {
     const items = groupCounts(safeRows, 'sales_name');

@@ -5,8 +5,8 @@ import MobileLogin from './MobileLogin';
 import { API_URL } from '../config/api';
 
 const REMEMBERED_USERNAME_KEY = 'treeViewRememberedUsername';
-const BRAND_COLOR = '#6BA3D0';
-const BRAND_COLOR_DARK = '#4F89B8';
+const BRAND_COLOR = '#2F6FB2';
+const BRAND_COLOR_DARK = '#1F4E8C';
 const INPUT_BACKGROUND = '#F8FBFE';
 
 function buildLoginUrl() {
@@ -142,17 +142,17 @@ export default function LoginPage({ onLoginSuccess }) {
       backgroundColor: INPUT_BACKGROUND,
       transition: 'border-color 180ms ease, box-shadow 200ms ease, transform 180ms ease',
       '& fieldset': {
-        borderColor: 'rgba(107, 163, 208, 0.18)',
+        borderColor: 'rgba(47, 111, 178, 0.18)',
       },
       '&:hover fieldset': {
-        borderColor: 'rgba(79, 137, 184, 0.56)',
+        borderColor: 'rgba(31, 78, 140, 0.56)',
       },
       '&.Mui-focused': {
         transform: 'translateY(-1px)',
       },
       '&.Mui-focused fieldset': {
         borderColor: BRAND_COLOR,
-        boxShadow: '0 0 0 4px rgba(107, 163, 208, 0.12)',
+        boxShadow: '0 0 0 4px rgba(47, 111, 178, 0.12)',
       },
     },
     '& .MuiInputBase-input': {
@@ -167,7 +167,7 @@ export default function LoginPage({ onLoginSuccess }) {
     p: 0.9,
     borderRadius: '12px',
     color: BRAND_COLOR,
-    backgroundColor: 'rgba(107, 163, 208, 0.14)',
+    backgroundColor: 'rgba(47, 111, 178, 0.14)',
   };
 
   const layoutProps = {

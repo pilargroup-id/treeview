@@ -58,7 +58,7 @@ export default function LoginFormCard({
               maxWidth: 420,
               p: { xs: 3, sm: 3.8 },
               borderRadius: '30px',
-              border: '1px solid rgba(107, 163, 208, 0.14)',
+              border: '1px solid rgba(47, 111, 178, 0.14)',
               backgroundColor: '#FFFFFF',
               boxShadow: '0 24px 60px rgba(20, 45, 74, 0.16)',
               backdropFilter: 'blur(8px)',
@@ -73,7 +73,7 @@ export default function LoginFormCard({
           <TreeViewWordmark
             fontSize={isDesktopSplitVariant ? { xs: '1.9rem', sm: '2rem' } : { xs: '1.72rem', sm: '1.9rem' }}
             minHeight={isDesktopSplitVariant ? 48 : 44}
-            treeColor={isDesktopSplitVariant ? '#5C9EDC' : '#6BA3D0'}
+            treeColor={isDesktopSplitVariant ? '#2F6FB2' : '#2F6FB2'}
             viewColor={isDesktopSplitVariant ? '#8C97A8' : '#7A8EA5'}
             treeWeight={700}
             viewWeight={700}
@@ -114,7 +114,7 @@ export default function LoginFormCard({
                     },
                     '&.Mui-focused fieldset': {
                       borderColor: brandColor,
-                      boxShadow: '0 0 0 4px rgba(107, 163, 208, 0.1)',
+                      boxShadow: '0 0 0 4px rgba(47, 111, 178, 0.1)',
                     },
                   },
                   '& .MuiInputBase-input': {
@@ -155,7 +155,7 @@ export default function LoginFormCard({
                   sx={{
                     color: '#7A8EA5',
                     '&:hover': {
-                      backgroundColor: 'rgba(107, 163, 208, 0.12)',
+                      backgroundColor: 'rgba(47, 111, 178, 0.12)',
                     },
                   }}
                 >
@@ -179,7 +179,7 @@ export default function LoginFormCard({
                     },
                     '&.Mui-focused fieldset': {
                       borderColor: brandColor,
-                      boxShadow: '0 0 0 4px rgba(107, 163, 208, 0.1)',
+                      boxShadow: '0 0 0 4px rgba(47, 111, 178, 0.1)',
                     },
                   },
                   '& .MuiInputBase-input': {
@@ -212,7 +212,7 @@ export default function LoginFormCard({
                 onChange={onRememberMeChange}
                 sx={{
                   p: isDesktopSplitVariant ? 0.4 : 0.6,
-                  color: 'rgba(107, 163, 208, 0.72)',
+                  color: 'rgba(47, 111, 178, 0.72)',
                   '&.Mui-checked': {
                     color: brandColor,
                   },
@@ -247,20 +247,20 @@ export default function LoginFormCard({
             letterSpacing: '0.01em',
             fontSize: isDesktopSplitVariant ? '1.05rem' : '1rem',
             background: isDesktopSplitVariant
-              ? 'linear-gradient(135deg, #6FA8DC 0%, #4A90C2 100%)'
-              : `linear-gradient(135deg, ${brandColor} 0%, #78AFD8 100%)`,
+              ? 'linear-gradient(135deg, #2F6FB2 0%, #1F4E8C 100%)'
+              : `linear-gradient(135deg, ${brandColor} 0%, #2F6FB2 100%)`,
             boxShadow: isDesktopSplitVariant
-              ? '0 18px 32px rgba(74, 144, 194, 0.24)'
-              : '0 18px 30px rgba(107, 163, 208, 0.3)',
+              ? '0 18px 32px rgba(31, 78, 140, 0.24)'
+              : '0 18px 30px rgba(47, 111, 178, 0.3)',
             transition: 'transform 180ms ease, box-shadow 220ms ease, background 220ms ease',
             '&:hover': {
               transform: 'translateY(-2px)',
               background: isDesktopSplitVariant
-                ? 'linear-gradient(135deg, #5B9FD3 0%, #3F83B3 100%)'
-                : `linear-gradient(135deg, ${brandColorDark} 0%, #679FCA 100%)`,
+                ? 'linear-gradient(135deg, #2F6FB2 0%, #1F4E8C 100%)'
+                : `linear-gradient(135deg, ${brandColorDark} 0%, #1F4E8C 100%)`,
               boxShadow: isDesktopSplitVariant
-                ? '0 20px 34px rgba(74, 144, 194, 0.3)'
-                : '0 22px 34px rgba(107, 163, 208, 0.38)',
+                ? '0 20px 34px rgba(31, 78, 140, 0.3)'
+                : '0 22px 34px rgba(47, 111, 178, 0.38)',
             },
             '&:active': {
               transform: 'translateY(0)',
