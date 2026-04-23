@@ -62,7 +62,7 @@ const TOOLBAR_ICONS = {
 };
 
 const ID_NUMBER = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 });
-const RADIUS_THRESHOLD_METERS = 200;
+const RADIUS_THRESHOLD_METERS = 2000;
 
 function toDateInputValue(date) {
   if (!(date instanceof Date)) return '';
@@ -295,7 +295,7 @@ export default function ReportTableResult() {
     query: '',
     sales: 'ALL',
     wilayah: 'ALL',
-    radius: 'ALL', // ALL | IN_200 | OUT_200
+    radius: 'ALL', // ALL | IN_2KM | OUT_2KM
     start_date: toDateInputValue(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
     end_date: toDateInputValue(new Date()),
   }));
@@ -433,8 +433,8 @@ export default function ReportTableResult() {
       if (radiusFilter !== 'ALL') {
         const radius = parseMaybeNumber(row.result_location_accuracy);
         if (radius == null) return false;
-        if (radiusFilter === 'IN_200' && !(radius <= RADIUS_THRESHOLD_METERS)) return false;
-        if (radiusFilter === 'OUT_200' && !(radius > RADIUS_THRESHOLD_METERS)) return false;
+        if (radiusFilter === 'IN_2KM' && !(radius <= RADIUS_THRESHOLD_METERS)) return false;
+        if (radiusFilter === 'OUT_2KM' && !(radius > RADIUS_THRESHOLD_METERS)) return false;
       }
 
       if (!normalizedQuery) return true;
@@ -666,8 +666,8 @@ export default function ReportTableResult() {
             selected: 'ALL',
             items: [
               { id: 'ALL', text: 'Semua', checked: true },
-              { id: 'IN_200', text: `Dalam \u2264 ${RADIUS_THRESHOLD_METERS} m`, checked: false },
-              { id: 'OUT_200', text: `Luar > ${RADIUS_THRESHOLD_METERS} m`, checked: false },
+              { id: 'IN_2KM', text: 'Dalam radius (2km)', checked: false },
+              { id: 'OUT_2KM', text: 'Di luar radius (2km)', checked: false },
             ],
           },
            {
@@ -730,7 +730,7 @@ export default function ReportTableResult() {
 
           if (parentId === 'tbRadius') {
             const next =
-              subId === 'IN_200' || subId === 'OUT_200'
+              subId === 'IN_2KM' || subId === 'OUT_2KM'
                 ? subId
                 : 'ALL';
             setFilters((prev) => ({ ...prev, radius: next }));
@@ -907,18 +907,18 @@ export default function ReportTableResult() {
     }
 
     const radiusLabel =
-      filters.radius === 'IN_200'
-        ? `Dalam \u2264 ${RADIUS_THRESHOLD_METERS} m`
-        : filters.radius === 'OUT_200'
-          ? `Luar > ${RADIUS_THRESHOLD_METERS} m`
+      filters.radius === 'IN_2KM'
+        ? 'Dalam radius (2km)'
+        : filters.radius === 'OUT_2KM'
+          ? 'Di luar radius (2km)'
           : 'Semua';
     const tbRadius = grid.toolbar.get('tbRadius');
     if (tbRadius) {
       tbRadius.selected = filters.radius;
       tbRadius.items = [
         { id: 'ALL', text: 'Semua', checked: filters.radius === 'ALL' },
-        { id: 'IN_200', text: `Dalam \u2264 ${RADIUS_THRESHOLD_METERS} m`, checked: filters.radius === 'IN_200' },
-        { id: 'OUT_200', text: `Luar > ${RADIUS_THRESHOLD_METERS} m`, checked: filters.radius === 'OUT_200' },
+        { id: 'IN_2KM', text: 'Dalam radius (2km)', checked: filters.radius === 'IN_2KM' },
+        { id: 'OUT_2KM', text: 'Di luar radius (2km)', checked: filters.radius === 'OUT_2KM' },
       ];
       tbRadius.text = `Radius: ${radiusLabel}`;
       grid.toolbar.refresh('tbRadius');

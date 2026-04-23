@@ -131,6 +131,29 @@ export default function ReportWeeklyVisit() {
   const [isLoading, setIsLoading] = React.useState(true)
   const [loadError, setLoadError] = React.useState(null)
 
+  React.useEffect(() => {
+    const pageContent = document.querySelector('.page-content')
+    const previousHtmlOverflow = document.documentElement.style.overflow
+    const previousBodyOverflow = document.body.style.overflow
+    const previousPageContentOverflow = pageContent?.style.overflow ?? ''
+
+    document.documentElement.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+
+    if (pageContent) {
+      pageContent.style.overflow = 'hidden'
+    }
+
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow
+      document.body.style.overflow = previousBodyOverflow
+
+      if (pageContent) {
+        pageContent.style.overflow = previousPageContentOverflow
+      }
+    }
+  }, [])
+
   const visibleMonths = React.useMemo(
     () => normalizeMonthSelection(filters.months),
     [filters.months],
@@ -424,8 +447,8 @@ export default function ReportWeeklyVisit() {
     <Box
       sx={{
         width: '100%',
-        height: '100vh',
-        maxHeight: '100vh',
+        height: '100%',
+        maxHeight: '100%',
         display: 'flex',
         flexDirection: 'column',
         minHeight: 0,
@@ -498,17 +521,18 @@ export default function ReportWeeklyVisit() {
         ) : null}
 
         <Box sx={{ minHeight: 0, flex: 1, overflow: 'hidden' }}>
-          <DataTable
-            columns={columns}
-            rows={pagedRows}
-            emptyMessage={isLoading ? 'Loading...' : 'Tidak ada data weekly visit'}
-            pagination={pagination}
-            scrollBody
-            fillHeight
-            wrapperTopMargin="6px"
-          />
-        </Box>
-      </Paper>
-    </Box>
+        <DataTable
+          columns={columns}
+          rows={pagedRows}
+          emptyMessage={isLoading ? 'Loading...' : 'Tidak ada data weekly visit'}
+          pagination={pagination}
+          scrollBody
+          fillHeight
+          scrollBodyMaxHeight="none"
+          wrapperTopMargin="6px"
+        />
+      </Box>
+    </Paper>
+  </Box>
   )
 }

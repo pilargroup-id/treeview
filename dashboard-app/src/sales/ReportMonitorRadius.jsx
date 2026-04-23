@@ -13,7 +13,7 @@ import { fetchWithAuth } from '../utils/fetchWithAuth'
 
 const ID_NUMBER = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 })
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
-const RADIUS_THRESHOLD_METERS = 200
+const RADIUS_THRESHOLD_METERS = 2000
 const GENERAL_INFORMATION_GROUP = { key: 'general-information', label: 'General Information' }
 const MAP_GROUP = { key: 'map', label: 'Map' }
 const MAP_BUTTON_ICONS = {
@@ -273,7 +273,7 @@ export default function ReportMonitorRadius() {
     query: '',
     sales: 'ALL',
     wilayah: 'ALL',
-    radius: 'ALL',
+    radius: 'ALL', // ALL | IN_2KM | OUT_2KM
     start_date: toDateInputValue(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
     end_date: toDateInputValue(new Date()),
   })
@@ -284,6 +284,29 @@ export default function ReportMonitorRadius() {
   const [sourceData, setSourceData] = React.useState([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [loadError, setLoadError] = React.useState(null)
+
+  React.useEffect(() => {
+    const pageContent = document.querySelector('.page-content')
+    const previousHtmlOverflow = document.documentElement.style.overflow
+    const previousBodyOverflow = document.body.style.overflow
+    const previousPageContentOverflow = pageContent?.style.overflow ?? ''
+
+    document.documentElement.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+
+    if (pageContent) {
+      pageContent.style.overflow = 'hidden'
+    }
+
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow
+      document.body.style.overflow = previousBodyOverflow
+
+      if (pageContent) {
+        pageContent.style.overflow = previousPageContentOverflow
+      }
+    }
+  }, [])
 
   React.useEffect(() => {
     const controller = new AbortController()
@@ -414,11 +437,11 @@ export default function ReportMonitorRadius() {
           return false
         }
 
-        if (radiusFilter === 'IN_200' && !(radius <= RADIUS_THRESHOLD_METERS)) {
+        if (radiusFilter === 'IN_2KM' && !(radius <= RADIUS_THRESHOLD_METERS)) {
           return false
         }
 
-        if (radiusFilter === 'OUT_200' && !(radius > RADIUS_THRESHOLD_METERS)) {
+        if (radiusFilter === 'OUT_2KM' && !(radius > RADIUS_THRESHOLD_METERS)) {
           return false
         }
       }
@@ -439,8 +462,8 @@ export default function ReportMonitorRadius() {
   const radiusOptions = React.useMemo(
     () => [
       { value: 'ALL', label: 'Semua' },
-      { value: 'IN_200', label: `Dalam <= ${RADIUS_THRESHOLD_METERS} m` },
-      { value: 'OUT_200', label: `Luar > ${RADIUS_THRESHOLD_METERS} m` },
+      { value: 'IN_2KM', label: 'Dalam radius (2km)' },
+      { value: 'OUT_2KM', label: 'Di luar radius (2km)' },
     ],
     [],
   )
@@ -640,8 +663,8 @@ export default function ReportMonitorRadius() {
     <Box
       sx={{
         width: '100%',
-        height: '100vh',
-        maxHeight: '100vh',
+        height: '100%',
+        maxHeight: '100%',
         display: 'flex',
         flexDirection: 'column',
         minHeight: 0,
@@ -749,6 +772,7 @@ export default function ReportMonitorRadius() {
               pagination={pagination}
               scrollBody
               fillHeight
+              scrollBodyMaxHeight="none"
               wrapperTopMargin="6px"
               getDetailTitle={(row) => row.customer_name}
               getDetailDescription={(row) => `${row.sales_name} - ${row.plan_date}`}
