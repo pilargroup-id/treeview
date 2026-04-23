@@ -137,6 +137,10 @@ function DataTable({
   getDetailTitle,
   getDetailDescription,
   detailLabel = 'Detail',
+  scrollBody = false,
+  scrollBodyMaxHeight = 'min(38vh, 360px)',
+  wrapperTopMargin = null,
+  fillHeight = false,
 }) {
   const [expandedRowId, setExpandedRowId] = useState(null)
   const hasDetail = typeof detailRenderer === 'function'
@@ -241,10 +245,33 @@ function DataTable({
     )
   }
 
+  const resolvedWrapperTopMargin = wrapperTopMargin ?? (fillHeight ? '8px' : null)
+
+  const tableWrapperStyle =
+    scrollBody || resolvedWrapperTopMargin !== null
+      ? {
+          ...(scrollBody ? { '--users-table-scroll-max-height': scrollBodyMaxHeight } : {}),
+          ...(resolvedWrapperTopMargin !== null
+            ? { '--users-table-top-margin': resolvedWrapperTopMargin }
+            : {}),
+        }
+      : undefined
+
   return (
-    <>
-      <div className="users-table-wrapper">
-        <table className="users-table">
+    <div className={joinClassNames('users-table-shell', fillHeight && 'users-table-shell--fill')}>
+      <div
+        className={joinClassNames(
+          'users-table-wrapper',
+          scrollBody && 'users-table-wrapper--scroll-body',
+        )}
+        style={tableWrapperStyle}
+      >
+        <table
+          className={joinClassNames(
+            'users-table',
+            headerGroups.hasGroupedColumns && 'users-table--grouped-header',
+          )}
+        >
           <thead>
             {headerGroups.hasGroupedColumns ? (
               <>
@@ -501,7 +528,7 @@ function DataTable({
           </div>
         </div>
       ) : null}
-    </>
+    </div>
   )
 }
 

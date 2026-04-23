@@ -422,7 +422,15 @@ export default function ReportWeeklyVisit() {
 
   return (
     <Box
-      sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}
+      sx={{
+        width: '100%',
+        height: '100vh',
+        maxHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0,
+        overflow: 'hidden',
+      }}
       className="tv-report-customers"
     >
       {loadError ? (
@@ -432,8 +440,9 @@ export default function ReportWeeklyVisit() {
       <Paper
         sx={{
           p: 2,
-          display: 'grid',
-          gap: 1.25,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 0.75,
           width: '100%',
           flex: 1,
           minHeight: 0,
@@ -444,6 +453,7 @@ export default function ReportWeeklyVisit() {
           sx={{
             display: 'grid',
             gap: 1.25,
+            flexShrink: 0,
           }}
         >
           <FilterWeeklyVisit
@@ -487,12 +497,15 @@ export default function ReportWeeklyVisit() {
           <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Loading...</Typography>
         ) : null}
 
-        <Box sx={{ minHeight: 0, overflow: 'auto', mt: -0.25 }}>
+        <Box sx={{ minHeight: 0, flex: 1, overflow: 'hidden' }}>
           <DataTable
             columns={columns}
             rows={pagedRows}
             emptyMessage={isLoading ? 'Loading...' : 'Tidak ada data weekly visit'}
             pagination={pagination}
+            scrollBody
+            fillHeight
+            wrapperTopMargin="6px"
           />
         </Box>
       </Paper>
