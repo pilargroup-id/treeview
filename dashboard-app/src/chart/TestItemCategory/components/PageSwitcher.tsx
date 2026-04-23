@@ -23,7 +23,7 @@ function PageSwitcher({ currentPage, onPageChange }: PageSwitcherProps) {
           color: '#757575',
           fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
           '&.Mui-focused': {
-            color: '#6BA3D0'
+            color: '#2F6FB2'
           }
         }}
       >
@@ -49,7 +49,7 @@ function PageSwitcher({ currentPage, onPageChange }: PageSwitcherProps) {
             borderColor: '#E0E0E0'
           },
           '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-            borderColor: '#6BA3D0',
+            borderColor: '#2F6FB2',
             borderWidth: '1px'
           }
         }}
@@ -60,10 +60,10 @@ function PageSwitcher({ currentPage, onPageChange }: PageSwitcherProps) {
             fontSize: '0.875rem', 
             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
             '&.Mui-selected': {
-              bgcolor: 'rgba(107, 163, 208, 0.08)',
-              color: '#6BA3D0',
+              bgcolor: 'rgba(47, 111, 178, 0.08)',
+              color: '#2F6FB2',
               '&:hover': {
-                bgcolor: 'rgba(107, 163, 208, 0.12)'
+                bgcolor: 'rgba(47, 111, 178, 0.12)'
               }
             }
           }}
@@ -76,11 +76,11 @@ function PageSwitcher({ currentPage, onPageChange }: PageSwitcherProps) {
             fontSize: '0.875rem', 
             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
             '&.Mui-selected': {
-              bgcolor: 'rgba(107, 163, 208, 0.08)',
-              color: '#6BA3D0',
+              bgcolor: 'rgba(47, 111, 178, 0.08)',
+              color: '#2F6FB2',
               fontWeight: 600,
               '&:hover': {
-                bgcolor: 'rgba(107, 163, 208, 0.12)'
+                bgcolor: 'rgba(47, 111, 178, 0.12)'
               }
             }
           }}

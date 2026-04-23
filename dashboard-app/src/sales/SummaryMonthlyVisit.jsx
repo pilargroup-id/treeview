@@ -62,7 +62,7 @@ const TOOLBAR_ICONS = {
 };
 
 const ID_NUMBER = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 });
-const RADIUS_THRESHOLD_METERS = 200;
+const RADIUS_THRESHOLD_METERS = 2000;
 
 function toDateInputValue(date) {
   if (!(date instanceof Date)) return '';
@@ -295,7 +295,7 @@ export default function ReportTableResult() {
     query: '',
     sales: 'ALL',
     wilayah: 'ALL',
-    radius: 'ALL', // ALL | IN_200 | OUT_200
+    radius: 'ALL', // ALL | IN_2KM | OUT_2KM
     start_date: toDateInputValue(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
     end_date: toDateInputValue(new Date()),
   }));
@@ -433,8 +433,8 @@ export default function ReportTableResult() {
       if (radiusFilter !== 'ALL') {
         const radius = parseMaybeNumber(row.result_location_accuracy);
         if (radius == null) return false;
-        if (radiusFilter === 'IN_200' && !(radius <= RADIUS_THRESHOLD_METERS)) return false;
-        if (radiusFilter === 'OUT_200' && !(radius > RADIUS_THRESHOLD_METERS)) return false;
+        if (radiusFilter === 'IN_2KM' && !(radius <= RADIUS_THRESHOLD_METERS)) return false;
+        if (radiusFilter === 'OUT_2KM' && !(radius > RADIUS_THRESHOLD_METERS)) return false;
       }
 
       if (!normalizedQuery) return true;
@@ -666,8 +666,8 @@ export default function ReportTableResult() {
             selected: 'ALL',
             items: [
               { id: 'ALL', text: 'Semua', checked: true },
-              { id: 'IN_200', text: `Dalam \u2264 ${RADIUS_THRESHOLD_METERS} m`, checked: false },
-              { id: 'OUT_200', text: `Luar > ${RADIUS_THRESHOLD_METERS} m`, checked: false },
+              { id: 'IN_2KM', text: 'Dalam radius (2km)', checked: false },
+              { id: 'OUT_2KM', text: 'Di luar radius (2km)', checked: false },
             ],
           },
            {
@@ -730,7 +730,7 @@ export default function ReportTableResult() {
 
           if (parentId === 'tbRadius') {
             const next =
-              subId === 'IN_200' || subId === 'OUT_200'
+              subId === 'IN_2KM' || subId === 'OUT_2KM'
                 ? subId
                 : 'ALL';
             setFilters((prev) => ({ ...prev, radius: next }));
@@ -907,18 +907,18 @@ export default function ReportTableResult() {
     }
 
     const radiusLabel =
-      filters.radius === 'IN_200'
-        ? `Dalam \u2264 ${RADIUS_THRESHOLD_METERS} m`
-        : filters.radius === 'OUT_200'
-          ? `Luar > ${RADIUS_THRESHOLD_METERS} m`
+      filters.radius === 'IN_2KM'
+        ? 'Dalam radius (2km)'
+        : filters.radius === 'OUT_2KM'
+          ? 'Di luar radius (2km)'
           : 'Semua';
     const tbRadius = grid.toolbar.get('tbRadius');
     if (tbRadius) {
       tbRadius.selected = filters.radius;
       tbRadius.items = [
         { id: 'ALL', text: 'Semua', checked: filters.radius === 'ALL' },
-        { id: 'IN_200', text: `Dalam \u2264 ${RADIUS_THRESHOLD_METERS} m`, checked: filters.radius === 'IN_200' },
-        { id: 'OUT_200', text: `Luar > ${RADIUS_THRESHOLD_METERS} m`, checked: filters.radius === 'OUT_200' },
+        { id: 'IN_2KM', text: 'Dalam radius (2km)', checked: filters.radius === 'IN_2KM' },
+        { id: 'OUT_2KM', text: 'Di luar radius (2km)', checked: filters.radius === 'OUT_2KM' },
       ];
       tbRadius.text = `Radius: ${radiusLabel}`;
       grid.toolbar.refresh('tbRadius');
@@ -963,23 +963,23 @@ export default function ReportTableResult() {
           }
 
           .tv-report-customers .w2ui-tabs .w2ui-scroll-wrapper .w2ui-tab:hover {
-            background-color: rgba(107, 163, 208, 0.08);
-            color: #6BA3D0;
+            background-color: rgba(47, 111, 178, 0.08);
+            color: #2F6FB2;
           }
 
           .tv-report-customers .w2ui-tabs .w2ui-scroll-wrapper .w2ui-tab.active {
-            background-color: rgba(107, 163, 208, 0.12);
-            color: #6BA3D0 !important;
-            border-bottom: 2px solid #6BA3D0 !important;
+            background-color: rgba(47, 111, 178, 0.12);
+            color: #2F6FB2 !important;
+            border-bottom: 2px solid #2F6FB2 !important;
             font-weight: 400 !important;
           }
 
           .tv-report-customers .w2ui-tabs.w2ui-tabs-up .w2ui-scroll-wrapper .w2ui-tab.active {
-            border-top: 2px solid #6BA3D0 !important;
+            border-top: 2px solid #2F6FB2 !important;
           }
 
           .tv-report-customers .w2ui-tabs .w2ui-scroll-wrapper .w2ui-tab:focus {
-            outline: 2px solid rgba(107, 163, 208, 0.45);
+            outline: 2px solid rgba(47, 111, 178, 0.45);
             outline-offset: 2px;
           }
 
@@ -1106,8 +1106,8 @@ export default function ReportTableResult() {
             line-height: 1;
           }
           .tv-photo-btn:hover {
-            background: rgba(107, 163, 208, 0.08);
-            border-color: rgba(107, 163, 208, 0.6);
+            background: rgba(47, 111, 178, 0.08);
+            border-color: rgba(47, 111, 178, 0.6);
             color: #1f2937;
           }
           .tv-photo-popup {
@@ -1159,8 +1159,8 @@ export default function ReportTableResult() {
             line-height: 1;
           }
           .tv-map-btn:hover {
-            background: rgba(107, 163, 208, 0.08);
-            border-color: rgba(107, 163, 208, 0.6);
+            background: rgba(47, 111, 178, 0.08);
+            border-color: rgba(47, 111, 178, 0.6);
             color: #1f2937;
           }
           .tv-map-popup {

@@ -96,7 +96,7 @@ export default function Logout({ mini = false, onLogout, beforeAction = null, la
         mt: 1,
         px: mini ? 0.5 : 1,
         py: 1,
-        borderTop: '1px solid rgba(107, 163, 208, 0.18)',
+        borderTop: '1px solid rgba(47, 111, 178, 0.18)',
       }}
     >
       {beforeAction ? <Box sx={{ mb: 0.5 }}>{beforeAction}</Box> : null}

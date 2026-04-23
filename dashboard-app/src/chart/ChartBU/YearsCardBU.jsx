@@ -5,6 +5,8 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import CardCarousel from '../../mobile/templateMobile/CardCarousel';
 
 const FONT_FAMILY = '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif';
+const ACCENT_TEAL_DARK = '#23857a';
+const ACCENT_TEAL_DARK_HOVER = '#1f756c';
 
 function formatCurrency(num) {
   const value = parseFloat(num);
@@ -129,14 +131,14 @@ function DataYearCard({
         p: { xs: 1.75, md: 3 },
         borderRadius: '16px',
         boxShadow: isSelected
-          ? '0 4px 12px rgba(107, 163, 208, 0.15), 0 2px 4px rgba(107, 163, 208, 0.1)'
+          ? '0 6px 16px rgba(35, 133, 122, 0.18), 0 2px 6px rgba(35, 133, 122, 0.12)'
           : '0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
         display: 'flex',
         flexDirection: 'column',
-        border: `1px solid ${isSelected ? '#6BA3D0' : '#E5E7EB'}`,
+        border: `1px solid ${isSelected ? ACCENT_TEAL_DARK : '#E5E7EB'}`,
         cursor: isDisabled ? 'default' : 'pointer',
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        bgcolor: '#FFFFFF',
+        bgcolor: isSelected ? '#FFFFFF' : '#FFFFFF',
         position: 'relative',
         overflow: 'hidden',
         height: 'fit-content',
@@ -147,9 +149,9 @@ function DataYearCard({
         zIndex: 1,
         '&:hover': !isDisabled
           ? {
-              borderColor: isSelected ? '#6BA3D0' : '#D1D5DB',
+              borderColor: isSelected ? ACCENT_TEAL_DARK : '#D1D5DB',
               boxShadow: isSelected
-                ? '0 6px 16px rgba(107, 163, 208, 0.2), 0 2px 6px rgba(107, 163, 208, 0.15)'
+                ? '0 8px 18px rgba(35, 133, 122, 0.22), 0 3px 8px rgba(35, 133, 122, 0.14)'
                 : '0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06)',
               bgcolor: '#FFFFFF',
               transform: 'translateY(-2px)'
@@ -187,7 +189,7 @@ function DataYearCard({
           <Typography
             sx={{
               fontSize: { xs: '1rem', md: '1.5rem' },
-              color: isSelected ? '#6BA3D0' : '#212121',
+              color: isSelected ? ACCENT_TEAL_DARK : '#212121',
               fontWeight: 600,
               fontFamily: FONT_FAMILY,
               letterSpacing: '-0.02em',
@@ -216,7 +218,7 @@ function DataYearCard({
               sx={{
                 fontSize: { xs: '0.625rem', md: '0.75rem' },
                 fontWeight: 600,
-                color: isSelected ? '#6BA3D0' : '#9CA3AF',
+                color: isSelected ? ACCENT_TEAL_DARK : '#9CA3AF',
                 fontFamily: FONT_FAMILY,
                 lineHeight: 1.2,
                 transition: 'color 0.2s ease',
@@ -498,17 +500,17 @@ function YearCards({
                   textOverflow: 'ellipsis',
                   justifyContent: 'center',
                   color: isSelectedYear ? '#FFFFFF' : 'rgba(71, 85, 105, 0.9)',
-                  border: `1px solid ${isSelectedYear ? '#6BA3D0' : 'rgba(148, 163, 184, 0.45)'}`,
+                  border: `1px solid ${isSelectedYear ? ACCENT_TEAL_DARK : 'rgba(148, 163, 184, 0.45)'}`,
                   background: isSelectedYear
-                    ? 'linear-gradient(90deg, #6BA3D0 0%, #87BBE3 100%)'
+                    ? `linear-gradient(90deg, ${ACCENT_TEAL_DARK} 0%, ${ACCENT_TEAL_DARK} 100%)`
                     : '#FFFFFF',
-                  boxShadow: isSelectedYear ? '0 4px 12px rgba(107, 163, 208, 0.32)' : 'none',
+                  boxShadow: isSelectedYear ? '0 4px 12px rgba(35, 133, 122, 0.28)' : 'none',
                   opacity: isDisabled ? 0.82 : 1,
                   transition: 'all 220ms ease',
                   '&:hover': {
-                    borderColor: isSelectedYear ? '#6BA3D0' : 'rgba(148, 163, 184, 0.7)',
+                    borderColor: isSelectedYear ? ACCENT_TEAL_DARK_HOVER : 'rgba(148, 163, 184, 0.7)',
                     background: isSelectedYear
-                      ? 'linear-gradient(90deg, #6BA3D0 0%, #87BBE3 100%)'
+                      ? `linear-gradient(90deg, ${ACCENT_TEAL_DARK_HOVER} 0%, ${ACCENT_TEAL_DARK_HOVER} 100%)`
                       : '#F8FAFC'
                   }
                 }}

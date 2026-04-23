@@ -114,7 +114,7 @@ function ChartInvoice() {
         ctx.moveTo(x, chartArea.top);
         ctx.lineTo(x, chartArea.bottom);
         ctx.lineWidth = pluginOptions?.lineWidth ?? 1.2;
-        ctx.strokeStyle = pluginOptions?.color ?? 'rgba(107, 163, 208, 0.55)';
+        ctx.strokeStyle = pluginOptions?.color ?? 'rgba(47, 111, 178, 0.55)';
         ctx.setLineDash(pluginOptions?.dashPattern ?? [6, 4]);
         ctx.stroke();
         ctx.restore();
@@ -654,7 +654,7 @@ function ChartInvoice() {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(107, 163, 208, 0.03) 1px, transparent 0)',
+        backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(47, 111, 178, 0.03) 1px, transparent 0)',
         backgroundSize: '24px 24px',
         pointerEvents: 'none',
         zIndex: 0
@@ -835,8 +835,8 @@ function ChartInvoice() {
               textTransform: 'none',
               fontSize: '0.875rem',
               fontWeight: 500,
-              color: '#6BA3D0',
-              borderColor: '#6BA3D0',
+              color: '#2F6FB2',
+              borderColor: '#2F6FB2',
               borderWidth: '1px',
               borderRadius: '12px',
               minWidth: 'auto',
@@ -846,8 +846,8 @@ function ChartInvoice() {
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
               fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
               '&:hover': {
-                borderColor: '#5A9FD0',
-                backgroundColor: 'rgba(107, 163, 208, 0.06)',
+                borderColor: '#1F4E8C',
+                backgroundColor: 'rgba(47, 111, 178, 0.06)',
                 borderWidth: '1px'
               },
               '&:active': {
@@ -912,7 +912,7 @@ function ChartInvoice() {
                   size={48} 
                   thickness={3.5}
                   sx={{
-                    color: '#6BA3D0',
+                    color: '#2F6FB2',
                     mb: 2,
                     '& .MuiCircularProgress-circle': {
                       strokeLinecap: 'round',

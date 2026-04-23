@@ -181,7 +181,7 @@ function CategoryModal({
                   borderColor: '#E0E0E0',
                 },
                 '&.Mui-focused fieldset': {
-                  borderColor: '#6BA3D0',
+                  borderColor: '#2F6FB2',
                   borderWidth: '1px',
                 },
               },
@@ -202,12 +202,12 @@ function CategoryModal({
                   icon={<CheckBoxOutlineBlankIcon />}
                   checkedIcon={<CheckBoxIcon />}
                   sx={{
-                    color: '#6BA3D0',
+                    color: '#2F6FB2',
                     '&.Mui-checked': {
-                      color: '#6BA3D0',
+                      color: '#2F6FB2',
                     },
                     '&.MuiCheckbox-indeterminate': {
-                      color: '#6BA3D0',
+                      color: '#2F6FB2',
                     },
                   }}
                 />
@@ -233,12 +233,12 @@ function CategoryModal({
                   textTransform: 'none',
                   fontSize: '0.75rem',
                   fontWeight: 500,
-                  color: '#6BA3D0',
+                  color: '#2F6FB2',
                   minWidth: 'auto',
                   px: 1.5,
                   py: 0.5,
                   '&:hover': {
-                    bgcolor: 'rgba(107, 163, 208, 0.06)',
+                    bgcolor: 'rgba(47, 111, 178, 0.06)',
                   },
                 }}
               >
@@ -297,9 +297,9 @@ function CategoryModal({
                         icon={<CheckBoxOutlineBlankIcon />}
                         checkedIcon={<CheckBoxIcon />}
                         sx={{
-                          color: '#6BA3D0',
+                          color: '#2F6FB2',
                           '&.Mui-checked': {
-                            color: '#6BA3D0',
+                            color: '#2F6FB2',
                           },
                         }}
                       />
@@ -333,7 +333,7 @@ function CategoryModal({
                       borderRadius: '8px',
                       transition: 'all 0.2s ease',
                       '&:hover': {
-                        bgcolor: 'rgba(107, 163, 208, 0.04)',
+                        bgcolor: 'rgba(47, 111, 178, 0.04)',
                       },
                     }}
                   />
@@ -397,14 +397,14 @@ function CategoryModal({
             textTransform: 'none',
             fontSize: '0.875rem',
             fontWeight: 600,
-            bgcolor: '#6BA3D0',
+            bgcolor: '#2F6FB2',
             px: 2.5,
             py: 0.75,
             borderRadius: '8px',
             boxShadow: 'none',
             '&:hover': {
-              bgcolor: '#5A9FD0',
-              boxShadow: '0 2px 8px rgba(107, 163, 208, 0.3)',
+              bgcolor: '#1F4E8C',
+              boxShadow: '0 2px 8px rgba(47, 111, 178, 0.3)',
             },
           }}
         >

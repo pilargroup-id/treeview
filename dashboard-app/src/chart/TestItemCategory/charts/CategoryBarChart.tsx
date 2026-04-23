@@ -105,11 +105,11 @@ function CategoryBarChart({ categories }: CategoryBarChartProps) {
     const maxDpp = Math.max(...data, 1);
     const backgroundColor = data.map(dpp => {
       const intensity = dpp / maxDpp;
-      return `rgba(107, 163, 208, ${0.4 + intensity * 0.4})`;
+      return `rgba(47, 111, 178, ${0.4 + intensity * 0.4})`;
     });
     const borderColor = data.map(dpp => {
       const intensity = dpp / maxDpp;
-      return `rgba(107, 163, 208, ${0.6 + intensity * 0.4})`;
+      return `rgba(47, 111, 178, ${0.6 + intensity * 0.4})`;
     });
 
     return {
@@ -280,10 +280,10 @@ function CategoryBarChart({ categories }: CategoryBarChartProps) {
               onClick={() => setShowDetail(!showDetail)}
               size="small"
               sx={{
-                color: showDetail ? '#6BA3D0' : '#757575',
+                color: showDetail ? '#2F6FB2' : '#757575',
                 '&:hover': {
-                  bgcolor: 'rgba(107, 163, 208, 0.08)',
-                  color: '#6BA3D0',
+                  bgcolor: 'rgba(47, 111, 178, 0.08)',
+                  color: '#2F6FB2',
                 },
                 transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
               }}

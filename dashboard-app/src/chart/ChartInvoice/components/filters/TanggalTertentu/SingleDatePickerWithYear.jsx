@@ -333,15 +333,15 @@ export const SingleDatePickerWithYear = ({
             <EventAvailableRoundedIcon 
               sx={{ 
                 fontSize: '1.1rem',
-                color: showPicker ? '#6BA3D0' : '#64748B',
+                color: showPicker ? '#2F6FB2' : '#64748B',
                 transition: 'color 0.2s ease'
               }} 
             />
           }
           sx={{
-            borderColor: showPicker ? '#6BA3D0' : '#E2E8F0',
-            color: showPicker ? '#6BA3D0' : '#475569',
-            bgcolor: showPicker ? 'rgba(107, 163, 208, 0.08)' : 'transparent',
+            borderColor: showPicker ? '#2F6FB2' : '#E2E8F0',
+            color: showPicker ? '#2F6FB2' : '#475569',
+            bgcolor: showPicker ? 'rgba(47, 111, 178, 0.08)' : 'transparent',
             textTransform: 'none',
             fontSize: '0.8125rem',
             fontWeight: showPicker ? 600 : 500,
@@ -351,12 +351,12 @@ export const SingleDatePickerWithYear = ({
             py: 0.875,
             minWidth: '180px',
             height: '38px',
-            boxShadow: showPicker ? '0 2px 4px rgba(107, 163, 208, 0.15)' : 'none',
+            boxShadow: showPicker ? '0 2px 4px rgba(47, 111, 178, 0.15)' : 'none',
             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': {
-              borderColor: '#6BA3D0',
-              bgcolor: showPicker ? 'rgba(107, 163, 208, 0.12)' : 'rgba(107, 163, 208, 0.06)',
-              boxShadow: showPicker ? '0 2px 6px rgba(107, 163, 208, 0.2)' : 'none',
+              borderColor: '#2F6FB2',
+              bgcolor: showPicker ? 'rgba(47, 111, 178, 0.12)' : 'rgba(47, 111, 178, 0.06)',
+              boxShadow: showPicker ? '0 2px 6px rgba(47, 111, 178, 0.2)' : 'none',
               transform: 'translateY(-1px)'
             },
             '&:active': {
@@ -553,7 +553,7 @@ export const SingleDatePickerWithYear = ({
                           }}>
                             <CheckCircleOutlineIcon sx={{ 
                               fontSize: '1rem', 
-                              color: '#6BA3D0' 
+                              color: '#2F6FB2' 
                             }} />
                             <Typography sx={{
                               fontSize: '0.8125rem',
@@ -573,7 +573,7 @@ export const SingleDatePickerWithYear = ({
                                 height: '22px',
                                 fontSize: '0.6875rem',
                                 fontWeight: 600,
-                                bgcolor: '#6BA3D0',
+                                bgcolor: '#2F6FB2',
                                 color: '#FFFFFF',
                                 fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
                               }}
@@ -615,12 +615,12 @@ export const SingleDatePickerWithYear = ({
                                     py: 0.875,
                                     px: 1.25,
                                     borderRadius: 1.25,
-                                    bgcolor: 'rgba(107, 163, 208, 0.08)',
-                                    border: '1px solid rgba(107, 163, 208, 0.3)',
+                                    bgcolor: 'rgba(47, 111, 178, 0.08)',
+                                    border: '1px solid rgba(47, 111, 178, 0.3)',
                                     transition: 'all 0.2s ease',
                                     '&:hover': {
-                                      bgcolor: 'rgba(107, 163, 208, 0.12)',
-                                      borderColor: '#6BA3D0',
+                                      bgcolor: 'rgba(47, 111, 178, 0.12)',
+                                      borderColor: '#2F6FB2',
                                       transform: 'translateX(2px)'
                                     }
                                   }}
@@ -629,7 +629,7 @@ export const SingleDatePickerWithYear = ({
                                     width: 6,
                                     height: 6,
                                     borderRadius: '50%',
-                                    bgcolor: '#6BA3D0',
+                                    bgcolor: '#2F6FB2',
                                     flexShrink: 0,
                                     opacity: 0.8
                                   }} />
@@ -650,7 +650,7 @@ export const SingleDatePickerWithYear = ({
                                 height: '20px',
                                 fontSize: '0.6875rem',
                                 fontWeight: 600,
-                                bgcolor: '#6BA3D0',
+                                bgcolor: '#2F6FB2',
                                 color: '#FFFFFF',
                                 fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
                               }}
@@ -662,10 +662,10 @@ export const SingleDatePickerWithYear = ({
                                       width: '24px',
                                       height: '24px',
                                       p: 0.5,
-                                      color: '#6BA3D0',
+                                      color: '#2F6FB2',
                                       '&:hover': {
-                                        bgcolor: 'rgba(107, 163, 208, 0.1)',
-                                        color: '#5A8FB8'
+                                        bgcolor: 'rgba(47, 111, 178, 0.1)',
+                                        color: '#1F4E8C'
                                       }
                                     }}
                                   >
@@ -750,10 +750,10 @@ export const SingleDatePickerWithYear = ({
                         height: '38px',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         '&:hover': {
-                          borderColor: '#6BA3D0',
-                          color: '#6BA3D0',
-                          bgcolor: 'rgba(107, 163, 208, 0.08)',
-                          boxShadow: '0 2px 4px rgba(107, 163, 208, 0.15)',
+                          borderColor: '#2F6FB2',
+                          color: '#2F6FB2',
+                          bgcolor: 'rgba(47, 111, 178, 0.08)',
+                          boxShadow: '0 2px 4px rgba(47, 111, 178, 0.15)',
                         }
                       }}
                     >
@@ -771,7 +771,7 @@ export const SingleDatePickerWithYear = ({
                       }}
                       disabled={validatedRanges.length === 0}
                       sx={{
-                        bgcolor: '#6BA3D0',
+                        bgcolor: '#2F6FB2',
                         color: 'white',
                         textTransform: 'none',
                         fontSize: '0.8125rem',
@@ -783,16 +783,16 @@ export const SingleDatePickerWithYear = ({
                         py: 0.75,
                         minWidth: isMobilePicker ? 0 : '180px',
                         height: '38px',
-                        boxShadow: '0 2px 4px rgba(107, 163, 208, 0.2)',
+                        boxShadow: '0 2px 4px rgba(47, 111, 178, 0.2)',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         '&:hover': {
-                          bgcolor: '#5A8FB8',
-                          boxShadow: '0 4px 8px rgba(107, 163, 208, 0.3)',
+                          bgcolor: '#1F4E8C',
+                          boxShadow: '0 4px 8px rgba(47, 111, 178, 0.3)',
                           transform: 'translateY(-1px)'
                         },
                         '&:active': {
                           transform: 'translateY(0)',
-                          boxShadow: '0 2px 4px rgba(107, 163, 208, 0.25)'
+                          boxShadow: '0 2px 4px rgba(47, 111, 178, 0.25)'
                         },
                         '&:disabled': {
                           bgcolor: '#E2E8F0',
@@ -840,12 +840,12 @@ export const SingleDatePickerWithYear = ({
             height: '38px',
             px: 1.5,
             borderRadius: 1.5,
-            bgcolor: 'rgba(107, 163, 208, 0.08)',
-            border: '1px solid #6BA3D0'
+            bgcolor: 'rgba(47, 111, 178, 0.08)',
+            border: '1px solid #2F6FB2'
           }}>
             <Typography sx={{ 
               fontSize: '0.75rem', 
-              color: '#6BA3D0',
+              color: '#2F6FB2',
               fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
               fontWeight: 600,
               lineHeight: 1.5,
@@ -893,12 +893,12 @@ export const SingleDatePickerWithYear = ({
                   py: 0.5,
                   px: 1,
                   borderRadius: 1.25,
-                  bgcolor: 'rgba(107, 163, 208, 0.08)',
-                  border: '1px solid rgba(107, 163, 208, 0.2)',
+                  bgcolor: 'rgba(47, 111, 178, 0.08)',
+                  border: '1px solid rgba(47, 111, 178, 0.2)',
                   transition: 'all 0.2s ease',
                   '&:hover': {
-                    bgcolor: 'rgba(107, 163, 208, 0.12)',
-                    borderColor: '#6BA3D0'
+                    bgcolor: 'rgba(47, 111, 178, 0.12)',
+                    borderColor: '#2F6FB2'
                   }
                 }}
               >
@@ -906,7 +906,7 @@ export const SingleDatePickerWithYear = ({
                   width: 6,
                   height: 6,
                   borderRadius: '50%',
-                  bgcolor: '#6BA3D0',
+                  bgcolor: '#2F6FB2',
                   flexShrink: 0
                 }} />
                 <Typography sx={{
@@ -925,10 +925,10 @@ export const SingleDatePickerWithYear = ({
                     width: '20px',
                     height: '20px',
                     p: 0.25,
-                    color: '#6BA3D0',
+                    color: '#2F6FB2',
                     '&:hover': {
-                      bgcolor: 'rgba(107, 163, 208, 0.1)',
-                      color: '#5A8FB8'
+                      bgcolor: 'rgba(47, 111, 178, 0.1)',
+                      color: '#1F4E8C'
                     }
                   }}
                 >

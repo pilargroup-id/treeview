@@ -31,7 +31,7 @@ function HeaderMobile({
           width: 120,
           height: 120,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(107, 163, 208, 0.26) 0%, rgba(107, 163, 208, 0.03) 68%)',
+          background: 'radial-gradient(circle, rgba(47, 111, 178, 0.26) 0%, rgba(47, 111, 178, 0.03) 68%)',
           pointerEvents: 'none',
         }}
       />
@@ -43,8 +43,8 @@ function HeaderMobile({
               width: 6,
               height: 6,
               borderRadius: '50%',
-              bgcolor: '#6BA3D0',
-              boxShadow: '0 0 0 3px rgba(107, 163, 208, 0.16)',
+              bgcolor: '#2F6FB2',
+              boxShadow: '0 0 0 3px rgba(47, 111, 178, 0.16)',
               flexShrink: 0,
             }}
           />

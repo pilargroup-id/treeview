@@ -5,6 +5,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import RevenueLastUpdate from '../../../../components/RevenueLastUpdate';
 
 function SummaryCard({ businessUnits, selectedYears, dateFilterType, invoiceData }) {
   // label tipe filter
@@ -114,17 +115,32 @@ function SummaryCard({ businessUnits, selectedYears, dateFilterType, invoiceData
           borderColor: '#D1D5DB'
         }
       }}>
-        <Typography sx={{ 
-          fontSize: { xs: '0.9375rem', md: '1rem' }, 
-          fontWeight: 600, 
-          color: '#212121',
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-          letterSpacing: '-0.01em',
-          lineHeight: 1.4,
-          mb: 0.5
-        }}>
-          Ringkasan Data
-        </Typography>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 1,
+            flexWrap: 'wrap'
+          }}
+        >
+          <Typography sx={{ 
+            fontSize: { xs: '0.9375rem', md: '1rem' }, 
+            fontWeight: 600, 
+            color: '#212121',
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
+            letterSpacing: '-0.01em',
+            lineHeight: 1.4
+          }}>
+            Ringkasan Data
+          </Typography>
+          <RevenueLastUpdate
+            sx={{
+              flexShrink: 0,
+              maxWidth: { xs: '100%', sm: 320 },
+            }}
+          />
+        </Box>
         
         <Box sx={{ 
           display: 'grid',
@@ -209,7 +225,7 @@ function SummaryCard({ businessUnits, selectedYears, dateFilterType, invoiceData
                       width: 6,
                       height: 6,
                       borderRadius: '50%',
-                      backgroundColor: item.hasData ? '#6BA3D0' : '#BDBDBD',
+                      backgroundColor: item.hasData ? '#2F6FB2' : '#BDBDBD',
                       flexShrink: 0
                     }}
                   />
