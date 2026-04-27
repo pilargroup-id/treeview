@@ -9,7 +9,6 @@ class CheckPermission
 {
     public function handle(Request $request, Closure $next, ...$params)
     {
-        // Ambil dari JWT payload yang sudah di-inject middleware sebelumnya
         $department = $request->department;
         $jobLevel   = $request->job_level;
 
