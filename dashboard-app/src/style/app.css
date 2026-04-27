@@ -107,6 +107,7 @@
 
 .sidebar.collapsed {
   width: var(--sidebar-collapsed-width);
+  overflow: visible;
 }
 
 .sidebar-toggle,
@@ -254,8 +255,12 @@
 
 .sidebar-nav {
   flex: 1;
+  min-height: 0;
   padding: 1.5rem 0;
-  overflow-y: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .sidebar-bottom {
@@ -449,6 +454,12 @@
   justify-content: center;
   padding: 12px;
   margin: 0 12px;
+  overflow: visible;
+}
+
+.sidebar.collapsed .nav-item:hover,
+.sidebar.collapsed .nav-item:focus-visible {
+  z-index: 1;
 }
 
 .sidebar.collapsed .nav-item.active {
@@ -466,7 +477,7 @@
 }
 
 .sidebar.collapsed .nav-item:hover::after {
-  left: auto;
+  display: none;
 }
 
 .sidebar.collapsed .nav-item:hover::before {
@@ -485,15 +496,12 @@
   white-space: nowrap;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   z-index: 4;
+  pointer-events: none;
 }
 
 .sidebar-nav::-webkit-scrollbar {
-  width: 4px;
-}
-
-.sidebar-nav::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: linear-gradient(135deg, var(--accent-teal) 0%, var(--accent-teal-dark) 100%);
+  width: 0;
+  height: 0;
 }
 
 .header-main {
@@ -2102,6 +2110,10 @@
   background: #0b1220;
 }
 
+.tv-map-popup--react {
+  overflow: hidden;
+}
+
 .tv-map-popup__actions {
   display: flex;
   align-items: center;
@@ -2137,6 +2149,12 @@
   border: 0;
   flex: 1;
   background: #0b1220;
+}
+
+.tv-map-popup__react-root {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .users-table__detail-chips {
