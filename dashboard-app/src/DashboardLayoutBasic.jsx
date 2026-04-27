@@ -10,6 +10,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CalendarViewWeekIcon from '@mui/icons-material/CalendarViewWeek';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
+import { ChevronLeft } from '@untitledui/icons';
 import { AppProvider } from '@toolpad/core/AppProvider';
 import { DashboardLayout, DashboardSidebarPageItem } from '@toolpad/core/DashboardLayout';
 import { useDemoRouter } from '@toolpad/core/internal';
@@ -22,7 +23,6 @@ import MonthlyRevenue from './businessUnit/MonthlyRevenue';
 import GotoRevenue from './businessUnit/GotoRevenue';
 import GosaveRevenue from './businessUnit/GosaveRevenue';
 import ChangeProfileAction from './account/ChangeProfileAction';
-import SidebarLogout from './login/logout';
 import {
   getFirstAllowedPath,
   getStoredAuthUser,
@@ -45,6 +45,23 @@ import {
   secondaryNavigationItems,
   BASE_NAVIGATION,
 } from './Template/Navigation';
+
+const PILLARGROUP_DASHBOARD_URL = 'https://pilargroup.id/dashboard';
+const SIDEBAR_SECONDARY_ITEMS = secondaryNavigationItems
+  .filter((item) => item?.id !== 'settings')
+  .map((item) => {
+    if (item?.href !== '/logout') {
+      return item;
+    }
+
+    return {
+      ...item,
+      label: 'back pilargroup',
+      href: PILLARGROUP_DASHBOARD_URL,
+      icon: ChevronLeft,
+      variant: undefined,
+    };
+  });
 
 const DASHBOARD_BACKGROUND_LIGHT =
   'linear-gradient(135deg, #F5F7FA 0%, #F8F9FA 50%, #FAFBFC 100%)';
@@ -232,6 +249,16 @@ function buildNavigation(userDisplayName, accessState) {
     { kind: 'divider' },
     ...filteredNavigation,
   ];
+}
+
+function buildSidebarPrimaryItems(accessState) {
+  return primaryNavigationItems.filter((item) => {
+    if (item?.id === 'dashboard') {
+      return Boolean(accessState?.canAccessFinancial);
+    }
+
+    return true;
+  });
 }
 
 const demoTheme = createTheme({
@@ -632,6 +659,10 @@ export default function DashboardLayoutBasic({ onLogout }) {
     () => buildNavigation(sidebarUser.displayName, accessState),
     [accessState, sidebarUser.displayName],
   );
+  const sidebarPrimaryItems = React.useMemo(
+    () => buildSidebarPrimaryItems(accessState),
+    [accessState],
+  );
   const mobileChildTabsByGroup = React.useMemo(
     () => buildMobileChildTabsByGroup(accessState),
     [accessState],
@@ -711,8 +742,8 @@ export default function DashboardLayoutBasic({ onLogout }) {
         activePath={router.pathname}
         userName={sidebarUser.displayName}
         userRole={sidebarUser.role}
-        primaryItems={primaryNavigationItems}
-        secondaryItems={secondaryNavigationItems}
+        primaryItems={sidebarPrimaryItems}
+        secondaryItems={SIDEBAR_SECONDARY_ITEMS}
         onAction={(action, item) => {
           if (action === 'change-profile') {
             // Handle change profile

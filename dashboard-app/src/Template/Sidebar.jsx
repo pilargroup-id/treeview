@@ -32,6 +32,10 @@ function isItemActive(item, currentPath) {
   return item.children?.some((child) => isItemActive(child, currentPath)) ?? false
 }
 
+function isExternalHref(href) {
+  return typeof href === 'string' && /^https?:\/\//i.test(href)
+}
+
 function getInitiallyExpandedGroups(items, currentPath) {
   return items.reduce((expandedGroups, item) => {
     if (item.children?.length && isItemActive(item, currentPath)) {
@@ -49,6 +53,8 @@ function SidebarNavItem({
   onSelect,
   expandedGroups,
   onToggleGroup,
+  mobileOpen,
+  onCloseMobile,
   depth = 0,
 }) {
   const Icon = item.icon
@@ -89,6 +95,14 @@ function SidebarNavItem({
     }
 
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+      return
+    }
+
+    if (isExternalHref(item.href)) {
+      if (mobileOpen) {
+        onCloseMobile?.()
+      }
+
       return
     }
 
@@ -137,6 +151,8 @@ function SidebarNavItem({
               onSelect={onSelect}
               expandedGroups={expandedGroups}
               onToggleGroup={onToggleGroup}
+              mobileOpen={mobileOpen}
+              onCloseMobile={onCloseMobile}
               depth={depth + 1}
             />
           ))}
@@ -295,6 +311,8 @@ function Sidebar({
             onSelect={handleSelect}
             expandedGroups={expandedGroups}
             onToggleGroup={handleToggleGroup}
+            mobileOpen={mobileOpen}
+            onCloseMobile={onCloseMobile}
           />
         ))}
       </nav>
@@ -309,6 +327,8 @@ function Sidebar({
             onSelect={handleSelect}
             expandedGroups={expandedGroups}
             onToggleGroup={handleToggleGroup}
+            mobileOpen={mobileOpen}
+            onCloseMobile={onCloseMobile}
           />
         ))}
       </div>
