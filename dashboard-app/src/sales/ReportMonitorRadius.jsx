@@ -2,8 +2,10 @@ import * as React from 'react'
 import Box from '@mui/material/Box'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
+import { createRoot } from 'react-dom/client'
 import { w2popup } from 'w2ui'
 import 'w2ui/w2ui-2.0.min.css'
+import MapsMonitorRadius from '../components/MapsMonitorRadius'
 import RangeDateFilter from '../components/RangeDateFilter'
 import { API_URL } from '../config/api'
 import DataTable, { buildPaginationModel } from './DataTable'
@@ -14,22 +16,20 @@ import { fetchWithAuth } from '../utils/fetchWithAuth'
 const ID_NUMBER = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 })
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 const RADIUS_THRESHOLD_METERS = 2000
-const GENERAL_INFORMATION_GROUP = { key: 'general-information', label: 'General Information' }
-const MAP_GROUP = { key: 'map', label: 'Map' }
 const MAP_BUTTON_ICONS = {
+  maps: (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        fill="currentColor"
+        d="M3 6.5 8 4l5 2 5-2 3 1.5V19l-3-1.5-5 2-5-2-5 2V6.5Zm5 .1v9.8l5 2V8.4l-5-1.8Zm7 .8v9.8l2-.8V6.6l-2 .8Zm-12 0v9.8l2-.8V6.6l-2 .8Z"
+      />
+    </svg>
+  ),
   result: (
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path
         fill="currentColor"
         d="M12 2C8.14 2 5 5.14 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.86-3.14-7-7-7Zm0 10.75A2.75 2.75 0 1 1 12 7.25a2.75 2.75 0 0 1 0 5.5Z"
-      />
-    </svg>
-  ),
-  customer: (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path
-        fill="currentColor"
-        d="M4 10V6.5L5.5 3h13L20 6.5V10h-1v8h-5v-5h-4v5H5v-8H4Zm2 0h12V7H6v3Zm1-5-.5 1h11l-.5-1H7Zm4 8v3h2v-3h-2Z"
       />
     </svg>
   ),
@@ -99,6 +99,17 @@ function parseMaybeNumber(value) {
   return Number.isFinite(number) ? number : null
 }
 
+function buildLocation(latRaw, lngRaw) {
+  const latitude = parseMaybeNumber(latRaw)
+  const longitude = parseMaybeNumber(lngRaw)
+
+  if (latitude == null || longitude == null) {
+    return null
+  }
+
+  return { latitude, longitude }
+}
+
 function normalizeHttpUrl(value) {
   if (!value) {
     return null
@@ -157,15 +168,23 @@ function buildAddressMapUrls(value) {
 
 function buildCustomerMapQuery(row) {
   const parts = [
-    row?.customer_name,
     row?.customer_address,
     row?.customer_city,
     row?.wilayah,
+    row?.customer_name,
   ]
     .map((value) => String(value ?? '').trim())
     .filter((value, index, values) => value && value !== '-' && values.indexOf(value) === index)
 
   return parts.join(', ')
+}
+
+function hasMapData(row) {
+  return Boolean(
+    buildLocation(row?.result_location_lat, row?.result_location_lng) ||
+      buildLocation(row?.customer_location_lat, row?.customer_location_lng) ||
+      String(row?.customer_map_query ?? '').trim(),
+  )
 }
 
 function renderExternalLink(label, href) {
@@ -381,6 +400,9 @@ export default function ReportMonitorRadius() {
           customer_name: item?.customer_name ?? '-',
           customer_address: item?.customer_address ?? null,
           customer_city: item?.customer_city ?? null,
+          customer_location_lat: item?.customer_location_lat ?? null,
+          customer_location_lng: item?.customer_location_lng ?? null,
+          customer_map_query: buildCustomerMapQuery(item),
           plan_no: item?.plan_no ?? '-',
           plan_date: item?.plan_date ?? '-',
           tujuan: item?.tujuan ?? '-',
@@ -532,8 +554,18 @@ export default function ReportMonitorRadius() {
     [filteredRows.length, page, rowsPerPage],
   )
 
-  const openMapPopup = React.useCallback((title, map) => {
-    if (!map) {
+  const openMapPopup = React.useCallback((row) => {
+    const customerQuery = String(row?.customer_map_query ?? '').trim()
+    const currentLocation = buildLocation(row?.result_location_lat, row?.result_location_lng)
+    const customerLocation = buildLocation(row?.customer_location_lat, row?.customer_location_lng)
+    const customerMap = customerLocation
+      ? buildMapsUrls(customerLocation.latitude, customerLocation.longitude)
+      : buildAddressMapUrls(customerQuery)
+    const resultMap = currentLocation
+      ? buildMapsUrls(currentLocation.latitude, currentLocation.longitude)
+      : null
+
+    if (!currentLocation && !customerLocation && !customerQuery) {
       return
     }
 
@@ -541,10 +573,13 @@ export default function ReportMonitorRadius() {
     const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 768
     const width = Math.max(520, Math.min(980, viewportWidth - 40))
     const height = Math.max(420, Math.min(760, viewportHeight - 80))
-    const safeTitle = String(title ?? '').trim() || 'Maps'
-    const src = escapeAttr(map.embedUrl)
-    const openUrl = escapeAttr(map.openUrl)
-    const mapLabel = escapeAttr(map.label)
+    const popupId = `tv-map-popup-root-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    let popupRoot = null
+    const safeTitle = `Maps - ${String(row?.customer_name ?? '').trim() || 'Customer'}`
+    const openUrl = escapeAttr(customerMap?.openUrl ?? resultMap?.openUrl ?? '')
+    const popupLabel = escapeAttr(
+      `${String(row?.customer_name ?? '').trim() || 'Customer'} | Radius 2 km`,
+    )
 
     w2popup.open({
       title: safeTitle,
@@ -552,16 +587,46 @@ export default function ReportMonitorRadius() {
       width,
       height,
       body: `
-        <div class="tv-map-popup">
+        <div class="tv-map-popup tv-map-popup--react">
           <div class="tv-map-popup__actions">
-            <span class="tv-map-popup__label">${mapLabel}</span>
-            <a class="tv-map-popup__link" href="${openUrl}" target="_blank" rel="noopener noreferrer">Buka di tab baru</a>
+            <span class="tv-map-popup__label">${popupLabel}</span>
+            ${openUrl ? `<a class="tv-map-popup__link" href="${openUrl}" target="_blank" rel="noopener noreferrer">Buka di tab baru</a>` : ''}
           </div>
-          <iframe class="tv-map-popup__frame" src="${src}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+          <div id="${popupId}" class="tv-map-popup__react-root"></div>
         </div>
       `.trim(),
+      onOpen(event) {
+        event.onComplete = () => {
+          const mountElement = document.getElementById(popupId)
+
+          if (!mountElement) {
+            return
+          }
+
+          popupRoot = createRoot(mountElement)
+          popupRoot.render(
+            <MapsMonitorRadius
+              currentLocation={currentLocation}
+              customerLocation={customerLocation}
+              customerAddress={customerQuery}
+              resultAddress={
+                currentLocation
+                  ? `${currentLocation.latitude}, ${currentLocation.longitude}`
+                  : ''
+              }
+              showCurrentLocationAction={false}
+            />,
+          )
+        }
+      },
+      onClose() {
+        popupRoot?.unmount()
+        popupRoot = null
+      },
       actions: {
         Tutup() {
+          popupRoot?.unmount()
+          popupRoot = null
           w2popup.close()
         },
       },
@@ -572,57 +637,26 @@ export default function ReportMonitorRadius() {
 
   const columns = React.useMemo(
     () => [
-      { key: 'sales_name', header: 'Sales', group: GENERAL_INFORMATION_GROUP },
-      { key: 'wilayah', header: 'Wilayah', group: GENERAL_INFORMATION_GROUP },
-      { key: 'customer_name', header: 'Customer', group: GENERAL_INFORMATION_GROUP },
-      { key: 'plan_no', header: 'Plan No', group: GENERAL_INFORMATION_GROUP },
-      { key: 'plan_date', header: 'Tanggal Visit', group: GENERAL_INFORMATION_GROUP },
+      { key: 'sales_name', header: 'Sales' },
+      { key: 'wilayah', header: 'Wilayah' },
+      { key: 'customer_name', header: 'Customer' },
+      { key: 'plan_no', header: 'Plan No' },
+      { key: 'plan_date', header: 'Tanggal Visit' },
       {
         key: 'result_location_accuracy',
         header: 'Radius',
         align: 'right',
-        group: GENERAL_INFORMATION_GROUP,
         render: (row) => formatMaybeNumber(row.result_location_accuracy),
       },
       {
-        key: 'result_map',
-        header: 'Result',
-        group: MAP_GROUP,
+        key: 'maps',
+        header: 'Maps',
         render: (row) =>
           (
             <MapActionButton
-              label="Result"
-              variant="result"
-              onClick={
-                buildMapsUrls(row.result_location_lat, row.result_location_lng)
-                  ? () =>
-                      openMapPopup(
-                        `Map Result - ${row.customer_name}`,
-                        buildMapsUrls(row.result_location_lat, row.result_location_lng),
-                      )
-                  : null
-              }
-            />
-          ),
-      },
-      {
-        key: 'customer_map',
-        header: 'Customer',
-        group: MAP_GROUP,
-        render: (row) =>
-          (
-            <MapActionButton
-              label="Customer"
-              variant="customer"
-              onClick={
-                buildAddressMapUrls(buildCustomerMapQuery(row))
-                  ? () =>
-                      openMapPopup(
-                        `Map Customer - ${row.customer_name}`,
-                        buildAddressMapUrls(buildCustomerMapQuery(row)),
-                      )
-                  : null
-              }
+              label="Maps"
+              variant="maps"
+              onClick={hasMapData(row) ? () => openMapPopup(row) : null}
             />
           ),
       },
@@ -638,8 +672,8 @@ export default function ReportMonitorRadius() {
       exportMatrixToXlsx({
         fileName: `report-monitor-radius-${startDate}_${endDate}.xlsx`,
         sheetName: 'Monitor Radius',
-        rows: [
-          ['Sales', 'Wilayah', 'Customer', 'Plan No', 'Tanggal Visit', 'Radius', 'Result', 'Map Result', 'Map Customer', 'Foto'],
+          rows: [
+          ['Sales', 'Wilayah', 'Customer', 'Plan No', 'Tanggal Visit', 'Radius', 'Result', 'Maps', 'Foto'],
           ...filteredRows.map((row) => [
             row.sales_name,
             row.wilayah,
@@ -648,8 +682,13 @@ export default function ReportMonitorRadius() {
             row.plan_date,
             parseMaybeNumber(row.result_location_accuracy) ?? '',
             row.result,
-            buildMapsUrls(row.result_location_lat, row.result_location_lng)?.openUrl ?? '',
-            buildAddressMapUrls(buildCustomerMapQuery(row))?.openUrl ?? '',
+            [
+              buildMapsUrls(row.result_location_lat, row.result_location_lng)?.openUrl,
+              buildMapsUrls(row.customer_location_lat, row.customer_location_lng)?.openUrl ||
+                buildAddressMapUrls(row.customer_map_query)?.openUrl,
+            ]
+              .filter(Boolean)
+              .join(' | '),
             normalizeHttpUrl(row.user_photo) ?? '',
           ]),
         ],
@@ -777,11 +816,6 @@ export default function ReportMonitorRadius() {
               getDetailTitle={(row) => row.customer_name}
               getDetailDescription={(row) => `${row.sales_name} - ${row.plan_date}`}
               detailRenderer={(row) => {
-                const resultMap = buildMapsUrls(
-                  row.result_location_lat,
-                  row.result_location_lng,
-                )
-                const customerMap = buildAddressMapUrls(buildCustomerMapQuery(row))
                 const photoUrl = normalizeHttpUrl(row.user_photo)
 
                 return (
@@ -806,38 +840,12 @@ export default function ReportMonitorRadius() {
                           value: `${formatMaybeNumber(row.result_location_accuracy)} m`,
                         },
                         {
-                          label: 'maps result',
+                          label: 'maps',
                           value: (
                             <MapActionButton
-                              label="Map Result"
-                              variant="result"
-                              onClick={
-                                resultMap
-                                  ? () =>
-                                      openMapPopup(
-                                        `Map Result - ${row.customer_name}`,
-                                        resultMap,
-                                      )
-                                  : null
-                              }
-                            />
-                          ),
-                        },
-                        {
-                          label: 'maps customer',
-                          value: (
-                            <MapActionButton
-                              label="Map Customer"
-                              variant="customer"
-                              onClick={
-                                customerMap
-                                  ? () =>
-                                      openMapPopup(
-                                        `Map Customer - ${row.customer_name}`,
-                                        customerMap,
-                                      )
-                                  : null
-                              }
+                              label="Maps"
+                              variant="maps"
+                              onClick={hasMapData(row) ? () => openMapPopup(row) : null}
                             />
                           ),
                         },

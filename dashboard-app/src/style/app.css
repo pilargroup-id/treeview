@@ -2102,6 +2102,10 @@
   background: #0b1220;
 }
 
+.tv-map-popup--react {
+  overflow: hidden;
+}
+
 .tv-map-popup__actions {
   display: flex;
   align-items: center;
@@ -2137,6 +2141,12 @@
   border: 0;
   flex: 1;
   background: #0b1220;
+}
+
+.tv-map-popup__react-root {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .users-table__detail-chips {
