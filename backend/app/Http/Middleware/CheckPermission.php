@@ -4,8 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use App\Services\BigQueryService;
-
+use Illuminate\Support\Facades\DB;
 class CheckPermission
 {
     protected $bigQueryService;
@@ -17,7 +16,8 @@ class CheckPermission
 
     public function handle(Request $request, Closure $next, ...$params)
     {
-        $userId = $request->attributes->get('tree_view_user_id');
+        $department = $request->department;
+        $jobLevel   = $request->job_level;
 
         if (!$userId) {
             return response()->json([
@@ -66,5 +66,5 @@ class CheckPermission
 
         $request->attributes->set('user_permissions', $permissions);
         return $next($request);
-    }
+    }   
 }
