@@ -4,6 +4,7 @@ import DashboardLayoutBasic from './DashboardLayoutBasic';
 import LoginPage from './login/loginPage';
 import { AUTH_STATE_CHANGE_EVENT } from './utils/fetchWithAuth';
 import BackgroundMain from './Template/BackgroundMain';
+import { getUrlToken, storeAuthSession, clearTokenFromUrl, redirectToCentralPortal } from './utils/authSession';
 
 function hasStoredToken() {
   if (typeof window === 'undefined') return false;
