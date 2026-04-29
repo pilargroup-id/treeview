@@ -1,7 +1,9 @@
+console.log('MOCK_AUTH:', import.meta.env.VITE_MOCK_AUTH);
 import React from 'react';
 import DashboardLayoutBasic from './DashboardLayoutBasic';
 import { AUTH_STATE_CHANGE_EVENT } from './utils/fetchWithAuth';
 import { getUrlToken, storeAuthSession, clearTokenFromUrl, redirectToCentralPortal } from './utils/authSession';
+import { injectMockAuth } from './utils/mockAuth'
 
 function hasStoredToken() {
   if (typeof window === 'undefined') return false;
@@ -15,6 +17,16 @@ function App() {
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return undefined;
+
+    const isMockAuth = import.meta.env.VITE_MOCK_AUTH === 'true';
+
+    if (isMockAuth) {
+      injectMockAuth().then(() => {
+        setIsAuthenticated(hasStoredToken());
+        setIsAuthResolved(true);
+      });
+      return undefined;
+    }
 
     const urlToken = getUrlToken();
     if (urlToken) {
