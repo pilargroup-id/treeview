@@ -63,7 +63,8 @@ function App() {
   }, []);
 
   React.useEffect(() => {
-    if (isAuthResolved && !isAuthenticated) {
+    const isMockAuth = import.meta.env.VITE_MOCK_AUTH === 'true';
+    if (isAuthResolved && !isAuthenticated && !isMockAuth) {
       redirectToCentralPortal();
     }
   }, [isAuthResolved, isAuthenticated]);

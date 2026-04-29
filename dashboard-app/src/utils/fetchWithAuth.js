@@ -10,7 +10,9 @@ export { AUTH_STATE_CHANGE_EVENT } from './authSession';
 function redirectToLogin() {
   clearClientAuth();
   notifyAuthStateChange();
-  redirectToCentralPortal();
+  if (import.meta.env.VITE_MOCK_AUTH !== 'true') {
+    redirectToCentralPortal();
+  }
 }
 
 export async function fetchWithAuth(url, options = {}) {
