@@ -35,18 +35,29 @@ export function useSessionGuard() {
   const intervalRef = useRef(null);
 
   useEffect(() => {
-    if (import.meta.env.VITE_MOCK_AUTH === 'true') return;
+    console.log('[SessionGuard] mounted, MOCK_AUTH:', import.meta.env.VITE_MOCK_AUTH)
+    
+    if (import.meta.env.VITE_MOCK_AUTH === 'true') {
+      console.log('[SessionGuard] skipped - mock auth')
+      return
+    }
 
     const token = getStoredToken();
+    console.log('[SessionGuard] token exists:', Boolean(token))
+    
     if (!token) return;
 
     const check = async () => {
+      console.log('[SessionGuard] checking...')
       try {
         const res = await fetch(STATUS_URL, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
+        console.log('[SessionGuard] response status:', res.status)
+
         if (res.status === 401) {
+          console.log('[SessionGuard] 401 → handleExpired')
           handleExpired();
           return;
         }
@@ -54,8 +65,10 @@ export function useSessionGuard() {
         if (!res.ok) return;
 
         const data = await res.json();
+        console.log('[SessionGuard] data:', data)
 
         if (!data.valid) {
+          console.log('[SessionGuard] invalid → handleExpired')
           handleExpired();
           return;
         }
@@ -63,22 +76,19 @@ export function useSessionGuard() {
         const storedCv = getStoredCv();
         if (data.token_version !== undefined) {
           if (storedCv === null || Number(storedCv) !== Number(data.token_version)) {
+            console.log('[SessionGuard] cv mismatch → handleExpired', storedCv, data.token_version)
             handleExpired();
           }
         }
 
-      } catch {
-        // network error sementara, skip
+      } catch(e) {
+        console.log('[SessionGuard] error:', e)
       }
     };
 
-    // Cek saat mount
     check();
-
-    // Polling tiap 30 detik
     intervalRef.current = setInterval(check, 5_000);
 
-    // Tambah ini — cek langsung saat tab kembali aktif
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         check();
