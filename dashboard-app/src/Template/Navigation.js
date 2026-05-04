@@ -12,8 +12,8 @@ import PriceChangeIcon from '@mui/icons-material/PriceChange'
 import BarChartIcon from '@mui/icons-material/BarChart'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import CalendarViewWeekIcon from '@mui/icons-material/CalendarViewWeek'
+import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined'
 import LocationOnIcon from '@mui/icons-material/LocationOn'
-import MyLocationIcon from '@mui/icons-material/MyLocation'
 
 export const defaultNavigationPath = '/dashboard'
 export const implementedNavigationPaths = [
@@ -41,7 +41,7 @@ export const primaryNavigationItems = [
     children: [
       { id: 'monthly-visit', label: 'Monthly Visit', href: '/reports/monthly-visit', icon: CalendarMonthIcon },
       { id: 'weekly-summary', label: 'Weekly Summary', href: '/reports/weekly-summary', icon: CalendarViewWeekIcon },
-      { id: 'monitor-radius', label: 'Monitor Radius', href: '/reports/monitor-radius', icon: MyLocationIcon },
+      { id: 'monitor-radius', label: 'Details', href: '/reports/monitor-radius', icon: ArticleOutlinedIcon },
     ],
   },
 ]
@@ -92,7 +92,7 @@ export const BASE_NAVIGATION = [
     children: [
       { segment: 'monthly-visit', title: 'Monthly Visit', icon: CalendarMonthIcon },
       { segment: 'weekly-summary', title: 'Weekly Summary', icon: CalendarViewWeekIcon },
-      { segment: 'monitor-radius', title: 'Monitor Radius', icon: MyLocationIcon },
+      { segment: 'monitor-radius', title: 'Details', icon: ArticleOutlinedIcon },
     ],
   },
 ]

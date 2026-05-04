@@ -113,7 +113,7 @@ const BASE_MOBILE_CHILD_TABS_BY_GROUP = {
       matchers: ['reports/weekly-summary', 'reports/customers'],
     },
     {
-      label: 'Monitor Radius',
+      label: 'Details',
       value: '/reports/monitor-radius',
       matchers: ['reports/monitor-radius', 'reports/result'],
     },
