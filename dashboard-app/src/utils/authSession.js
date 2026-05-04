@@ -50,6 +50,7 @@ export function extractUserFromToken(token) {
       job_position: payload.job_position,
       job_level: payload.job_level,
       apps: payload.apps,
+      cv: payload.cv ?? null,
     };
   } catch {
     return null;

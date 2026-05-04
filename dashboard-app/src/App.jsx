@@ -3,7 +3,8 @@ import React from 'react';
 import DashboardLayoutBasic from './DashboardLayoutBasic';
 import { AUTH_STATE_CHANGE_EVENT } from './utils/fetchWithAuth';
 import { getUrlToken, storeAuthSession, clearTokenFromUrl, redirectToCentralPortal } from './utils/authSession';
-import { injectMockAuth } from './utils/mockAuth'
+import { injectMockAuth } from './utils/mockAuth';
+import { useSessionGuard } from './utils/useSessionGuard';
 
 function hasStoredToken() {
   if (typeof window === 'undefined') return false;
@@ -15,6 +16,8 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = React.useState(hasStoredToken);
   const [isAuthResolved, setIsAuthResolved] = React.useState(false);
 
+  useSessionGuard();
+  
   React.useEffect(() => {
     if (typeof window === 'undefined') return undefined;
 

@@ -39,6 +39,7 @@ class TreeViewAuthMiddleware
                 'job_position'      => $payload->get('job_position'),
                 'job_level'         => $payload->get('job_level'),
                 'apps'              => $apps,
+                'cv'                => $payload->get('cv'),
             ]);
 
             // Backward compatible pakai attributes
