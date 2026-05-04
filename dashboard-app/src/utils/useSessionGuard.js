@@ -41,15 +41,14 @@ export function useSessionGuard() {
     if (!token) return;
 
     const check = async () => {
-    try {
+      try {
         const res = await fetch(STATUS_URL, {
-        headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
-        // Token di-blacklist atau expired → langsung kick
         if (res.status === 401) {
-        handleExpired();
-        return;
+          handleExpired();
+          return;
         }
 
         if (!res.ok) return;
@@ -57,26 +56,39 @@ export function useSessionGuard() {
         const data = await res.json();
 
         if (!data.valid) {
-        handleExpired();
-        return;
+          handleExpired();
+          return;
         }
 
-        // cv check
         const storedCv = getStoredCv();
         if (data.token_version !== undefined) {
-        if (storedCv === null || Number(storedCv) !== Number(data.token_version)) {
+          if (storedCv === null || Number(storedCv) !== Number(data.token_version)) {
             handleExpired();
-        }
+          }
         }
 
-    } catch {
+      } catch {
         // network error sementara, skip
-    }
+      }
     };
 
+    // Cek saat mount
     check();
-    intervalRef.current = setInterval(check, POLL_INTERVAL);
 
-    return () => clearInterval(intervalRef.current);
+    // Polling tiap 30 detik
+    intervalRef.current = setInterval(check, 5_000);
+
+    // Tambah ini — cek langsung saat tab kembali aktif
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        check();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(intervalRef.current);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 }
