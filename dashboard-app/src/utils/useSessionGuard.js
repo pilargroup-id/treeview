@@ -41,36 +41,37 @@ export function useSessionGuard() {
     if (!token) return;
 
     const check = async () => {
-      try {
+    try {
         const res = await fetch(STATUS_URL, {
-          headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
         });
 
+        // Token di-blacklist atau expired → langsung kick
         if (res.status === 401) {
-          handleExpired();
-          return;
+        handleExpired();
+        return;
         }
 
-        if (!res.ok) return; // server error sementara, skip
+        if (!res.ok) return;
 
         const data = await res.json();
 
         if (!data.valid) {
-          handleExpired();
-          return;
+        handleExpired();
+        return;
         }
 
-        // cv di localStorage vs cv dari server
+        // cv check
         const storedCv = getStoredCv();
-        if (storedCv !== null && data.token_version !== undefined) {
-          if (Number(storedCv) !== Number(data.token_version)) {
+        if (data.token_version !== undefined) {
+        if (storedCv === null || Number(storedCv) !== Number(data.token_version)) {
             handleExpired();
-          }
+        }
         }
 
-      } catch {
-        // network error sementara, jangan logout
-      }
+    } catch {
+        // network error sementara, skip
+    }
     };
 
     check();
