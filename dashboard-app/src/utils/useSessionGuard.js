@@ -5,8 +5,8 @@ import {
   redirectToCentralPortal,
 } from './authSession';
 
-const POLL_INTERVAL = 30_000;
-const STATUS_URL = `${import.meta.env.VITE_CENTRAL_PORTAL_URL || 'https://pilargroup.id'}/api/auth/status`;
+const POLL_INTERVAL = 5_000;
+const STATUS_URL = `${import.meta.env.VITE_CENTRAL_PORTAL_API_URL || 'https://pilargroup.id'}/api/auth/status`;
 
 function getStoredToken() {
   return localStorage.getItem('authToken') || null;

@@ -1,4 +1,3 @@
-console.log('MOCK_AUTH:', import.meta.env.VITE_MOCK_AUTH);
 import React from 'react';
 import DashboardLayoutBasic from './DashboardLayoutBasic';
 import { AUTH_STATE_CHANGE_EVENT } from './utils/fetchWithAuth';
