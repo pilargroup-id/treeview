@@ -10,7 +10,6 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CalendarViewWeekIcon from '@mui/icons-material/CalendarViewWeek';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
-import { ChevronLeft } from '@untitledui/icons';
 import { AppProvider } from '@toolpad/core/AppProvider';
 import { DashboardLayout, DashboardSidebarPageItem } from '@toolpad/core/DashboardLayout';
 import { useDemoRouter } from '@toolpad/core/internal';
@@ -39,6 +38,7 @@ import MobileUserProfile from './mobile/mobileComponents/user/MobileUserProfile'
 import Sidebar from './Template/Sidebar';
 import Header from './Template/Header';
 import BackgroundMain from './Template/BackgroundMain';
+import { LogOutLeft01 } from './Template/TemplateIcons';
 import {
   defaultNavigationPath,
   implementedNavigationPaths,
@@ -57,9 +57,9 @@ const SIDEBAR_SECONDARY_ITEMS = secondaryNavigationItems
 
     return {
       ...item,
-      label: 'back pilargroup',
+      label: 'Back Pilargroup',
       href: PILLARGROUP_DASHBOARD_URL,
-      icon: ChevronLeft,
+      icon: LogOutLeft01,
       variant: undefined,
     };
   });
@@ -762,7 +762,7 @@ export default function DashboardLayoutBasic({ onLogout }) {
 
       <div className="main-content">
         <Header
-          title="treeView"
+          title="Treeview"
           onMenuToggle={handleMenuToggle}
           showMenuButton={isMobileScreen}
         />

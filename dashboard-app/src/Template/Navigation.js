@@ -1,12 +1,8 @@
 import {
-  BarChartSquare02,
-  Database01,
-  Folder,
   LogOut01,
   Settings01,
   Tool02,
   UserEdit,
-  Users01,
 } from '@untitledui/icons'
 import PriceChangeIcon from '@mui/icons-material/PriceChange'
 import BarChartIcon from '@mui/icons-material/BarChart'

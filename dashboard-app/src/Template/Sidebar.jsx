@@ -6,6 +6,7 @@ import {
   secondaryNavigationItems,
 } from '@/Template/Navigation'
 import { performLogout } from '@/login/logout'
+import './TemplateComponents.css'
 
 function getInitials(name) {
   return name
@@ -331,6 +332,11 @@ function Sidebar({
             onCloseMobile={onCloseMobile}
           />
         ))}
+      </div>
+
+      <div className="sidebar-copyright" aria-label="Copyright">
+        <p>&copy; 2026 PT Pilar Niaga Makmur</p>
+        <p>Developed by IT Team </p>
       </div>
     </aside>
   )

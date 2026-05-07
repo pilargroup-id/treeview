@@ -12,7 +12,7 @@ import logoPiagam from '/image/logo-piagam (1).svg'
 import logoPiagamTransparent from '/image/logo-piagam2.svg'
 
 function Header({
-  title = 'treeView',
+  title = 'Treeview',
   onMenuToggle,
   notificationProps,
   onRefresh,
