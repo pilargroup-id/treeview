@@ -43,7 +43,26 @@ class TreeViewAuthController extends Controller
             return response()->json(['success' => false, 'message' => 'Access denied for this application'], 403);
         }
 
-        $token = JWTAuth::claims(['apps' => $apps])->fromUser($user);
+        // Query department & job_level via relasi
+        $primaryDept = DB::connection('pilargroup')
+            ->table('central_user_departments as cud')
+            ->join('master_departments as md', 'cud.department_id', '=', 'md.id')
+            ->where('cud.user_id', $user->id)
+            ->orderByDesc('cud.is_primary')
+            ->select('md.name as department_name', 'md.id as department_id')
+            ->first();
+
+        $jobLevel = DB::connection('pilargroup')
+            ->table('master_job_levels')
+            ->where('id', $user->job_level_id)
+            ->value('name');
+
+        $token = JWTAuth::claims([
+            'apps'         => $apps,
+            'department'   => $primaryDept?->department_name,
+            'department_id'=> $primaryDept?->department_id,
+            'job_level'    => $jobLevel,
+        ])->fromUser($user);
 
         return response()->json([
             'success' => true,
@@ -55,9 +74,9 @@ class TreeViewAuthController extends Controller
                     'internal_id'  => $user->internal_id,
                     'username'     => $user->username,
                     'name'         => $user->name,
-                    'department'   => $user->department,
+                    'department'   => $primaryDept?->department_name,
                     'job_position' => $user->job_position,
-                    'job_level'    => $user->job_level,
+                    'job_level'    => $jobLevel,
                     'apps'         => $apps,
                 ],
             ],

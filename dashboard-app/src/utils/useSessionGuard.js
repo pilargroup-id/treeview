@@ -74,11 +74,11 @@ export function useSessionGuard() {
         }
 
         const storedCv = getStoredCv();
-        if (data.token_version !== undefined) {
-          if (storedCv === null || Number(storedCv) !== Number(data.token_version)) {
-            console.log('[SessionGuard] cv mismatch → handleExpired', storedCv, data.token_version)
-            handleExpired();
-          }
+        if (data.token_version !== undefined && storedCv !== null) {
+            if (Number(storedCv) !== Number(data.token_version)) {
+                console.log('[SessionGuard] cv mismatch → handleExpired', storedCv, data.token_version)
+                handleExpired();
+            }
         }
 
       } catch(e) {
