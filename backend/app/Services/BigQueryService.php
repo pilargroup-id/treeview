@@ -14,7 +14,7 @@ class BigQueryService
     public function __construct()
     {
         $keyFilePath = storage_path('app/google/even-gearbox-255203-10881c36321f.json');
-        $this->projectId = env('BIGQUERY_PROJECT_ID');
+        $this->projectId = config('bigquery.project_id');
         
         $this->bigQuery = new BigQueryClient([
             'projectId' => $this->projectId,
@@ -346,8 +346,8 @@ public function deleteToken($userId)
     public function updateUsername($userId, $newUsername)
     {
         try {
-            $dataset = env('BIGQUERY_DATASET');
-            $project = env('BIGQUERY_PROJECT_ID');
+            $dataset = config('bigquery.dataset');
+            $project = config('bigquery.project_id');
             $now = now()->toDateTimeString();
             $table = "`{$project}.{$dataset}.tree_view_auth`";
 
@@ -372,8 +372,8 @@ public function deleteToken($userId)
     public function updatePassword($userId, $newHashedPassword)
     {
         try {
-            $dataset = env('BIGQUERY_DATASET');
-            $project = env('BIGQUERY_PROJECT_ID');
+            $dataset = config('bigquery.dataset');
+            $project = config('bigquery.project_id');
             $now = now()->toDateTimeString();
             $table = "`{$project}.{$dataset}.tree_view_auth`";
 
@@ -391,8 +391,8 @@ public function deleteToken($userId)
     public function getUserById($userId)
     {
         try {
-            $dataset = env('BIGQUERY_DATASET');
-            $project = env('BIGQUERY_PROJECT_ID');
+            $dataset = config('bigquery.dataset');
+            $project = config('bigquery.project_id');
 
             $query = "
                 SELECT id, username, password, is_active

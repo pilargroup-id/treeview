@@ -46,6 +46,7 @@ jobs:
             echo '>> Backend'
             cd ../backend
             composer install --no-dev --optimize-autoloader --no-interaction
+            php artisan config:clear
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache

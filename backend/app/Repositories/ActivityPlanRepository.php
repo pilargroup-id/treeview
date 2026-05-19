@@ -14,8 +14,8 @@ class ActivityPlanRepository
     public function __construct(BigQueryService $bigQueryService)
     {
         $this->bigQueryService = $bigQueryService;
-        $this->projectId = env('BIGQUERY_PROJECT_ID');
-        $this->dataset = env('BIGQUERY_DATASET');
+        $this->projectId = config('bigquery.project_id');
+        $this->dataset = config('bigquery.dataset');
     }
 
     /**
