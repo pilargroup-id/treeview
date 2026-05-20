@@ -25,7 +25,7 @@ jobs:
 
       - name: Deploy on VM
         run: |
-          ssh -v -i ~/.ssh/deploy_key ${{ secrets.GCP_USER }}@${{ secrets.GCP_HOST }} "echo test"
+          ssh -i ~/.ssh/deploy_key ${{ secrets.GCP_USER }}@${{ secrets.GCP_HOST }} "
             set -e
 
             export NVM_DIR=\"\$HOME/.nvm\"
