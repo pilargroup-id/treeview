@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 class ProfileController extends Controller
 {
     public function changeProfile(Request $request)
-    {//
+    {
         $request->validate([
             'current_password' => 'required',
             'new_username'     => 'nullable|string|min:3',
