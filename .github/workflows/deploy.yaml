@@ -35,8 +35,9 @@ jobs:
 
             cd /var/www/treeview
 
-            echo '>> Git pull'
-            git pull origin main
+            echo '>> Sync source'
+            git fetch origin main
+            git reset --hard origin/main
 
             echo '>> Build frontend'
             cd dashboard-app
