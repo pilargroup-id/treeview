@@ -10,6 +10,8 @@ use Carbon\Carbon;
 
 class ActivityDetailController extends Controller
 {
+    private const MAX_DATE_RANGE_DAYS = 366;
+
     protected $activityDetailRepository;
 
     public function __construct(ActivityDetailRepository $activityDetailRepository)
@@ -35,17 +37,17 @@ class ActivityDetailController extends Controller
             'tujuan' => 'nullable|string|in:Visit,Follow Up',
         ]);
 
-        // Validate date range (max 1 month / 31 days)
+        // Validate date range (max 1 year, including leap years)
         if (!empty($validated['start_date']) && !empty($validated['end_date'])) {
             $startDate = Carbon::parse($validated['start_date']);
             $endDate = Carbon::parse($validated['end_date']);
-            $daysDiff = $startDate->diffInDays($endDate);
+            $daysDiff = $startDate->diffInDays($endDate) + 1;
 
-            if ($daysDiff > 31) {
+            if ($daysDiff > self::MAX_DATE_RANGE_DAYS) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Date range cannot exceed 1 month (31 days)',
-                    'error' => 'Date range is ' . $daysDiff . ' days. Maximum is 31 days.'
+                    'message' => 'Date range cannot exceed 1 year (366 days)',
+                    'error' => 'Date range is ' . $daysDiff . ' days. Maximum is ' . self::MAX_DATE_RANGE_DAYS . ' days.'
                 ], 422);
             }
         }

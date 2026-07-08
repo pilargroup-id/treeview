@@ -816,7 +816,7 @@ export default function ReportMonitorRadius() {
                 }))
                 setPage(0)
               }}
-              maxRangeDays={null}
+              maxRangeDays={366}
             />
           </Box>
 

@@ -62,7 +62,7 @@ class ActivityDetailRepository
             "ap.deleted_at IS NULL"
         ];
 
-        // Filter by date range (max 1 month)
+        // Filter by date range
         if (!empty($filters['start_date']) && !empty($filters['end_date'])) {
             $startDate = $this->escapeSqlString($filters['start_date']);
             $endDate = $this->escapeSqlString($filters['end_date']);
