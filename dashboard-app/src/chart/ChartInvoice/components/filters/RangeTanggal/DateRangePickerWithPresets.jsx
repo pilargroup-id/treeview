@@ -40,7 +40,10 @@ export const DateRangePickerWithPresets = ({
   hidePresetPanel = false,
   hideTrigger = false,
   mobileModal = false,
-  mobileFullPage = false
+  mobileFullPage = false,
+  includeYearAndAllTimePresets = false,
+  onSelectAllTime,
+  maxRangeDays = 31
 }) => {
   const { alertState, showWarning, showError, closeAlert } = useAlert();
   const [selectionRange, setSelectionRange] = useState({
@@ -61,6 +64,12 @@ export const DateRangePickerWithPresets = ({
   const isSingleCalendar = resolvedCalendarMonths === 1;
   const isMobilePicker = mobileModal || mobileFullPage;
   const isMobileFullPage = mobileFullPage;
+  const parsedMaxRangeDays = Number(maxRangeDays);
+  const hasMaxRangeDays =
+    maxRangeDays !== null &&
+    maxRangeDays !== undefined &&
+    Number.isFinite(parsedMaxRangeDays) &&
+    parsedMaxRangeDays > 0;
   
   const MAX_RANGE_DATES = 1;
   const isRangeLimitReached = !allowReplaceExistingRange && rangeDates.length >= MAX_RANGE_DATES;
@@ -82,6 +91,10 @@ export const DateRangePickerWithPresets = ({
         startDate = new Date(today.getFullYear(), today.getMonth(), 1);
         endDate = new Date(today);
         endDate.setDate(today.getDate() - 1);
+        break;
+      case 'thisYear':
+        startDate = new Date(today.getFullYear(), 0, 1);
+        endDate = new Date(today);
         break;
       // case 'last3Days':
       //   startDate = new Date(today);
@@ -116,6 +129,20 @@ export const DateRangePickerWithPresets = ({
 
   // Handler untuk preset range
   const handlePresetSelect = (preset) => {
+    if (preset === 'allTime') {
+      if (typeof onSelectAllTime === 'function') {
+        setSelectedPreset(preset);
+        onSelectAllTime();
+        setSelectionRange({
+          startDate: new Date(),
+          endDate: new Date(),
+          key: 'selection',
+        });
+        setShowPicker(false);
+      }
+      return;
+    }
+
     const dates = getPresetDates(preset);
     if (dates) {
       setSelectedPreset(preset);
@@ -131,6 +158,10 @@ export const DateRangePickerWithPresets = ({
   const presetRanges = [
     { key: 'today', label: 'Today' },
     { key: 'thisMonth', label: 'This Month' },
+    ...(includeYearAndAllTimePresets ? [{ key: 'thisYear', label: 'This Year' }] : []),
+    ...(includeYearAndAllTimePresets && typeof onSelectAllTime === 'function'
+      ? [{ key: 'allTime', label: 'All Time' }]
+      : []),
     { key: 'last7Days', label: 'Last 7 Days' },
     { key: 'last14Days', label: 'Last 14 Days' },
     { key: 'last30Days', label: 'Last 30 Days' },
@@ -205,8 +236,8 @@ export const DateRangePickerWithPresets = ({
       
       const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
       const diffInDays = Math.floor((testEndDate - testStartDate) / MILLISECONDS_PER_DAY) + 1;
-      if (diffInDays > 31) {
-        showWarning('Range tanggal maksimal 31 hari');
+      if (hasMaxRangeDays && diffInDays > parsedMaxRangeDays) {
+        showWarning(`Range tanggal maksimal ${parsedMaxRangeDays} hari`);
         return;
       }
       

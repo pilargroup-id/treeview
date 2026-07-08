@@ -520,7 +520,7 @@ export default function ReportMonitorRadius() {
     const endDate = String(filters.end_date ?? '').trim()
 
     if (!startDate && !endDate) {
-      return 'Pilih Range Tanggal'
+      return 'All Time'
     }
 
     if (!startDate || !endDate) {
@@ -672,11 +672,14 @@ export default function ReportMonitorRadius() {
 
   const exportCurrentRows = React.useCallback(() => {
     try {
-      const startDate = String(filters.start_date ?? '').trim() || 'all'
-      const endDate = String(filters.end_date ?? '').trim() || 'all'
+      const rawStartDate = String(filters.start_date ?? '').trim()
+      const rawEndDate = String(filters.end_date ?? '').trim()
+      const dateKey = rawStartDate || rawEndDate
+        ? `${rawStartDate || 'all'}_${rawEndDate || 'all'}`
+        : 'all-time'
 
       exportMatrixToXlsx({
-        fileName: `report-monitor-radius-${startDate}_${endDate}.xlsx`,
+        fileName: `report-monitor-radius-${dateKey}.xlsx`,
         sheetName: 'Monitor Radius',
           rows: [
           ['Sales', 'Wilayah', 'Customer', 'Plan No', 'Tanggal Visit', 'Radius', 'Result', 'Maps', 'Foto'],
@@ -804,6 +807,16 @@ export default function ReportMonitorRadius() {
               calendarMonths={2}
               calendarDirection="horizontal"
               hideTrigger
+              includeYearAndAllTimePresets
+              onSelectAllTime={() => {
+                setFilters((current) => ({
+                  ...current,
+                  start_date: '',
+                  end_date: '',
+                }))
+                setPage(0)
+              }}
+              maxRangeDays={null}
             />
           </Box>
 

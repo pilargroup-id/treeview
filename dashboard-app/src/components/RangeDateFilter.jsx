@@ -21,7 +21,10 @@ function RangeDateFilter({
   hidePresetPanel = false,
   hideTrigger = false,
   mobileModal = false,
-  mobileFullPage = false
+  mobileFullPage = false,
+  includeYearAndAllTimePresets = false,
+  onSelectAllTime,
+  maxRangeDays = 31
 }) {
   return (
     <DateRangePickerWithPresets
@@ -45,6 +48,9 @@ function RangeDateFilter({
       hideTrigger={hideTrigger}
       mobileModal={mobileModal}
       mobileFullPage={mobileFullPage}
+      includeYearAndAllTimePresets={includeYearAndAllTimePresets}
+      onSelectAllTime={onSelectAllTime}
+      maxRangeDays={maxRangeDays}
     />
   )
 }
